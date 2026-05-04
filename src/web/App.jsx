@@ -94,25 +94,26 @@ const addDaysToISODate = (isoDate, daysToAdd) => {
   return date.toISOString().slice(0, 10)
 }
 
-const getDayOfWeek = (isoDate) => {
+const parseISODate = (isoDate) => {
   const date = new Date(`${isoDate}T00:00:00Z`)
-  if (Number.isNaN(date.getTime())) {
-    return null
-  }
-  return date.getUTCDay()
+  return Number.isNaN(date.getTime()) ? null : date
 }
 
 const getNextWeekdayISODate = (isoDate) => {
-  let nextDate = addDaysToISODate(isoDate, 1)
-  for (let attempt = 0; attempt < 7; attempt += 1) {
-    const day = getDayOfWeek(nextDate)
-    if (day !== 0 && day !== 6) {
-      return nextDate
-    }
-    nextDate = addDaysToISODate(nextDate, 1)
+  const date = parseISODate(isoDate)
+  if (!date) {
+    return isoDate
   }
 
-  return addDaysToISODate(isoDate, 1)
+  for (let attempt = 0; attempt < 7; attempt += 1) {
+    date.setUTCDate(date.getUTCDate() + 1)
+    const day = date.getUTCDay()
+    if (day !== 0 && day !== 6) {
+      return date.toISOString().slice(0, 10)
+    }
+  }
+
+  return isoDate
 }
 
 const getNextRecurringDate = (isoDate, recurringRule) => {
