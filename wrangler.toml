@@ -1,5 +1,3 @@
 name = "duedly"
 compatibility_date = "2026-05-01"
 
-# This maps your local build folder to the Cloudflare Worker static asset engine
-assets = { directory = "./dist" }
