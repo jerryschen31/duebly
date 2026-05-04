@@ -41,6 +41,7 @@ const RECURRING_MENU_OPTIONS = [
   { value: 'none', label: 'Does not repeat' },
   { value: 'daily', label: 'Repeat daily' },
   { value: 'weekly', label: 'Repeat weekly' },
+  { value: 'weekdays', label: 'Repeat M-F' },
 ]
 
 const SWIPE_THRESHOLD = 70
@@ -90,6 +91,41 @@ const addDaysToISODate = (isoDate, daysToAdd) => {
 
   date.setUTCDate(date.getUTCDate() + daysToAdd)
   return date.toISOString().slice(0, 10)
+}
+
+const getDayOfWeek = (isoDate) => {
+  const date = new Date(`${isoDate}T00:00:00Z`)
+  if (Number.isNaN(date.getTime())) {
+    return null
+  }
+  return date.getUTCDay()
+}
+
+const getNextWeekdayISODate = (isoDate) => {
+  let nextDate = addDaysToISODate(isoDate, 1)
+  while (true) {
+    const day = getDayOfWeek(nextDate)
+    if (day !== 0 && day !== 6) {
+      return nextDate
+    }
+    nextDate = addDaysToISODate(nextDate, 1)
+  }
+}
+
+const getNextRecurringDate = (isoDate, recurringRule) => {
+  if (recurringRule === 'daily') {
+    return addDaysToISODate(isoDate, 1)
+  }
+
+  if (recurringRule === 'weekly') {
+    return addDaysToISODate(isoDate, 7)
+  }
+
+  if (recurringRule === 'weekdays') {
+    return getNextWeekdayISODate(isoDate)
+  }
+
+  return isoDate
 }
 
 const getSeriesId = (task) => task.originalTaskId || task.id
@@ -218,6 +254,7 @@ function App() {
 
       if (!target.closest('.task-menu-wrap')) {
         setMenuTaskId(null)
+        setFrequencySelectorTaskId(null)
       }
 
       if (!target.closest('.label-select-wrap')) {
@@ -232,9 +269,6 @@ function App() {
         setLabelSelectorTaskId(null)
       }
 
-      if (!target.closest('.task-frequency-selector-wrap')) {
-        setFrequencySelectorTaskId(null)
-      }
     }
 
     document.addEventListener('mousedown', onPointerDown)
@@ -445,21 +479,8 @@ function App() {
     }
   }
 
-  const getRecurringAdvanceDays = (recurringRule) => {
-    if (recurringRule === 'daily') {
-      return 1
-    }
-
-    if (recurringRule === 'weekly') {
-      return 7
-    }
-
-    return 0
-  }
-
   const getRecurringTargetDate = (recurringRule) => {
-    const days = getRecurringAdvanceDays(recurringRule)
-    return addDaysToISODate(today, days)
+    return getNextRecurringDate(today, recurringRule)
   }
 
   const getLaterToast = (targetDate) => {
@@ -470,15 +491,12 @@ function App() {
   const toggleTaskDone = (task, isDone) => {
     const updatedTask = updateTaskInState(task.id, (currentTask) => {
       if (isDone && currentTask.recurring !== 'none') {
-        const days = getRecurringAdvanceDays(currentTask.recurring)
-        if (days > 0) {
-          return {
-            ...currentTask,
-            dueDate: addDaysToISODate(currentTask.dueDate, days),
-            isDone: false,
-            completedAt: null,
-            last_updated: taskModel.getNowIso(),
-          }
+        return {
+          ...currentTask,
+          dueDate: getNextRecurringDate(currentTask.dueDate, currentTask.recurring),
+          isDone: false,
+          completedAt: null,
+          last_updated: taskModel.getNowIso(),
         }
       }
 
@@ -661,6 +679,10 @@ function App() {
       return null
     }
 
+    if (task.recurring === 'weekdays') {
+      return '⏭ Later (M-F)'
+    }
+
     return task.recurring === 'weekly' ? '⏭ Later (+7d)' : '⏭ Later'
   }
 
@@ -733,6 +755,18 @@ function App() {
     persistTaskBatch({ save, deleteIds })
     setMenuTaskId(null)
     setFrequencySelectorTaskId(null)
+  }
+
+  const toggleTaskMenu = (taskId) => {
+    setMenuTaskId((prev) => {
+      if (prev === taskId) {
+        setFrequencySelectorTaskId(null)
+        return null
+      }
+
+      setFrequencySelectorTaskId(null)
+      return taskId
+    })
   }
 
   const renderEmptyMessage = () => {
@@ -1065,7 +1099,7 @@ function App() {
                       <button
                         type="button"
                         className="icon-button"
-                        onClick={() => setMenuTaskId((prev) => (prev === task.id ? null : task.id))}
+                        onClick={() => toggleTaskMenu(task.id)}
                         aria-label={`Open menu for ${task.text}`}
                       >
                         ⋯
@@ -1078,17 +1112,33 @@ function App() {
                           <button
                             type="button"
                             onClick={() => {
-                              setFrequencySelectorTaskId(task.id)
-                              setMenuTaskId(null)
+                              setFrequencySelectorTaskId((prev) => (prev === task.id ? null : task.id))
                             }}
                           >
                             Change frequency
                           </button>
+                          {frequencySelectorTaskId === task.id ? (
+                            <div className="task-frequency-submenu">
+                              {RECURRING_MENU_OPTIONS.map((option) => (
+                                <button
+                                  key={option.value}
+                                  type="button"
+                                  onClick={() => changeTaskFrequency(task, option.value)}
+                                >
+                                  <span>{option.label}</span>
+                                  <span className="recurring-option-check" aria-hidden="true">
+                                    {task.recurring === option.value ? '✓' : ''}
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                          ) : null}
                           <button
                             type="button"
                             onClick={() => {
                               setLabelSelectorTaskId(task.id)
                               setMenuTaskId(null)
+                              setFrequencySelectorTaskId(null)
                             }}
                           >
                             Change label
@@ -1100,24 +1150,6 @@ function App() {
                       ) : null}
                     </div>
 
-                    {frequencySelectorTaskId === task.id ? (
-                      <div className="task-frequency-selector-wrap">
-                        <div className="task-menu task-frequency-selector">
-                          {RECURRING_MENU_OPTIONS.map((option) => (
-                            <button
-                              key={option.value}
-                              type="button"
-                              onClick={() => changeTaskFrequency(task, option.value)}
-                            >
-                              <span>{option.label}</span>
-                              <span className="recurring-option-check" aria-hidden="true">
-                                {task.recurring === option.value ? '✓' : ''}
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ) : null}
                   </motion.article>
 
                   {labelSelectorTaskId === task.id ? (

@@ -9,7 +9,7 @@ const SETTINGS_KEYS = {
   statusIndicator: 'status-indicator',
 }
 
-const RECURRING_VALUES = ['none', 'daily', 'weekly']
+const RECURRING_VALUES = ['none', 'daily', 'weekly', 'weekdays']
 const TASK_RETENTION_DAYS = 60
 
 const parseBooleanFlag = (value, defaultValue) => {

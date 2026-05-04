@@ -212,7 +212,7 @@
 }
 
 .task-menu.recurring-menu button,
-.task-frequency-selector button {
+.task-frequency-submenu button {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -223,7 +223,7 @@
 
 .task-menu.recurring-menu button:hover,
 .task-menu.recurring-menu button.active,
-.task-frequency-selector button:hover {
+.task-frequency-submenu button:hover {
   background: #f3f4f6;
 }
 
@@ -398,8 +398,7 @@
 }
 
 .task-menu-wrap,
-.task-label-selector-wrap,
-.task-frequency-selector-wrap {
+.task-label-selector-wrap {
   position: relative;
 }
 
@@ -418,6 +417,7 @@
   background: white;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
   z-index: 28;
+  overflow: visible;
 }
 
 .task-menu button {
@@ -435,19 +435,21 @@
   z-index: 29;
 }
 
-.task-frequency-selector-wrap {
-  z-index: 29;
-}
-
 .task-label-selector {
   position: absolute;
   top: 0.15rem;
 }
 
-.task-frequency-selector {
+.task-frequency-submenu {
   position: absolute;
-  top: 0.15rem;
-  right: 0;
+  top: 2.3rem;
+  right: calc(100% + 0.35rem);
+  width: 12.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+  z-index: 31;
 }
 
 .empty-state {
