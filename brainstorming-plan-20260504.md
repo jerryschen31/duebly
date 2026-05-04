@@ -1,93 +1,195 @@
+New features for MVP-2: these specifications are implementation-ready for the current app and locked product decisions.
 
-New features: These detailed specifications are designed for a coding agent to interpret and implement in a modern Vite/React/Tailwind stack.
+Current stack baseline for MVP-2:
 
----
-
-## 1. Natural Language Processing (NLP) Quick-Add
-**Objective:** Deterministically extract date information from a text string and return a "clean" task title and a JavaScript `Date` object.
-
-* **Core Library:** Use `chrono-node`. It is the industry standard for non-LLM, deterministic natural language date parsing in JS.
-* **Implementation Logic:**
-    1.  **Listener:** Create a function `parseTaskInput(inputString)`.
-    2.  **Extraction:** Use `chrono.parse(inputString)`. This returns an array of results containing the `text` recognized as a date and the `start` date object.
-    3.  **Refinement:** * If a date is found, take the first result.
-        * **Task Title:** `inputString.replace(result.text, '').trim()`. Remove extra whitespace.
-        * **Due Date:** `result.start.date()`. 
-        * **Special Case "Next Week":** If the parsed text is "next week", explicitly set the date to the following Monday at 9:00 AM.
-    4.  **UI Feedback:** As the user types, show a small "badge" below the input field showing the recognized date (e.g., "📅 Tomorrow") so the user knows the NLP worked before hitting Enter.
+- Frontend: React + Vite, plain CSS.
+- Local persistence target for MVP-2: Dexie on IndexedDB (replacing localStorage as primary task store).
+- Backend today: none.
+- Future sync target: authenticated Google Drive appData JSON file.
+- All major features below depend on Feature 1 completion.
 
 ---
 
-## 2. Swipe Gestures
-**Objective:** Enable mobile-friendly task management using horizontal drag physics.
+## 1. Dexie/IndexedDB Migration Foundation (Blocking)
+Objective: migrate task/settings persistence from localStorage to Dexie/IndexedDB with safe one-time data migration.
 
-* **Core Library:** `framer-motion` (preferred for Vite/React) using the `drag="x"` and `dragConstraints`.
-* **Thresholds:** Define a threshold (e.g., 70px).
-* **Logic Flow:**
-    * **Swipe Left (Negative X):**
-        * **Condition:** If `task.status !== 'done'`, trigger `completeTask(id)`.
-        * **Condition:** If `task.status === 'done'`, trigger `deleteTask(id)`.
-        * **Visual:** Red background with a Trash or Check icon appearing behind the task.
-    * **Swipe Right (Positive X):**
-        * **Logic:** Trigger `rescheduleTask(id, tomorrow)`.
-        * **Recurring Check:** If `task.recurring === 'daily'`, trigger `skipToday(id)` (this updates the task to the next day without marking it "Done").
-        * **Visual:** Yellow/Orange background with an "Arrow/Clock" icon.
-* **Animation:** Use `AnimatePresence` so tasks slide out and the list collapses smoothly when a task is moved or deleted.
+Implementation instructions:
 
----
+- Add Dexie and create a client-side DB module.
+- Define Dexie schema for at least:
+    - tasks table keyed by id.
+    - settings table keyed by id/name (timezone and future sync flags).
+- Extend task data model now to support upcoming features:
+    - id: string
+    - text: string
+    - dueDate: YYYY-MM-DD
+    - isDone: boolean
+    - color: hex string
+    - createdAt: number
+    - completedAt: number | null
+    - recurring: 'none' | 'daily' | 'weekly'
+    - originalTaskId: string | null
+    - last_updated: ISO string
+- Implement one-time migration:
+    - Read existing localStorage keys for tasks and timezone.
+    - Normalize/validate entries.
+    - Upsert into Dexie.
+    - Set a migration-complete flag.
+    - Do not delete localStorage immediately; keep temporary fallback for one release.
+- Refactor state CRUD paths to use a storage adapter backed by Dexie:
+    - loadTasks, saveTask, updateTask, deleteTask, loadSettings, saveSettings.
+- Ensure all mutations update last_updated consistently.
+- Migration fallback policy (locked):
+    - Keep localStorage fallback until migration success marker is stable across two launches.
+    - "Stable across two launches" means migration marker exists and Dexie load/validation succeeds on two consecutive app starts.
 
-## 3. Smart Recurring Tasks
-**Objective:** Automate routine task generation without cluttering the database with infinite future instances.
+Things to watch for:
 
-* **Data Schema Update:** Add `recurring: 'daily' | 'weekly' | 'none'` and `originalTaskId: string` (optional, for grouping).
-* **Completion Logic:**
-    * Inside the `toggleDone` function: 
-    * `if (task.recurring !== 'none')`: Instead of moving to "Done," calculate the next occurrence.
-    * `daily`: `newDate = currentDueDate + 1 day`.
-    * `weekly`: `newDate = currentDueDate + 7 days`.
-    * Update the task's `dueDate` to `newDate` and keep `isDone = false`.
-* **UI Logic:**
-    * In the "Planned" list, use a `.filter()` to only show tasks where `dueDate` is the **next** chronological occurrence.
-    * Append `(recurring)` in a subtle, small font next to the task title.
-    * **Visual:** Add a "Repeat" icon (🔄) next to the title.
-
----
-
-## 4. Offline-First and PWA Caching
-**Objective:** Ensure the app works in a tunnel/airplane and syncs perfectly when a connection returns.
-
-* **Tech Stack:** `vite-plugin-pwa` for assets; `Dexie.js` for IndexedDB management.
-* **Storage Logic:**
-    1.  **Local Primary:** All CRUD operations (Create, Read, Update, Delete) happen *first* in Dexie (IndexedDB).
-    2.  **Service Worker:** Configure `vite-plugin-pwa` to "CacheFirst" for all static assets (JS, CSS, Icons).
-* **Sync Logic:**
-    1.  **Timestamping:** Every task object must have a `last_updated` ISO string.
-    2.  **Background Sync:** * Listen for the `window.onLine` event.
-        * When online, fetch the `todos.json` from the Google Drive `appData` folder.
-        * **Conflict Resolution:** Compare `last_updated` of local vs. remote. The one with the more recent timestamp wins.
-        * **Push:** Upload the final merged JSON back to Google Drive.
-
-
+- This feature is a blocker for all features below.
+- Do not keep two competing sources of truth after migration; Dexie must be primary.
+- Preserve compatibility with previously saved task objects missing new fields.
+- Keep UI responsive; avoid blocking renders on large synchronous migrations.
+- Keep all logic frontend-only; do not add backend assumptions.
+- Do not remove localStorage fallback before two-launch migration stability is confirmed.
 
 ---
 
-## 5. Minimalist Progress Ring
-**Objective:** A high-level visual summary of "Today's" productivity.
+## 2. Swipe Gestures (Depends on Feature 1)
+Objective: enable mobile-friendly horizontal gestures for fast task actions.
 
-* **Component Logic:** Create a `ProgressRing.jsx` component using a simple SVG `circle`.
-* **Calculation:**
-    * `todayTasks = tasks.filter(t => isSameDay(t.dueDate, today))`
-    * `total = todayTasks.length`
-    * `completed = todayTasks.filter(t => t.isDone).length`
-    * `percentage = (completed / total) * 100`
-* **Styling:**
-    * Use a thin stroke (2px - 4px).
-    * **Empty State:** Light gray ring.
-    * **Progress State:** Accent color (e.g., Blue or Green) ring that fills using the `stroke-dasharray` property.
-    * **Text:** Place a small `completed/total` fraction in the center of the ring.
-* **Placement:** Fixed at the top-right of the header or centered at the very top of the "Today" list.
+Implementation instructions:
+
+- Use framer-motion drag on x-axis for task rows.
+- Use action threshold (for example, 70px) and commit on drag end.
+- Left swipe behavior:
+    - Not Done task: mark done.
+    - Done task: delete.
+- Right swipe behavior (locked):
+    - Applies only to Not Done tasks.
+    - Never applies to Planned or Done tasks.
+    - Action: bump dueDate by +1 day (tomorrow in selected timezone).
+    - Show toast: "Moved to tomorrow".
+- Show visual action backgrounds during drag:
+    - Left: red + check/trash icon based on state.
+    - Right: yellow/orange + clock/arrow icon.
+- Animate removal/reflow with AnimatePresence.
+- Persist gesture-driven updates through Dexie adapter methods.
+- Toast feedback requirement:
+    - Use a lightweight custom toast system (React Context + local state queue).
+    - Use framer-motion transitions for enter/exit.
+    - Keep styling lightweight and consistent with app UI (no heavy UI library dependency).
+
+Things to watch for:
+
+- Do not trigger right-swipe behavior in Planned or Done tabs.
+- Avoid accidental commits on slight drags.
+- Prevent drag from breaking vertical scroll on mobile.
+- Keep checkbox/date/menu interactions fully usable.
+- Maintain keyboard-accessible equivalents for gesture actions.
 
 ---
 
-### 💡 Agent Implementation Tip:
-When implementing the **NLP Quick-Add**, ensure you utilize `chrono.parseDate` if you only need the final object, but `chrono.parse` is necessary to find the specific "substring" to remove from the title. 
+## 3. Smart Recurring Tasks (Depends on Feature 1)
+Objective: support recurring task behavior without creating infinite future task copies.
+
+Implementation instructions:
+
+- Use recurring fields from Feature 1 schema.
+- Keep one active row per recurring task series.
+- Completion logic:
+    - recurring = none: existing done toggle behavior.
+    - recurring = daily/weekly and user marks complete:
+        - Advance dueDate by +1 day or +7 days.
+        - Keep isDone = false.
+        - Clear completedAt.
+        - Update last_updated.
+        - Show toast: "Moved to next occurrence".
+- Show recurring UI affordance:
+    - Repeat icon next to task text.
+    - subtle "(recurring)" marker.
+- Planned list should show next upcoming occurrence only (same task row after dueDate change).
+
+Things to watch for:
+
+- Do not clone recurring tasks into multiple future instances.
+- Keep date math timezone-safe.
+- Ensure recurring completion does not leave task in Done tab.
+- Backfill missing recurring fields for old tasks during read/normalize.
+
+---
+
+## 4. Offline-First, PWA, and Future Google Drive Sync (Depends on Feature 1)
+Objective: keep app fully offline-capable now and future-ready for authenticated remote sync.
+
+Implementation instructions:
+
+- Local-first rule:
+    - All CRUD reads/writes go to Dexie first.
+    - UI always reflects local data immediately.
+- PWA:
+    - Add vite-plugin-pwa for static asset caching.
+    - Start with conservative cache config.
+- Sync behavior (deferred until auth exists):
+    - Implement architecture hooks/interfaces now, but actual sync activation only after auth is implemented.
+    - On reconnect (window online event), if authenticated, auto-sync starts.
+    - Merge local Dexie tasks with remote todos.json by id + last_updated.
+    - Conflict policy locked: if timestamps are equal, prefer remote.
+    - Persist merged output locally, then upload merged JSON remote.
+    - Conflict observability policy (locked): resolve silently in UI and emit console.warn in development mode only.
+
+Things to watch for:
+
+- Do not imply sync is active before auth exists.
+- Do not replace local dataset blindly; always do per-record merge.
+- Keep app usable when offline, auth missing, or sync fails.
+- Log/trace sync failures for debugging without crashing UI.
+- Do not show user-facing conflict popups for equal timestamp conflicts.
+
+---
+
+## 5. Minimalist Progress Ring (Depends on Feature 1)
+Objective: show a compact summary of today completion progress.
+
+Implementation instructions:
+
+- Build ProgressRing component using SVG circles.
+- Use today (selected timezone) and current tasks from Dexie-backed state.
+- Compute:
+    - todayTasks where dueDate === today.
+    - total, completed, percentage (guard total = 0).
+- Visual:
+    - Thin stroke.
+    - Light gray empty ring.
+    - Accent progress arc via stroke-dasharray/stroke-dashoffset.
+    - Center text completed/total.
+- Place near app title in top nav with responsive behavior.
+
+Things to watch for:
+
+- Prevent divide-by-zero.
+- Ensure readability at small mobile sizes.
+- Keep nav layout stable.
+- Memoize derived values to reduce unnecessary renders.
+
+---
+
+## Locked Product Decisions (Do Not Re-open During Implementation)
+
+1. Storage now: migrate to Dexie/IndexedDB immediately.
+2. Recurring completion: show quick toast when advanced to next occurrence.
+3. Swipe-right for non-recurring: always +1 day, with toast "Moved to tomorrow".
+4. Swipe-right scope: only Not Done tasks, never Planned or Done.
+5. Sync strategy: auto-sync on reconnect once auth exists.
+6. Equal timestamp conflict tie-break: prefer remote (Google Drive record).
+7. Toasts: use a lightweight custom toast component (React Context/state + framer-motion transitions).
+8. Migration fallback removal: only after migration marker is stable across two launches.
+9. Equal timestamp conflicts: resolve silently, log via console.warn in development mode only.
+
+---
+
+## Agent Guardrails
+
+- Implement in dependency order from Feature 1 to Feature 5.
+- Keep changes incremental and verifiable at each feature boundary.
+- Do not assume Tailwind classes or backend APIs.
+- Keep implementation strictly local-first until auth and sync are explicitly enabled.
