@@ -11,3 +11,5 @@ npm run dev
 ```
 
 Then open the localhost URL printed by Vite (usually `http://localhost:5173`).
+
+## Deploy
