@@ -165,6 +165,7 @@ function App() {
   const [draftRecurring, setDraftRecurring] = useState('none')
   const [editingTaskId, setEditingTaskId] = useState(null)
   const [editingText, setEditingText] = useState('')
+  const [frequencySelectorTaskId, setFrequencySelectorTaskId] = useState(null)
   const [dragOffsets, setDragOffsets] = useState({})
   const [toasts, setToasts] = useState([])
 
@@ -229,6 +230,10 @@ function App() {
 
       if (!target.closest('.task-label-selector-wrap')) {
         setLabelSelectorTaskId(null)
+      }
+
+      if (!target.closest('.task-frequency-selector-wrap')) {
+        setFrequencySelectorTaskId(null)
       }
     }
 
@@ -313,9 +318,23 @@ function App() {
   }, [tasks])
 
   const plannedTasks = useMemo(() => {
+    const recurringSeriesSeen = new Set()
     return tasks
       .filter((task) => !task.isDone && task.dueDate > today)
       .sort((a, b) => a.dueDate.localeCompare(b.dueDate) || a.createdAt - b.createdAt)
+      .filter((task) => {
+        if (task.recurring === 'none') {
+          return true
+        }
+
+        const seriesId = getSeriesId(task)
+        if (recurringSeriesSeen.has(seriesId)) {
+          return false
+        }
+
+        recurringSeriesSeen.add(seriesId)
+        return true
+      })
   }, [tasks, today])
 
   const visibleTasks = useMemo(() => {
@@ -486,6 +505,7 @@ function App() {
     taskStorage.deleteTask(taskId, mirrorLegacyRef.current)
     setMenuTaskId(null)
     setLabelSelectorTaskId(null)
+    setFrequencySelectorTaskId(null)
   }
 
   const updateTaskDate = (taskId, date) => {
@@ -523,12 +543,14 @@ function App() {
     setActiveTab(tabKey)
     setMenuTaskId(null)
     setLabelSelectorTaskId(null)
+    setFrequencySelectorTaskId(null)
   }
 
   const beginEditTask = (task) => {
     setEditingTaskId(task.id)
     setEditingText(task.text)
     setMenuTaskId(null)
+    setFrequencySelectorTaskId(null)
   }
 
   const saveEditTask = (taskId) => {
@@ -642,6 +664,73 @@ function App() {
     return task.recurring === 'weekly' ? '⏭ Later (+7d)' : '⏭ Later'
   }
 
+  const persistTaskBatch = ({ save = [], deleteIds = [] }) => {
+    save.forEach((task) => {
+      taskStorage.saveTask(task, mirrorLegacyRef.current)
+    })
+    deleteIds.forEach((taskId) => {
+      taskStorage.deleteTask(taskId, mirrorLegacyRef.current)
+    })
+  }
+
+  const changeTaskFrequency = (task, nextRecurring) => {
+    const seriesId = getSeriesId(task)
+    const nowIso = taskModel.getNowIso()
+    const nowMs = taskModel.getNow()
+    const nextDueDate = getRecurringTargetDate(nextRecurring)
+    const futureSeriesTasks = tasks.filter((candidate) => {
+      if (candidate.id === task.id || candidate.isDone) {
+        return false
+      }
+      return candidate.dueDate > today && getSeriesId(candidate) === seriesId
+    })
+    const deleteIds = futureSeriesTasks.map((candidate) => candidate.id)
+    let nextTasks = tasks.filter((candidate) => !deleteIds.includes(candidate.id))
+    const selectedTask = nextTasks.find((candidate) => candidate.id === task.id)
+    if (!selectedTask) {
+      setMenuTaskId(null)
+      setFrequencySelectorTaskId(null)
+      return
+    }
+
+    const updatedSelectedTask = {
+      ...selectedTask,
+      recurring: nextRecurring,
+      originalTaskId: nextRecurring === 'none' ? null : seriesId,
+      last_updated: nowIso,
+    }
+
+    nextTasks = nextTasks.map((candidate) => {
+      if (candidate.id !== task.id) {
+        return candidate
+      }
+      return updatedSelectedTask
+    })
+
+    const save = [updatedSelectedTask]
+    if (nextRecurring !== 'none' && updatedSelectedTask.dueDate <= today) {
+      const nextOccurrence = {
+        id: createId(),
+        text: updatedSelectedTask.text,
+        dueDate: nextDueDate,
+        isDone: false,
+        color: updatedSelectedTask.color,
+        createdAt: nowMs,
+        completedAt: null,
+        recurring: nextRecurring,
+        originalTaskId: seriesId,
+        last_updated: nowIso,
+      }
+      nextTasks = [nextOccurrence, ...nextTasks]
+      save.push(nextOccurrence)
+    }
+
+    setTasks(nextTasks)
+    persistTaskBatch({ save, deleteIds })
+    setMenuTaskId(null)
+    setFrequencySelectorTaskId(null)
+  }
+
   const renderEmptyMessage = () => {
     if (activeTab === TAB_KEYS.done) {
       return 'No completed tasks yet.'
@@ -749,7 +838,7 @@ function App() {
                   ☰
                 </button>
                 {isDraftRecurringMenuOpen ? (
-                  <div className="recurring-menu">
+                  <div className="task-menu recurring-menu">
                     {RECURRING_MENU_OPTIONS.map((option) => (
                       <button
                         key={option.value}
@@ -837,7 +926,7 @@ function App() {
         <section className="task-list" aria-live="polite">
           {visibleTasks.length === 0 ? <p className="empty-state">{renderEmptyMessage()}</p> : null}
 
-          {visibleTasks.map((task) => {
+            {visibleTasks.map((task) => {
               const dragOffset = dragOffsets[task.id] || 0
               const swipeAction = dragOffset > 10 ? 'right' : dragOffset < -10 ? 'left' : null
               const label = getLabelByColor(task.color)
@@ -985,6 +1074,15 @@ function App() {
                           <button
                             type="button"
                             onClick={() => {
+                              setFrequencySelectorTaskId(task.id)
+                              setMenuTaskId(null)
+                            }}
+                          >
+                            Change frequency
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
                               setLabelSelectorTaskId(task.id)
                               setMenuTaskId(null)
                             }}
@@ -997,6 +1095,25 @@ function App() {
                         </div>
                       ) : null}
                     </div>
+
+                    {frequencySelectorTaskId === task.id ? (
+                      <div className="task-frequency-selector-wrap">
+                        <div className="task-menu task-frequency-selector">
+                          {RECURRING_MENU_OPTIONS.map((option) => (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => changeTaskFrequency(task, option.value)}
+                            >
+                              <span>{option.label}</span>
+                              <span className="recurring-option-check" aria-hidden="true">
+                                {task.recurring === option.value ? '✓' : ''}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
                   </motion.article>
 
                   {labelSelectorTaskId === task.id ? (
