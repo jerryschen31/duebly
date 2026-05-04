@@ -452,16 +452,14 @@ function App() {
     const updatedTask = updateTaskInState(task.id, (currentTask) => {
       if (isDone && currentTask.recurring !== 'none') {
         const days = getRecurringAdvanceDays(currentTask.recurring)
-        if (!days) {
-          return currentTask
-        }
-
-        return {
-          ...currentTask,
-          dueDate: addDaysToISODate(currentTask.dueDate, days),
-          isDone: false,
-          completedAt: null,
-          last_updated: taskModel.getNowIso(),
+        if (days > 0) {
+          return {
+            ...currentTask,
+            dueDate: addDaysToISODate(currentTask.dueDate, days),
+            isDone: false,
+            completedAt: null,
+            last_updated: taskModel.getNowIso(),
+          }
         }
       }
 
