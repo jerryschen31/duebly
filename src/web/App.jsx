@@ -37,10 +37,10 @@ const TIMEZONE_OPTIONS = [
   'Australia/Sydney',
 ]
 
-const RECURRING_OPTIONS = [
+const RECURRING_MENU_OPTIONS = [
   { value: 'none', label: 'Does not repeat' },
-  { value: 'daily', label: 'Daily' },
-  { value: 'weekly', label: 'Weekly' },
+  { value: 'daily', label: 'Repeat daily' },
+  { value: 'weekly', label: 'Repeat weekly' },
 ]
 
 const SWIPE_THRESHOLD = 70
@@ -72,6 +72,14 @@ const getSupportedTimeZone = (timeZoneCandidate) => {
 const getDefaultTimeZone = () => {
   const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
   return getSupportedTimeZone(browserTimeZone)
+}
+
+const getISODateFromTimestampInTimeZone = (timestamp, timeZone) => {
+  if (!Number.isFinite(timestamp)) {
+    return null
+  }
+
+  return toISODateInTimeZone(new Date(timestamp), timeZone)
 }
 
 const addDaysToISODate = (isoDate, daysToAdd) => {
@@ -109,7 +117,7 @@ const ProgressRing = ({ completed, total }) => {
   const offset = circumference - (percentage / 100) * circumference
 
   return (
-    <div className="progress-ring" aria-label={`Today progress ${completed} out of ${total}`}>
+    <div className="progress-ring" aria-label={`Not Done progress ${completed} out of ${total}`}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img">
         <circle
           className="ring-track"
@@ -151,6 +159,7 @@ function App() {
   const [draftColor, setDraftColor] = useState(LABELS[0].color)
   const [isDraftDateAuto, setIsDraftDateAuto] = useState(true)
   const [isDraftLabelOpen, setIsDraftLabelOpen] = useState(false)
+  const [isDraftRecurringMenuOpen, setIsDraftRecurringMenuOpen] = useState(false)
   const [draftRecurring, setDraftRecurring] = useState('none')
   const [editingTaskId, setEditingTaskId] = useState(null)
   const [editingText, setEditingText] = useState('')
@@ -194,20 +203,6 @@ function App() {
   }, [])
 
   useEffect(() => {
-    if (!isReady) {
-      return
-    }
-
-    taskStorage.saveSettings(
-      {
-        timezone: selectedTimeZone,
-        syncEnabled: false,
-      },
-      mirrorLegacyRef.current,
-    )
-  }, [isReady, selectedTimeZone])
-
-  useEffect(() => {
     const onPointerDown = (event) => {
       const target = event.target
       if (!(target instanceof HTMLElement)) {
@@ -224,6 +219,10 @@ function App() {
 
       if (!target.closest('.label-select-wrap')) {
         setIsDraftLabelOpen(false)
+      }
+
+      if (!target.closest('.recurring-menu-wrap')) {
+        setIsDraftRecurringMenuOpen(false)
       }
 
       if (!target.closest('.task-label-selector-wrap')) {
@@ -328,20 +327,42 @@ function App() {
     return notDoneTasks
   }, [activeTab, doneTasks, notDoneTasks, plannedTasks])
 
-  const todayStats = useMemo(() => {
-    const todayTasks = tasks.filter((task) => task.dueDate === today)
-    const completedToday = todayTasks.filter((task) => task.isDone).length
-    return {
-      total: todayTasks.length,
-      completed: completedToday,
-    }
-  }, [tasks, today])
-
   const tabCounts = {
     [TAB_KEYS.notDone]: notDoneTasks.length,
     [TAB_KEYS.done]: doneTasks.length,
     [TAB_KEYS.planned]: plannedTasks.length,
   }
+
+  const notDoneStatusStats = useMemo(() => {
+    const completedTodayInScope = tasks.filter((task) => {
+      if (!task.isDone || task.dueDate > today) {
+        return false
+      }
+
+      return getISODateFromTimestampInTimeZone(task.completedAt, selectedTimeZone) === today
+    }).length
+
+    return {
+      date: today,
+      completed: completedTodayInScope,
+      total: notDoneTasks.length + completedTodayInScope,
+    }
+  }, [tasks, today, selectedTimeZone, notDoneTasks.length])
+
+  useEffect(() => {
+    if (!isReady) {
+      return
+    }
+
+    taskStorage.saveSettings(
+      {
+        timezone: selectedTimeZone,
+        syncEnabled: false,
+        statusIndicator: notDoneStatusStats,
+      },
+      mirrorLegacyRef.current,
+    )
+  }, [isReady, selectedTimeZone, notDoneStatusStats])
 
   const persistTask = (task) => {
     taskStorage.saveTask(task, mirrorLegacyRef.current)
@@ -393,6 +414,7 @@ function App() {
     setDraftRecurring('none')
     setIsDraftDateAuto(true)
     setIsDraftLabelOpen(false)
+    setIsDraftRecurringMenuOpen(false)
 
     if (newTask.dueDate > today) {
       setActiveTab(TAB_KEYS.planned)
@@ -606,7 +628,7 @@ function App() {
           <button type="button" className="brand-button" onClick={() => switchTab(TAB_KEYS.notDone)}>
             Duedly
           </button>
-          <ProgressRing completed={todayStats.completed} total={todayStats.total} />
+          <ProgressRing completed={notDoneStatusStats.completed} total={notDoneStatusStats.total} />
         </div>
         <div className="top-right">
           <button
@@ -647,18 +669,47 @@ function App() {
         <section className="composer-card">
           <h1>Add Task</h1>
           <form className="composer" onSubmit={addTask}>
-            <label className="sr-only" htmlFor="new-task-text">
-              Task description
-            </label>
-            <input
-              id="new-task-text"
-              type="text"
-              placeholder="Task description"
-              value={draftText}
-              onChange={(event) => setDraftText(event.target.value)}
-              maxLength={200}
-              required
-            />
+            <div className="composer-text-row">
+              <div className="recurring-menu-wrap">
+                <button
+                  type="button"
+                  className={`icon-button recurring-trigger ${draftRecurring !== 'none' ? 'active' : ''}`}
+                  aria-label="Set recurring rule"
+                  onClick={() => setIsDraftRecurringMenuOpen((prev) => !prev)}
+                >
+                  ☰
+                </button>
+                {isDraftRecurringMenuOpen ? (
+                  <div className="recurring-menu">
+                    {RECURRING_MENU_OPTIONS.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className={draftRecurring === option.value ? 'active' : ''}
+                        onClick={() => {
+                          setDraftRecurring(option.value)
+                          setIsDraftRecurringMenuOpen(false)
+                        }}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+              <label className="sr-only" htmlFor="new-task-text">
+                Task description
+              </label>
+              <input
+                id="new-task-text"
+                type="text"
+                placeholder="Task description"
+                value={draftText}
+                onChange={(event) => setDraftText(event.target.value)}
+                maxLength={200}
+                required
+              />
+            </div>
             <label className="sr-only" htmlFor="new-task-date">
               Due date
             </label>
@@ -701,21 +752,6 @@ function App() {
                 </div>
               ) : null}
             </div>
-            <label className="sr-only" htmlFor="new-task-recurring">
-              Recurring
-            </label>
-            <select
-              id="new-task-recurring"
-              className="recurring-select"
-              value={draftRecurring}
-              onChange={(event) => setDraftRecurring(event.target.value)}
-            >
-              {RECURRING_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
             <button type="submit" className="primary-button" disabled={!draftText.trim() || !effectiveDraftDueDate}>
               Add Task
             </button>
@@ -728,8 +764,7 @@ function App() {
         <section className="task-list" aria-live="polite">
           {visibleTasks.length === 0 ? <p className="empty-state">{renderEmptyMessage()}</p> : null}
 
-          <AnimatePresence initial={false}>
-            {visibleTasks.map((task) => {
+          {visibleTasks.map((task) => {
               const dragOffset = dragOffsets[task.id] || 0
               const swipeAction = dragOffset > 10 ? 'right' : dragOffset < -10 ? 'left' : null
               const label = getLabelByColor(task.color)
@@ -744,11 +779,6 @@ function App() {
                   </div>
 
                   <motion.article
-                    layout
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
-                    transition={{ duration: 0.16 }}
                     className="task-row"
                     drag="x"
                     dragDirectionLock
@@ -911,7 +941,6 @@ function App() {
                 </div>
               )
             })}
-          </AnimatePresence>
         </section>
       </main>
 

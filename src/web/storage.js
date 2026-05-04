@@ -7,6 +7,7 @@ const MIGRATION_META_KEY = 'duedly.dexie.migration.v1'
 const SETTINGS_KEYS = {
   timezone: 'timezone',
   syncEnabled: 'sync-enabled',
+  statusIndicator: 'status-indicator',
 }
 
 const RECURRING_VALUES = ['none', 'daily', 'weekly']
@@ -76,6 +77,26 @@ const parseIsoDate = (value) => {
   }
 
   return trimmed
+}
+
+const normalizeStatusIndicator = (value) => {
+  if (!value || typeof value !== 'object') {
+    return null
+  }
+
+  const date = parseIsoDate(typeof value.date === 'string' ? value.date : '')
+  if (!date) {
+    return null
+  }
+
+  const completed = Number.isFinite(value.completed) ? Math.max(0, Math.trunc(value.completed)) : 0
+  const total = Number.isFinite(value.total) ? Math.max(0, Math.trunc(value.total)) : 0
+
+  return {
+    date,
+    completed,
+    total,
+  }
 }
 
 const normalizeTask = (task) => {
@@ -199,6 +220,7 @@ const readSettings = async () => {
   return {
     timezone: typeof map[SETTINGS_KEYS.timezone] === 'string' ? map[SETTINGS_KEYS.timezone] : null,
     syncEnabled: Boolean(map[SETTINGS_KEYS.syncEnabled]),
+    statusIndicator: normalizeStatusIndicator(map[SETTINGS_KEYS.statusIndicator]),
   }
 }
 
@@ -206,6 +228,7 @@ const writeSettings = async (settings) => {
   await db.settings.bulkPut([
     { id: SETTINGS_KEYS.timezone, value: settings.timezone || null },
     { id: SETTINGS_KEYS.syncEnabled, value: Boolean(settings.syncEnabled) },
+    { id: SETTINGS_KEYS.statusIndicator, value: normalizeStatusIndicator(settings.statusIndicator) },
   ])
 }
 

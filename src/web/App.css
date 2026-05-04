@@ -175,13 +175,57 @@
 }
 
 .composer input[type='text'],
-.composer input[type='date'],
-.recurring-select {
+.composer input[type='date'] {
   width: 100%;
   border: 1px solid #d1d5db;
   border-radius: 0.5rem;
   padding: 0.55rem 0.65rem;
   font: inherit;
+}
+
+.composer-text-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.composer-text-row input[type='text'] {
+  min-width: 0;
+}
+
+.recurring-menu-wrap {
+  position: relative;
+}
+
+.recurring-trigger.active {
+  border-color: #2563eb;
+  color: #2563eb;
+}
+
+.recurring-menu {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  width: max-content;
+  min-width: 11rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+  z-index: 30;
+}
+
+.recurring-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.65rem;
+}
+
+.recurring-menu button:hover,
+.recurring-menu button.active {
+  background: #eff6ff;
 }
 
 .primary-button {
@@ -236,9 +280,12 @@
   position: absolute;
   top: calc(100% + 0.25rem);
   left: 0;
-  right: 0;
-  max-height: 13rem;
-  overflow: auto;
+  width: max-content;
+  min-width: 100%;
+  max-width: min(22rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  overflow-x: hidden;
   border: 1px solid #d1d5db;
   border-radius: 0.5rem;
   background: #ffffff;
@@ -422,7 +469,7 @@
   }
 
   .composer {
-    grid-template-columns: 1fr auto auto auto auto;
+    grid-template-columns: 1fr auto auto auto;
     align-items: end;
   }
 }
