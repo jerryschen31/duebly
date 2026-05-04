@@ -739,12 +739,16 @@ function App() {
                         key={option.value}
                         type="button"
                         className={draftRecurring === option.value ? 'active' : ''}
+                        aria-pressed={draftRecurring === option.value}
                         onClick={() => {
                           setDraftRecurring(option.value)
                           setIsDraftRecurringMenuOpen(false)
                         }}
                       >
-                        {option.label}
+                        <span>{option.label}</span>
+                        <span className="recurring-option-check" aria-hidden="true">
+                          {draftRecurring === option.value ? '✓' : ''}
+                        </span>
                       </button>
                     ))}
                   </div>

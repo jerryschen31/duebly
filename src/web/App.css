@@ -205,27 +205,33 @@
 
 .recurring-menu {
   position: absolute;
-  top: calc(100% + 0.25rem);
+  top: 2.1rem;
   left: 0;
-  width: max-content;
-  min-width: 11rem;
+  width: 12.5rem;
   border: 1px solid #d1d5db;
   border-radius: 0.5rem;
   background: #ffffff;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
-  z-index: 30;
+  z-index: 28;
 }
 
 .recurring-menu button {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   width: 100%;
   text-align: left;
-  padding: 0.5rem 0.65rem;
+  padding: 0.55rem 0.8rem;
 }
 
 .recurring-menu button:hover,
 .recurring-menu button.active {
-  background: #eff6ff;
+  background: #f3f4f6;
+}
+
+.recurring-option-check {
+  width: 1rem;
+  text-align: right;
 }
 
 .primary-button {
