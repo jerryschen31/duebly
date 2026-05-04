@@ -439,10 +439,10 @@ function App() {
   const toggleTaskDone = (task, isDone) => {
     const updatedTask = updateTaskInState(task.id, (currentTask) => {
       if (isDone && currentTask.recurring !== 'none') {
-        const targetDate = getRecurringTargetDate(currentTask.recurring)
+        const days = currentTask.recurring === 'weekly' ? 7 : 1
         return {
           ...currentTask,
-          dueDate: targetDate,
+          dueDate: addDaysToISODate(currentTask.dueDate, days),
           isDone: false,
           completedAt: null,
           last_updated: taskModel.getNowIso(),
