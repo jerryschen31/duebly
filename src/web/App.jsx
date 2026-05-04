@@ -682,10 +682,14 @@ function App() {
       if (candidate.id === task.id || candidate.isDone) {
         return false
       }
-      return candidate.dueDate > today && getSeriesId(candidate) === seriesId
+      if (candidate.dueDate <= today) {
+        return false
+      }
+      return getSeriesId(candidate) === seriesId
     })
     const deleteIds = futureSeriesTasks.map((candidate) => candidate.id)
-    let nextTasks = tasks.filter((candidate) => !deleteIds.includes(candidate.id))
+    const deleteIdsSet = new Set(deleteIds)
+    let nextTasks = tasks.filter((candidate) => !deleteIdsSet.has(candidate.id))
     const selectedTask = nextTasks.find((candidate) => candidate.id === task.id)
     if (!selectedTask) {
       setMenuTaskId(null)
