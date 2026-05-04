@@ -10,6 +10,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
+    "test": "echo \"No tests configured\"",
     "preview": "vite preview",
     "deploy:dev": "npm run build && npx wrangler@4.15.2 deploy --config ../wrangler.toml --env dev --assets ./dist"
   },
