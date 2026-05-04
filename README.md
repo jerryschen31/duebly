@@ -21,7 +21,7 @@ Task retention cleanup is enabled by default and deletes tasks with due dates ol
 - **OFF (keep full task history):**
   - Set `VITE_DELETE_TASKS_OLDER_THAN_60_DAYS=false`.
 
-Example local override in `src/.env`:
+Example local override in the Vite app root (`/src/.env` from the repository root):
 
 ```bash
 VITE_DELETE_TASKS_OLDER_THAN_60_DAYS=false
