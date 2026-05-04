@@ -1,5 +1,5 @@
 name = "duedly"
-pages_build_output_dir = "./dist"
+compatibility_date = "2026-05-01"
 
-[assets]
-directory = "./dist"
+# This maps your local build folder to the Cloudflare Worker static asset engine
+assets = { directory = "./dist" }
