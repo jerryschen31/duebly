@@ -1,0 +1,87 @@
+This specification is designed for a coding agent (like Cursor, Claude Engineer, or GPT-4) to build your vision with minimal back-and-forth. It follows a **Local-First** architecture to ensure the UI is "instant" while using Google Drive as the source of truth.
+
+---
+
+# Project Specification: "The Opinionated To-Do" (Web Client)
+
+## 1. Project Overview
+A mobile-first, opinionated to-do list SPA (Single Page Application). 
+* **The Opinion:** Every task **must** have a date. 
+* **The Architecture:** No dedicated backend. Authentication via **Kinde (Google Social)**. Storage via **Google Drive App Data Folder**.
+* **The UI:** Three specific tabs: **Not Done** (Overdue/Today), **Done**, and **Planned** (Future).
+
+## 2. Technical Stack
+* **Framework:** Next.js (App Router) - Static Export preferred.
+* **Styling:** Tailwind CSS + Headless UI or Radix UI (for mobile-friendly components).
+* **Icons:** Lucide React.
+* **Auth:** Kinde (Google OAuth strategy).
+* **Client Database:** Dexie.js (Wrapper for IndexedDB) for offline-first speed.
+* **Storage Sync:** Google Drive API (REST).
+* **Date Logic:** `date-fns`.
+* **Recurrence Logic:** `rrule` library.
+
+## 3. Data Schema (TypeScript)
+```typescript
+interface TodoTask {
+  id: string;             // UUID
+  text: string;           // Task description
+  dueDate: string;        // ISO Date String (YYYY-MM-DD) - MANDATORY
+  dueTime?: string;       // ISO Time String (HH:mm) - OPTIONAL
+  status: 'active' | 'completed';
+  recurrence?: 'daily' | 'weekly' | 'monthly' | 'none';
+  parentId?: string;      // To link recurring instances
+  updatedAt: number;      // Timestamp for sync conflict resolution
+}
+```
+
+## 4. Functional Requirements
+
+### A. Opinionated Task Creation
+* The "Add Task" UI must be a **drawer/bottom sheet** on mobile.
+* The "Save" button is **disabled** until a date is selected.
+* Default date should be "Today," but it must be explicitly confirmed or changed.
+
+### B. The Three-Tab Logic
+1.  **Not Done Tab:**
+    * Filter: `status === 'active'` AND `dueDate <= Today`.
+    * Sort: Overdue first, then by time.
+2.  **Done Tab:**
+    * Filter: `status === 'completed'`.
+    * Sort: Most recently completed at the top.
+3.  **Planned Tab:**
+    * Filter: `status === 'active'` AND `dueDate > Today`.
+    * Sort: Chronological (soonest first).
+
+### C. Recurrence Logic
+* When a task with `recurrence` is marked `completed`:
+    1.  Update current task status to `completed`.
+    2.  Automatically calculate the next date based on the `rrule`.
+    3.  Create a **new** task object for that future date.
+
+### D. Sync Strategy (Google Drive)
+* **Scope:** Use `https://www.googleapis.com/auth/drive.appdata`.
+* **Logic:**
+    1.  On login, check for `todo_backup.json` in the hidden App Data folder.
+    2.  If it exists and is newer than local `IndexedDB`, sync down.
+    3.  On any local change: Update `IndexedDB` immediately, then **debounce** a write to Google Drive (3-second delay) to prevent API rate limiting.
+
+## 5. UI/UX Requirements
+* **Mobile First:** All interactions must be thumb-friendly. Use large tap targets (min 44px).
+* **Swipe Actions:** (Optional/Recommended) Swipe right to complete a task, swipe left to delete or reschedule.
+* **Empty States:** Clear messaging for "Nothing planned for the future" or "You're all caught up!"
+* **Date Picker:** Use a native HTML5 date input or a highly optimized mobile calendar component.
+
+## 6. Implementation Roadmap for Agent
+
+1.  **Step 1: UI Shell.** Build the 3-tab layout with Tailwind and dummy data. Create the "Add Task" bottom sheet.
+2.  **Step 2: Local Persistence.** Integrate `Dexie.js`. Ensure tasks persist on browser refresh without any login.
+3.  **Step 3: Tab Logic.** Implement the filtering and sorting logic for the three views.
+4.  **Step 4: Recurrence.** Add the logic to spawn new tasks when a recurring one is completed.
+5.  **Step 5: Kinde Auth.** Set up Kinde and ensure the `access_token` includes the Google Drive scopes.
+6.  **Step 6: Sync Engine.** Write the Google Drive "App Data" service to upload/download the `todo_backup.json`.
+7.  **Step 7: PWA Setup.** Add `manifest.json` and service worker so it can be installed on the phone home screen.
+
+---
+
+**Prompt to give the agent to start:**
+> "I want to build a mobile-friendly Next.js to-do list app based on the 'Opinionated To-Do' spec provided. Start by setting up the project structure with Tailwind CSS and Lucide icons. Focus first on building the 3-tab layout (Not Done, Done, Planned) and the local-only task creation logic using Dexie.js for storage. Remember: every task MUST have a date."
