@@ -426,8 +426,20 @@ function App() {
     }
   }
 
+  const getRecurringAdvanceDays = (recurringRule) => {
+    if (recurringRule === 'daily') {
+      return 1
+    }
+
+    if (recurringRule === 'weekly') {
+      return 7
+    }
+
+    return 0
+  }
+
   const getRecurringTargetDate = (recurringRule) => {
-    const days = recurringRule === 'weekly' ? 7 : 1
+    const days = getRecurringAdvanceDays(recurringRule)
     return addDaysToISODate(today, days)
   }
 
@@ -439,7 +451,11 @@ function App() {
   const toggleTaskDone = (task, isDone) => {
     const updatedTask = updateTaskInState(task.id, (currentTask) => {
       if (isDone && currentTask.recurring !== 'none') {
-        const days = currentTask.recurring === 'weekly' ? 7 : 1
+        const days = getRecurringAdvanceDays(currentTask.recurring)
+        if (!days) {
+          return currentTask
+        }
+
         return {
           ...currentTask,
           dueDate: addDaysToISODate(currentTask.dueDate, days),
@@ -548,7 +564,7 @@ function App() {
     return activeTab === TAB_KEYS.notDone && !task.isDone
   }
 
-  const getSwipeTargetDate = (task) => getRecurringTargetDate(task.recurring)
+  const getSwipeTargetDate = (recurringRule) => getRecurringTargetDate(recurringRule)
 
   const hasRecurringDuplicateAtDate = (task, targetDate) => {
     const taskSeriesId = getSeriesId(task)
@@ -576,7 +592,7 @@ function App() {
     }
 
     if (offsetX >= SWIPE_THRESHOLD && canSwipeRight(task)) {
-      const targetDate = getSwipeTargetDate(task)
+      const targetDate = getSwipeTargetDate(task.recurring)
       if (task.recurring !== 'none' && hasRecurringDuplicateAtDate(task, targetDate)) {
         pushToast(getLaterToast(targetDate))
         return
