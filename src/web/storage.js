@@ -10,6 +10,29 @@ const SETTINGS_KEYS = {
 }
 
 const RECURRING_VALUES = ['none', 'daily', 'weekly']
+const TASK_RETENTION_DAYS = 60
+
+const parseBooleanFlag = (value, defaultValue) => {
+  if (typeof value !== 'string') {
+    return defaultValue
+  }
+
+  const normalized = value.trim().toLowerCase()
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) {
+    return true
+  }
+
+  if (['0', 'false', 'no', 'off'].includes(normalized)) {
+    return false
+  }
+
+  return defaultValue
+}
+
+const shouldDeleteOldTasks = parseBooleanFlag(
+  import.meta.env.VITE_DELETE_TASKS_OLDER_THAN_60_DAYS,
+  true,
+)
 
 const db = new Dexie('duedly-db')
 db.version(1).stores({
@@ -47,6 +70,42 @@ const parseIsoDate = (value) => {
   }
 
   return trimmed
+}
+
+const getCurrentISODate = () => new Date().toISOString().slice(0, 10)
+
+const addDaysToISODate = (isoDate, daysToAdd) => {
+  const date = new Date(`${isoDate}T00:00:00Z`)
+  if (Number.isNaN(date.getTime())) {
+    return isoDate
+  }
+
+  date.setUTCDate(date.getUTCDate() + daysToAdd)
+  return date.toISOString().slice(0, 10)
+}
+
+const getTaskRetentionCutoffDate = () => {
+  return addDaysToISODate(getCurrentISODate(), -TASK_RETENTION_DAYS)
+}
+
+const splitByRetention = (tasks) => {
+  if (!shouldDeleteOldTasks) {
+    return { keptTasks: tasks, removedTasks: [] }
+  }
+
+  const cutoffDate = getTaskRetentionCutoffDate()
+  const keptTasks = []
+  const removedTasks = []
+
+  for (const task of tasks) {
+    if (task.dueDate < cutoffDate) {
+      removedTasks.push(task)
+      continue
+    }
+    keptTasks.push(task)
+  }
+
+  return { keptTasks, removedTasks }
 }
 
 const normalizeStatusIndicator = (value) => {
@@ -175,6 +234,14 @@ const readDexieTasks = async () => {
   return tasks.map(normalizeTask).filter(Boolean)
 }
 
+const prunePersistedOldTasks = async (tasks) => {
+  const { keptTasks, removedTasks } = splitByRetention(tasks)
+  if (removedTasks.length) {
+    await db.tasks.bulkDelete(removedTasks.map((task) => task.id))
+  }
+  return keptTasks
+}
+
 const readSettings = async () => {
   const rows = await db.settings.toArray()
   const map = rows.reduce((acc, row) => {
@@ -216,7 +283,7 @@ export const taskStorage = {
   async initialize(defaultTimeZone) {
     try {
       await migrateFromLegacy()
-      const tasks = await readDexieTasks()
+      const tasks = await prunePersistedOldTasks(await readDexieTasks())
       const settings = await readSettings()
 
       if (!settings.timezone) {
@@ -243,7 +310,18 @@ export const taskStorage = {
   },
 
   async saveTask(task) {
-    await db.tasks.put(normalizeTask(task))
+    const normalizedTask = normalizeTask(task)
+    if (!normalizedTask) {
+      return
+    }
+
+    const { keptTasks } = splitByRetention([normalizedTask])
+    if (!keptTasks.length) {
+      await db.tasks.delete(normalizedTask.id)
+      return
+    }
+
+    await db.tasks.put(normalizedTask)
   },
 
   async deleteTask(taskId) {
@@ -257,11 +335,12 @@ export const taskStorage = {
   mergeForSync(localTasks, remoteTasks, onEqualTimestamp) {
     const normalizedLocal = localTasks.map(normalizeTask).filter(Boolean)
     const normalizedRemote = remoteTasks.map(normalizeTask).filter(Boolean)
-    return mergeTasks(normalizedLocal, normalizedRemote, onEqualTimestamp)
+    const merged = mergeTasks(normalizedLocal, normalizedRemote, onEqualTimestamp)
+    return splitByRetention(merged).keptTasks
   },
 
   async replaceAllTasks(tasks) {
-    const normalizedTasks = tasks.map(normalizeTask).filter(Boolean)
+    const normalizedTasks = splitByRetention(tasks.map(normalizeTask).filter(Boolean)).keptTasks
     await db.transaction('rw', db.tasks, async () => {
       await db.tasks.clear()
       if (normalizedTasks.length) {
