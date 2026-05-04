@@ -5,6 +5,7 @@ Initial MVP implementation of the Duedly task app.
 ## Run locally
 
 ```bash
+cd web
 npm install
 npm run dev
 ```

@@ -48,8 +48,15 @@ const toISODateInTimeZone = (date, timeZone) => {
   }).format(date)
 }
 
+const getSupportedTimeZone = (timeZoneCandidate) => {
+  return TIMEZONE_OPTIONS.includes(timeZoneCandidate)
+    ? timeZoneCandidate
+    : TIMEZONE_OPTIONS[0]
+}
+
 const getDefaultTimeZone = () => {
-  return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+  const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+  return getSupportedTimeZone(browserTimeZone)
 }
 
 const normalizeTask = (task) => {
@@ -73,20 +80,32 @@ const normalizeTask = (task) => {
 }
 
 const loadTasks = () => {
+  const initialState = { tasks: [], shouldPersistOnMount: true }
+
   try {
     const raw = window.localStorage.getItem(TASKS_STORAGE_KEY)
     if (!raw) {
-      return []
+      return initialState
     }
 
     const parsed = JSON.parse(raw)
     if (!Array.isArray(parsed)) {
-      return []
+      return { tasks: [], shouldPersistOnMount: false }
     }
 
-    return parsed.map(normalizeTask).filter(Boolean)
+    const normalizedTasks = parsed.map(normalizeTask).filter(Boolean)
+
+    if (parsed.length > 0 && normalizedTasks.length === 0) {
+      return { tasks: [], shouldPersistOnMount: false }
+    }
+
+    const droppedEntries = normalizedTasks.length !== parsed.length
+    return {
+      tasks: normalizedTasks,
+      shouldPersistOnMount: !droppedEntries,
+    }
   } catch {
-    return []
+    return { tasks: [], shouldPersistOnMount: false }
   }
 }
 
@@ -97,32 +116,45 @@ const loadTimeZone = () => {
       return getDefaultTimeZone()
     }
 
-    return TIMEZONE_OPTIONS.includes(saved) ? saved : getDefaultTimeZone()
+    return getSupportedTimeZone(saved)
   } catch {
     return getDefaultTimeZone()
   }
 }
 
 function App() {
-  const [tasks, setTasks] = useState(loadTasks)
+  const [tasksLoadResult] = useState(loadTasks)
+  const [tasks, setTasks] = useState(tasksLoadResult.tasks)
+  const [canPersistTasks, setCanPersistTasks] = useState(tasksLoadResult.shouldPersistOnMount)
   const [activeTab, setActiveTab] = useState(TAB_KEYS.notDone)
   const [menuTaskId, setMenuTaskId] = useState(null)
   const [taskColorPickerId, setTaskColorPickerId] = useState(null)
   const [isTimezoneMenuOpen, setIsTimezoneMenuOpen] = useState(false)
   const [selectedTimeZone, setSelectedTimeZone] = useState(loadTimeZone)
   const [nowTick, setNowTick] = useState(() => getTimestamp())
-  const [draft, setDraft] = useState(() => ({
-    text: '',
-    dueDate: toISODateInTimeZone(new Date(), loadTimeZone()),
-    color: COLORS[0],
-  }))
+  const [draftText, setDraftText] = useState('')
+  const [draftDueDate, setDraftDueDate] = useState(() => toISODateInTimeZone(new Date(), loadTimeZone()))
+  const [draftColor, setDraftColor] = useState(COLORS[0])
+  const [isDraftDateAuto, setIsDraftDateAuto] = useState(true)
 
   useEffect(() => {
-    window.localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(tasks))
-  }, [tasks])
+    if (!canPersistTasks) {
+      return
+    }
+
+    try {
+      window.localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(tasks))
+    } catch {
+      // no-op: persistence can fail in private mode or restricted storage environments
+    }
+  }, [tasks, canPersistTasks])
 
   useEffect(() => {
-    window.localStorage.setItem(TIMEZONE_STORAGE_KEY, selectedTimeZone)
+    try {
+      window.localStorage.setItem(TIMEZONE_STORAGE_KEY, selectedTimeZone)
+    } catch {
+      // no-op: persistence can fail in private mode or restricted storage environments
+    }
   }, [selectedTimeZone])
 
   useEffect(() => {
@@ -136,6 +168,8 @@ function App() {
   const today = useMemo(() => {
     return toISODateInTimeZone(new Date(nowTick), selectedTimeZone)
   }, [nowTick, selectedTimeZone])
+
+  const effectiveDraftDueDate = isDraftDateAuto ? today : draftDueDate
 
   const notDoneTasks = useMemo(() => {
     return tasks
@@ -173,35 +207,34 @@ function App() {
     [TAB_KEYS.planned]: plannedTasks.length,
   }
 
-  const resetDraftDate = (timeZone) => {
-    setDraft((prev) => ({ ...prev, dueDate: toISODateInTimeZone(new Date(), timeZone) }))
+  const updateTasks = (updater) => {
+    setCanPersistTasks(true)
+    setTasks((prev) => updater(prev))
   }
 
   const addTask = (event) => {
     event.preventDefault()
 
-    const text = draft.text.trim()
-    if (!text || !draft.dueDate) {
+    const text = draftText.trim()
+    if (!text || !effectiveDraftDueDate) {
       return
     }
 
     const newTask = {
       id: crypto.randomUUID(),
       text,
-      dueDate: draft.dueDate,
+      dueDate: effectiveDraftDueDate,
       isDone: false,
-      color: draft.color,
+      color: draftColor,
       createdAt: getTimestamp(),
       completedAt: null,
     }
 
-    setTasks((prev) => [newTask, ...prev])
-    setDraft((prev) => ({
-      ...prev,
-      text: '',
-      dueDate: toISODateInTimeZone(new Date(), selectedTimeZone),
-      color: COLORS[0],
-    }))
+    updateTasks((prev) => [newTask, ...prev])
+    setDraftText('')
+    setDraftDueDate(today)
+    setDraftColor(COLORS[0])
+    setIsDraftDateAuto(true)
 
     if (newTask.dueDate > today) {
       setActiveTab(TAB_KEYS.planned)
@@ -211,7 +244,7 @@ function App() {
   }
 
   const updateTask = (taskId, updates) => {
-    setTasks((prev) =>
+    updateTasks((prev) =>
       prev.map((task) => {
         if (task.id !== taskId) {
           return task
@@ -230,7 +263,7 @@ function App() {
   }
 
   const deleteTask = (taskId) => {
-    setTasks((prev) => prev.filter((task) => task.id !== taskId))
+    updateTasks((prev) => prev.filter((task) => task.id !== taskId))
     setMenuTaskId(null)
     setTaskColorPickerId(null)
   }
@@ -256,7 +289,7 @@ function App() {
 
   const renderEmptyMessage = () => {
     if (activeTab === TAB_KEYS.done) {
-      return "No completed tasks yet."
+      return 'No completed tasks yet.'
     }
 
     if (activeTab === TAB_KEYS.planned) {
@@ -286,9 +319,7 @@ function App() {
                   id="timezone-select"
                   value={selectedTimeZone}
                   onChange={(event) => {
-                    const nextTimeZone = event.target.value
-                    setSelectedTimeZone(nextTimeZone)
-                    resetDraftDate(nextTimeZone)
+                    setSelectedTimeZone(event.target.value)
                   }}
                 >
                   {TIMEZONE_OPTIONS.map((timeZone) => (
@@ -305,8 +336,20 @@ function App() {
           </button>
         </div>
         <div className="top-right">
-          <button type="button" className="ghost-button" onClick={() => window.alert('Share is coming soon.')}>Share</button>
-          <button type="button" className="ghost-button" onClick={() => window.alert('Login is not part of this MVP yet.')}>Login</button>
+          <button
+            type="button"
+            className="ghost-button"
+            onClick={() => window.alert('Share is coming soon.')}
+          >
+            Share
+          </button>
+          <button
+            type="button"
+            className="ghost-button"
+            onClick={() => window.alert('Login is not part of this MVP yet.')}
+          >
+            Login
+          </button>
         </div>
       </header>
 
@@ -338,18 +381,29 @@ function App() {
         <section className="composer-card">
           <h1>Add Task</h1>
           <form className="composer" onSubmit={addTask}>
+            <label className="sr-only" htmlFor="new-task-text">
+              Task description
+            </label>
             <input
+              id="new-task-text"
               type="text"
               placeholder="Task description"
-              value={draft.text}
-              onChange={(event) => setDraft((prev) => ({ ...prev, text: event.target.value }))}
+              value={draftText}
+              onChange={(event) => setDraftText(event.target.value)}
               maxLength={200}
               required
             />
+            <label className="sr-only" htmlFor="new-task-date">
+              Due date
+            </label>
             <input
+              id="new-task-date"
               type="date"
-              value={draft.dueDate}
-              onChange={(event) => setDraft((prev) => ({ ...prev, dueDate: event.target.value }))}
+              value={effectiveDraftDueDate}
+              onChange={(event) => {
+                setDraftDueDate(event.target.value)
+                setIsDraftDateAuto(false)
+              }}
               required
             />
             <div className="draft-color-picker">
@@ -359,15 +413,15 @@ function App() {
                   <button
                     key={color}
                     type="button"
-                    className={`color-dot ${draft.color === color ? 'selected' : ''}`}
+                    className={`color-dot ${draftColor === color ? 'selected' : ''}`}
                     style={{ backgroundColor: color }}
-                    onClick={() => setDraft((prev) => ({ ...prev, color }))}
+                    onClick={() => setDraftColor(color)}
                     aria-label={`Select color ${color}`}
                   />
                 ))}
               </div>
             </div>
-            <button type="submit" className="primary-button" disabled={!draft.text.trim() || !draft.dueDate}>
+            <button type="submit" className="primary-button" disabled={!draftText.trim() || !effectiveDraftDueDate}>
               Add Task
             </button>
           </form>
@@ -401,9 +455,7 @@ function App() {
                   type="button"
                   className="task-color"
                   style={{ backgroundColor: task.color }}
-                  onClick={() =>
-                    setTaskColorPickerId((prev) => (prev === task.id ? null : task.id))
-                  }
+                  onClick={() => setTaskColorPickerId((prev) => (prev === task.id ? null : task.id))}
                   aria-label={`Change color for ${task.text}`}
                 />
                 {taskColorPickerId === task.id ? (
