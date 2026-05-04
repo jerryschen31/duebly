@@ -1,9 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
-
-const TASKS_STORAGE_KEY = 'duedly.tasks.v1'
-const TIMEZONE_STORAGE_KEY = 'duedly.timezone.v1'
-const getTimestamp = () => new Date().getTime()
+import { taskModel, taskStorage } from './storage'
 
 const TAB_KEYS = {
   notDone: 'not-done',
@@ -11,19 +9,19 @@ const TAB_KEYS = {
   planned: 'planned',
 }
 
-const COLORS = [
-  '#374151',
-  '#ef4444',
-  '#f97316',
-  '#eab308',
-  '#a3e635',
-  '#16a34a',
-  '#f472b6',
-  '#2563eb',
-  '#a16207',
-  '#a855f7',
-  '#db2777',
-  '#38bdf8',
+const LABELS = [
+  { id: 'general', name: 'General', color: '#374151' },
+  { id: 'priority', name: 'Priority', color: '#ef4444' },
+  { id: 'work', name: 'Work', color: '#2563eb' },
+  { id: 'life', name: 'Life', color: '#f97316' },
+  { id: 'health', name: 'Health', color: '#16a34a' },
+  { id: 'finance', name: 'Finance', color: '#eab308' },
+  { id: 'family', name: 'Family', color: '#f472b6' },
+  { id: 'home', name: 'Home', color: '#a3e635' },
+  { id: 'errands', name: 'Errands', color: '#38bdf8' },
+  { id: 'school', name: 'School', color: '#a855f7' },
+  { id: 'event', name: 'Event', color: '#db2777' },
+  { id: 'travel', name: 'Travel', color: '#a16207' },
 ]
 
 const TIMEZONE_OPTIONS = [
@@ -38,6 +36,15 @@ const TIMEZONE_OPTIONS = [
   'Asia/Shanghai',
   'Australia/Sydney',
 ]
+
+const RECURRING_OPTIONS = [
+  { value: 'none', label: 'Does not repeat' },
+  { value: 'daily', label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' },
+]
+
+const SWIPE_THRESHOLD = 70
+const TOAST_DURATION_MS = 1800
 
 const toISODateInTimeZone = (date, timeZone) => {
   return new Intl.DateTimeFormat('en-CA', {
@@ -59,111 +66,223 @@ const getDefaultTimeZone = () => {
   return getSupportedTimeZone(browserTimeZone)
 }
 
-const normalizeTask = (task) => {
-  if (!task || typeof task !== 'object') {
-    return null
+const addDaysToISODate = (isoDate, daysToAdd) => {
+  const date = new Date(`${isoDate}T00:00:00Z`)
+  if (Number.isNaN(date.getTime())) {
+    return isoDate
   }
 
-  if (!task.id || !task.text || !task.dueDate) {
-    return null
-  }
-
-  return {
-    id: task.id,
-    text: String(task.text),
-    dueDate: String(task.dueDate),
-    isDone: Boolean(task.isDone),
-    color: COLORS.includes(task.color) ? task.color : COLORS[0],
-    createdAt: Number.isFinite(task.createdAt) ? task.createdAt : getTimestamp(),
-    completedAt: Number.isFinite(task.completedAt) ? task.completedAt : null,
-  }
+  date.setUTCDate(date.getUTCDate() + daysToAdd)
+  return date.toISOString().slice(0, 10)
 }
 
-const loadTasks = () => {
-  const initialState = { tasks: [], shouldPersistOnMount: true }
-
-  try {
-    const raw = window.localStorage.getItem(TASKS_STORAGE_KEY)
-    if (!raw) {
-      return initialState
-    }
-
-    const parsed = JSON.parse(raw)
-    if (!Array.isArray(parsed)) {
-      return { tasks: [], shouldPersistOnMount: false }
-    }
-
-    const normalizedTasks = parsed.map(normalizeTask).filter(Boolean)
-
-    if (parsed.length > 0 && normalizedTasks.length === 0) {
-      return { tasks: [], shouldPersistOnMount: false }
-    }
-
-    const droppedEntries = normalizedTasks.length !== parsed.length
-    return {
-      tasks: normalizedTasks,
-      shouldPersistOnMount: !droppedEntries,
-    }
-  } catch {
-    return { tasks: [], shouldPersistOnMount: false }
-  }
+const getLabelByColor = (color) => {
+  return LABELS.find((label) => label.color === color) || LABELS[0]
 }
 
-const loadTimeZone = () => {
-  try {
-    const saved = window.localStorage.getItem(TIMEZONE_STORAGE_KEY)
-    if (!saved) {
-      return getDefaultTimeZone()
-    }
+const toastVariants = {
+  hidden: { opacity: 0, y: -10, scale: 0.96 },
+  visible: { opacity: 1, y: 0, scale: 1 },
+  exit: { opacity: 0, y: -8, scale: 0.98 },
+}
 
-    return getSupportedTimeZone(saved)
-  } catch {
-    return getDefaultTimeZone()
-  }
+const syncService = {
+  isAuthenticated: () => false,
+  pullRemoteTasks: async () => [],
+  pushMergedTasks: async () => {},
+}
+
+const ProgressRing = ({ completed, total }) => {
+  const size = 36
+  const strokeWidth = 4
+  const radius = (size - strokeWidth) / 2
+  const circumference = 2 * Math.PI * radius
+  const percentage = total === 0 ? 0 : Math.round((completed / total) * 100)
+  const offset = circumference - (percentage / 100) * circumference
+
+  return (
+    <div className="progress-ring" aria-label={`Today progress ${completed} out of ${total}`}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img">
+        <circle
+          className="ring-track"
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          strokeWidth={strokeWidth}
+          fill="none"
+        />
+        <circle
+          className="ring-progress"
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          strokeWidth={strokeWidth}
+          fill="none"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </svg>
+      <span>{completed}/{total}</span>
+    </div>
+  )
 }
 
 function App() {
-  const [tasksLoadResult] = useState(loadTasks)
-  const [tasks, setTasks] = useState(tasksLoadResult.tasks)
-  const [canPersistTasks, setCanPersistTasks] = useState(tasksLoadResult.shouldPersistOnMount)
+  const defaultTimeZone = getDefaultTimeZone()
+  const [isReady, setIsReady] = useState(false)
+  const [tasks, setTasks] = useState([])
   const [activeTab, setActiveTab] = useState(TAB_KEYS.notDone)
   const [menuTaskId, setMenuTaskId] = useState(null)
-  const [taskColorPickerId, setTaskColorPickerId] = useState(null)
+  const [labelSelectorTaskId, setLabelSelectorTaskId] = useState(null)
   const [isTimezoneMenuOpen, setIsTimezoneMenuOpen] = useState(false)
-  const [selectedTimeZone, setSelectedTimeZone] = useState(loadTimeZone)
-  const [nowTick, setNowTick] = useState(() => getTimestamp())
+  const [selectedTimeZone, setSelectedTimeZone] = useState(defaultTimeZone)
+  const [nowTick, setNowTick] = useState(() => taskModel.getNow())
   const [draftText, setDraftText] = useState('')
-  const [draftDueDate, setDraftDueDate] = useState(() => toISODateInTimeZone(new Date(), loadTimeZone()))
-  const [draftColor, setDraftColor] = useState(COLORS[0])
+  const [draftDueDate, setDraftDueDate] = useState(() => toISODateInTimeZone(new Date(), defaultTimeZone))
+  const [draftColor, setDraftColor] = useState(LABELS[0].color)
   const [isDraftDateAuto, setIsDraftDateAuto] = useState(true)
+  const [isDraftLabelOpen, setIsDraftLabelOpen] = useState(false)
+  const [draftRecurring, setDraftRecurring] = useState('none')
+  const [editingTaskId, setEditingTaskId] = useState(null)
+  const [editingText, setEditingText] = useState('')
+  const [dragOffsets, setDragOffsets] = useState({})
+  const [toasts, setToasts] = useState([])
+
+  const toastTimeoutsRef = useRef(new Map())
+  const longPressBubbleRef = useRef(null)
+  const longPressTextRef = useRef(null)
+  const textRefs = useRef(new Map())
+  const mirrorLegacyRef = useRef(false)
 
   useEffect(() => {
-    if (!canPersistTasks) {
-      return
+    let isMounted = true
+
+    const initialize = async () => {
+      const result = await taskStorage.initialize(defaultTimeZone)
+      if (!isMounted) {
+        return
+      }
+
+      mirrorLegacyRef.current = result.fallbackActive
+      setTasks(result.tasks)
+      setSelectedTimeZone(getSupportedTimeZone(result.settings.timezone || defaultTimeZone))
+      setIsReady(true)
     }
 
-    try {
-      window.localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(tasks))
-    } catch {
-      // no-op: persistence can fail in private mode or restricted storage environments
-    }
-  }, [tasks, canPersistTasks])
+    initialize()
 
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(TIMEZONE_STORAGE_KEY, selectedTimeZone)
-    } catch {
-      // no-op: persistence can fail in private mode or restricted storage environments
+    return () => {
+      isMounted = false
     }
-  }, [selectedTimeZone])
+  }, [defaultTimeZone])
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      setNowTick(getTimestamp())
+      setNowTick(taskModel.getNow())
     }, 60_000)
 
     return () => window.clearInterval(timer)
   }, [])
+
+  useEffect(() => {
+    if (!isReady) {
+      return
+    }
+
+    taskStorage.saveSettings(
+      {
+        timezone: selectedTimeZone,
+        syncEnabled: false,
+      },
+      mirrorLegacyRef.current,
+    )
+  }, [isReady, selectedTimeZone])
+
+  useEffect(() => {
+    const onPointerDown = (event) => {
+      const target = event.target
+      if (!(target instanceof HTMLElement)) {
+        return
+      }
+
+      if (!target.closest('.menu-wrap')) {
+        setIsTimezoneMenuOpen(false)
+      }
+
+      if (!target.closest('.task-menu-wrap')) {
+        setMenuTaskId(null)
+      }
+
+      if (!target.closest('.label-select-wrap')) {
+        setIsDraftLabelOpen(false)
+      }
+
+      if (!target.closest('.task-label-selector-wrap')) {
+        setLabelSelectorTaskId(null)
+      }
+    }
+
+    document.addEventListener('mousedown', onPointerDown)
+    document.addEventListener('touchstart', onPointerDown)
+
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown)
+      document.removeEventListener('touchstart', onPointerDown)
+    }
+  }, [])
+
+  useEffect(() => {
+    const toastTimeouts = toastTimeoutsRef.current
+    return () => {
+      toastTimeouts.forEach((timeoutId) => {
+        window.clearTimeout(timeoutId)
+      })
+    }
+  }, [])
+
+  const pushToast = (message) => {
+    const id = crypto.randomUUID()
+    setToasts((prev) => [...prev, { id, message }])
+
+    const timeoutId = window.setTimeout(() => {
+      setToasts((prev) => prev.filter((toast) => toast.id !== id))
+      toastTimeoutsRef.current.delete(id)
+    }, TOAST_DURATION_MS)
+
+    toastTimeoutsRef.current.set(id, timeoutId)
+  }
+
+  useEffect(() => {
+    const syncOnReconnect = async () => {
+      if (!syncService.isAuthenticated()) {
+        return
+      }
+
+      try {
+        const remoteTasks = await syncService.pullRemoteTasks()
+        const merged = taskStorage.mergeForSync(tasks, remoteTasks, (localTask, remoteTask) => {
+          if (import.meta.env.DEV) {
+            console.warn('Equal timestamp conflict resolved with remote preference', {
+              localTask,
+              remoteTask,
+            })
+          }
+        })
+
+        setTasks(merged)
+        await taskStorage.replaceAllTasks(merged, mirrorLegacyRef.current)
+        await syncService.pushMergedTasks(merged)
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.warn('Deferred sync failed', error)
+        }
+      }
+    }
+
+    window.addEventListener('online', syncOnReconnect)
+    return () => window.removeEventListener('online', syncOnReconnect)
+  }, [tasks])
 
   const today = useMemo(() => {
     return toISODateInTimeZone(new Date(nowTick), selectedTimeZone)
@@ -201,15 +320,39 @@ function App() {
     return notDoneTasks
   }, [activeTab, doneTasks, notDoneTasks, plannedTasks])
 
+  const todayStats = useMemo(() => {
+    const todayTasks = tasks.filter((task) => task.dueDate === today)
+    const completedToday = todayTasks.filter((task) => task.isDone).length
+    return {
+      total: todayTasks.length,
+      completed: completedToday,
+    }
+  }, [tasks, today])
+
   const tabCounts = {
     [TAB_KEYS.notDone]: notDoneTasks.length,
     [TAB_KEYS.done]: doneTasks.length,
     [TAB_KEYS.planned]: plannedTasks.length,
   }
 
-  const updateTasks = (updater) => {
-    setCanPersistTasks(true)
-    setTasks((prev) => updater(prev))
+  const persistTask = (task) => {
+    taskStorage.saveTask(task, mirrorLegacyRef.current)
+  }
+
+  const updateTaskInState = (taskId, updater) => {
+    let nextTask = null
+    setTasks((prev) =>
+      prev.map((task) => {
+        if (task.id !== taskId) {
+          return task
+        }
+
+        nextTask = updater(task)
+        return nextTask
+      }),
+    )
+
+    return nextTask
   }
 
   const addTask = (event) => {
@@ -226,15 +369,22 @@ function App() {
       dueDate: effectiveDraftDueDate,
       isDone: false,
       color: draftColor,
-      createdAt: getTimestamp(),
+      createdAt: taskModel.getNow(),
       completedAt: null,
+      recurring: taskModel.recurringValues.includes(draftRecurring) ? draftRecurring : 'none',
+      originalTaskId: null,
+      last_updated: taskModel.getNowIso(),
     }
 
-    updateTasks((prev) => [newTask, ...prev])
+    setTasks((prev) => [newTask, ...prev])
+    persistTask(newTask)
+
     setDraftText('')
     setDraftDueDate(today)
-    setDraftColor(COLORS[0])
+    setDraftColor(LABELS[0].color)
+    setDraftRecurring('none')
     setIsDraftDateAuto(true)
+    setIsDraftLabelOpen(false)
 
     if (newTask.dueDate > today) {
       setActiveTab(TAB_KEYS.planned)
@@ -243,29 +393,42 @@ function App() {
     }
   }
 
-  const updateTask = (taskId, updates) => {
-    updateTasks((prev) =>
-      prev.map((task) => {
-        if (task.id !== taskId) {
-          return task
+  const toggleTaskDone = (task, isDone) => {
+    const updatedTask = updateTaskInState(task.id, (currentTask) => {
+      if (isDone && currentTask.recurring !== 'none') {
+        const days = currentTask.recurring === 'daily' ? 1 : 7
+        return {
+          ...currentTask,
+          dueDate: addDaysToISODate(currentTask.dueDate, days),
+          isDone: false,
+          completedAt: null,
+          last_updated: taskModel.getNowIso(),
         }
+      }
 
-        return { ...task, ...updates }
-      }),
-    )
-  }
-
-  const toggleTaskDone = (taskId, isDone) => {
-    updateTask(taskId, {
-      isDone,
-      completedAt: isDone ? getTimestamp() : null,
+      return {
+        ...currentTask,
+        isDone,
+        completedAt: isDone ? taskModel.getNow() : null,
+        last_updated: taskModel.getNowIso(),
+      }
     })
+
+    if (updatedTask) {
+      persistTask(updatedTask)
+    }
+
+    if (isDone && task.recurring !== 'none') {
+      pushToast('Moved to next occurrence')
+      setActiveTab(TAB_KEYS.notDone)
+    }
   }
 
   const deleteTask = (taskId) => {
-    updateTasks((prev) => prev.filter((task) => task.id !== taskId))
+    setTasks((prev) => prev.filter((task) => task.id !== taskId))
+    taskStorage.deleteTask(taskId, mirrorLegacyRef.current)
     setMenuTaskId(null)
-    setTaskColorPickerId(null)
+    setLabelSelectorTaskId(null)
   }
 
   const updateTaskDate = (taskId, date) => {
@@ -273,18 +436,111 @@ function App() {
       return
     }
 
-    updateTask(taskId, { dueDate: date })
+    const updatedTask = updateTaskInState(taskId, (task) => ({
+      ...task,
+      dueDate: date,
+      last_updated: taskModel.getNowIso(),
+    }))
+
+    if (updatedTask) {
+      persistTask(updatedTask)
+    }
   }
 
   const setTaskColor = (taskId, color) => {
-    updateTask(taskId, { color })
-    setTaskColorPickerId(null)
+    const updatedTask = updateTaskInState(taskId, (task) => ({
+      ...task,
+      color,
+      last_updated: taskModel.getNowIso(),
+    }))
+
+    if (updatedTask) {
+      persistTask(updatedTask)
+    }
+
+    setLabelSelectorTaskId(null)
+    setMenuTaskId(null)
   }
 
   const switchTab = (tabKey) => {
     setActiveTab(tabKey)
     setMenuTaskId(null)
-    setTaskColorPickerId(null)
+    setLabelSelectorTaskId(null)
+  }
+
+  const beginEditTask = (task) => {
+    setEditingTaskId(task.id)
+    setEditingText(task.text)
+    setMenuTaskId(null)
+  }
+
+  const saveEditTask = (taskId) => {
+    const text = editingText.trim()
+    if (!text) {
+      setEditingTaskId(null)
+      setEditingText('')
+      return
+    }
+
+    const updatedTask = updateTaskInState(taskId, (task) => ({
+      ...task,
+      text,
+      last_updated: taskModel.getNowIso(),
+    }))
+
+    if (updatedTask) {
+      persistTask(updatedTask)
+    }
+
+    setEditingTaskId(null)
+    setEditingText('')
+  }
+
+  const cancelEditTask = () => {
+    setEditingTaskId(null)
+    setEditingText('')
+  }
+
+  const canSwipeRight = (task) => {
+    return activeTab === TAB_KEYS.notDone && !task.isDone && task.recurring === 'none'
+  }
+
+  const onTaskSwipe = (task, offsetX) => {
+    if (offsetX <= -SWIPE_THRESHOLD) {
+      if (task.isDone) {
+        deleteTask(task.id)
+      } else {
+        toggleTaskDone(task, true)
+      }
+      return
+    }
+
+    if (offsetX >= SWIPE_THRESHOLD && canSwipeRight(task)) {
+      const updatedTask = updateTaskInState(task.id, (currentTask) => ({
+        ...currentTask,
+        dueDate: addDaysToISODate(currentTask.dueDate, 1),
+        last_updated: taskModel.getNowIso(),
+      }))
+
+      if (updatedTask) {
+        persistTask(updatedTask)
+        pushToast('Moved to tomorrow')
+      }
+    }
+  }
+
+  const onTaskTextLongPress = (taskId) => {
+    const element = textRefs.current.get(taskId)
+    if (!element) {
+      return
+    }
+
+    const range = document.createRange()
+    range.selectNodeContents(element)
+
+    const selection = window.getSelection()
+    selection?.removeAllRanges()
+    selection?.addRange(range)
   }
 
   const renderEmptyMessage = () => {
@@ -297,6 +553,14 @@ function App() {
     }
 
     return "You're all caught up!"
+  }
+
+  if (!isReady) {
+    return (
+      <div className="app-shell loading-shell">
+        <p>Loading Duedly…</p>
+      </div>
+    )
   }
 
   return (
@@ -334,15 +598,9 @@ function App() {
           <button type="button" className="brand-button" onClick={() => switchTab(TAB_KEYS.notDone)}>
             Duedly
           </button>
+          <ProgressRing completed={todayStats.completed} total={todayStats.total} />
         </div>
         <div className="top-right">
-          <button
-            type="button"
-            className="ghost-button"
-            onClick={() => window.alert('Share is coming soon.')}
-          >
-            Share
-          </button>
           <button
             type="button"
             className="ghost-button"
@@ -406,21 +664,50 @@ function App() {
               }}
               required
             />
-            <div className="draft-color-picker">
-              <span>Color</span>
-              <div className="color-options">
-                {COLORS.map((color) => (
-                  <button
-                    key={color}
-                    type="button"
-                    className={`color-dot ${draftColor === color ? 'selected' : ''}`}
-                    style={{ backgroundColor: color }}
-                    onClick={() => setDraftColor(color)}
-                    aria-label={`Select color ${color}`}
-                  />
-                ))}
-              </div>
+            <div className="label-select-wrap">
+              <span>Label</span>
+              <button
+                type="button"
+                className="label-trigger"
+                onClick={() => setIsDraftLabelOpen((prev) => !prev)}
+              >
+                <span className="label-dot" style={{ backgroundColor: draftColor }} />
+                <span>{getLabelByColor(draftColor).name}</span>
+              </button>
+              {isDraftLabelOpen ? (
+                <div className="label-dropdown">
+                  {LABELS.map((label) => (
+                    <button
+                      key={label.id}
+                      type="button"
+                      className="label-option"
+                      onClick={() => {
+                        setDraftColor(label.color)
+                        setIsDraftLabelOpen(false)
+                      }}
+                    >
+                      <span className="label-dot" style={{ backgroundColor: label.color }} />
+                      <span>{label.name}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
             </div>
+            <label className="sr-only" htmlFor="new-task-recurring">
+              Recurring
+            </label>
+            <select
+              id="new-task-recurring"
+              className="recurring-select"
+              value={draftRecurring}
+              onChange={(event) => setDraftRecurring(event.target.value)}
+            >
+              {RECURRING_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
             <button type="submit" className="primary-button" disabled={!draftText.trim() || !effectiveDraftDueDate}>
               Add Task
             </button>
@@ -433,70 +720,210 @@ function App() {
         <section className="task-list" aria-live="polite">
           {visibleTasks.length === 0 ? <p className="empty-state">{renderEmptyMessage()}</p> : null}
 
-          {visibleTasks.map((task) => (
-            <article key={task.id} className="task-row">
-              <input
-                type="checkbox"
-                checked={task.isDone}
-                onChange={(event) => toggleTaskDone(task.id, event.target.checked)}
-                aria-label={`Mark ${task.text} as done`}
-              />
+          <AnimatePresence initial={false}>
+            {visibleTasks.map((task) => {
+              const dragOffset = dragOffsets[task.id] || 0
+              const swipeAction = dragOffset > 10 ? 'right' : dragOffset < -10 ? 'left' : null
+              const label = getLabelByColor(task.color)
 
-              <input
-                className="task-date"
-                type="date"
-                value={task.dueDate}
-                onChange={(event) => updateTaskDate(task.id, event.target.value)}
-                aria-label={`Change date for ${task.text}`}
-              />
+              return (
+                <div key={task.id} className="task-row-shell">
+                  <div className={`swipe-hint ${swipeAction ? `show ${swipeAction}` : ''}`}>
+                    {swipeAction === 'left' ? (
+                      <span>{task.isDone ? '🗑 Delete' : '✅ Done'}</span>
+                    ) : null}
+                    {swipeAction === 'right' ? <span>⏭ Tomorrow</span> : null}
+                  </div>
 
-              <div className="task-color-wrap">
-                <button
-                  type="button"
-                  className="task-color"
-                  style={{ backgroundColor: task.color }}
-                  onClick={() => setTaskColorPickerId((prev) => (prev === task.id ? null : task.id))}
-                  aria-label={`Change color for ${task.text}`}
-                />
-                {taskColorPickerId === task.id ? (
-                  <div className="task-color-menu">
-                    {COLORS.map((color) => (
+                  <motion.article
+                    layout
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.16 }}
+                    className="task-row"
+                    drag="x"
+                    dragDirectionLock
+                    dragConstraints={{ left: -110, right: 110 }}
+                    dragElastic={0.25}
+                    dragMomentum={false}
+                    onDrag={(event, info) => {
+                      setDragOffsets((prev) => ({
+                        ...prev,
+                        [task.id]: info.offset.x,
+                      }))
+                    }}
+                    onDragEnd={(event, info) => {
+                      setDragOffsets((prev) => {
+                        const next = { ...prev }
+                        delete next[task.id]
+                        return next
+                      })
+                      onTaskSwipe(task, info.offset.x)
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={task.isDone}
+                      onChange={(event) => toggleTaskDone(task, event.target.checked)}
+                      aria-label={`Mark ${task.text} as done`}
+                    />
+
+                    <input
+                      className="task-date"
+                      type="date"
+                      value={task.dueDate}
+                      onChange={(event) => updateTaskDate(task.id, event.target.value)}
+                      aria-label={`Change date for ${task.text}`}
+                    />
+
+                    <button
+                      type="button"
+                      className="task-color"
+                      title={label.name}
+                      style={{ backgroundColor: task.color }}
+                      aria-label={`Label ${label.name}`}
+                      onTouchStart={() => {
+                        longPressBubbleRef.current = window.setTimeout(() => {
+                          pushToast(label.name)
+                        }, 450)
+                      }}
+                      onTouchEnd={() => {
+                        if (longPressBubbleRef.current) {
+                          window.clearTimeout(longPressBubbleRef.current)
+                        }
+                      }}
+                    />
+
+                    <div className="task-main">
+                      {editingTaskId === task.id ? (
+                        <input
+                          className="task-edit-input"
+                          value={editingText}
+                          onChange={(event) => setEditingText(event.target.value)}
+                          onBlur={() => saveEditTask(task.id)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter') {
+                              saveEditTask(task.id)
+                            }
+                            if (event.key === 'Escape') {
+                              cancelEditTask()
+                            }
+                          }}
+                          ref={(element) => {
+                            if (!element) {
+                              return
+                            }
+                            window.requestAnimationFrame(() => {
+                              element.focus()
+                              const end = element.value.length
+                              element.setSelectionRange(end, end)
+                            })
+                          }}
+                        />
+                      ) : (
+                        <p
+                          className={`task-text ${task.isDone ? 'done' : ''}`}
+                          ref={(element) => {
+                            if (element) {
+                              textRefs.current.set(task.id, element)
+                            } else {
+                              textRefs.current.delete(task.id)
+                            }
+                          }}
+                          onPointerDown={() => {
+                            longPressTextRef.current = window.setTimeout(() => {
+                              onTaskTextLongPress(task.id)
+                            }, 450)
+                          }}
+                          onPointerUp={() => {
+                            if (longPressTextRef.current) {
+                              window.clearTimeout(longPressTextRef.current)
+                            }
+                          }}
+                          onPointerLeave={() => {
+                            if (longPressTextRef.current) {
+                              window.clearTimeout(longPressTextRef.current)
+                            }
+                          }}
+                        >
+                          {task.text}
+                          {task.recurring !== 'none' ? (
+                            <span className="recurring-badge" aria-label="Recurring task">
+                              {' '}↻ (recurring)
+                            </span>
+                          ) : null}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="task-menu-wrap">
                       <button
-                        key={color}
                         type="button"
-                        className="color-dot"
-                        style={{ backgroundColor: color }}
-                        onClick={() => setTaskColor(task.id, color)}
-                        aria-label={`Set color ${color}`}
-                      />
-                    ))}
-                  </div>
-                ) : null}
-              </div>
+                        className="icon-button"
+                        onClick={() => setMenuTaskId((prev) => (prev === task.id ? null : task.id))}
+                        aria-label={`Open menu for ${task.text}`}
+                      >
+                        ⋯
+                      </button>
+                      {menuTaskId === task.id ? (
+                        <div className="task-menu">
+                          <button type="button" onClick={() => beginEditTask(task)}>
+                            Edit task
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setLabelSelectorTaskId(task.id)
+                              setMenuTaskId(null)
+                            }}
+                          >
+                            Change label
+                          </button>
+                          <button type="button" onClick={() => deleteTask(task.id)}>
+                            Delete task
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                  </motion.article>
 
-              <p className={`task-text ${task.isDone ? 'done' : ''}`}>{task.text}</p>
-
-              <div className="task-menu-wrap">
-                <button
-                  type="button"
-                  className="icon-button"
-                  onClick={() => setMenuTaskId((prev) => (prev === task.id ? null : task.id))}
-                  aria-label={`Open menu for ${task.text}`}
-                >
-                  ⋯
-                </button>
-                {menuTaskId === task.id ? (
-                  <div className="task-menu">
-                    <button type="button" onClick={() => deleteTask(task.id)}>
-                      Delete task
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-            </article>
-          ))}
+                  {labelSelectorTaskId === task.id ? (
+                    <div className="task-label-selector-wrap">
+                      <div className="task-label-selector">
+                        {LABELS.map((item) => (
+                          <button key={item.id} type="button" onClick={() => setTaskColor(task.id, item.color)}>
+                            <span className="label-dot" style={{ backgroundColor: item.color }} />
+                            <span>{item.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              )
+            })}
+          </AnimatePresence>
         </section>
       </main>
+
+      <div className="toast-layer" aria-live="polite" aria-atomic="true">
+        <AnimatePresence>
+          {toasts.map((toast) => (
+            <motion.div
+              key={toast.id}
+              className="toast"
+              variants={toastVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              transition={{ duration: 0.16 }}
+            >
+              {toast.message}
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
     </div>
   )
 }
