@@ -37,11 +37,12 @@ const TIMEZONE_OPTIONS = [
   'Australia/Sydney',
 ]
 
+const REPEAT_WEEKDAYS_SHORT_LABEL = 'M-F'
 const RECURRING_MENU_OPTIONS = [
   { value: 'none', label: 'Does not repeat' },
   { value: 'daily', label: 'Repeat daily' },
   { value: 'weekly', label: 'Repeat weekly' },
-  { value: 'weekdays', label: 'Repeat M-F' },
+  { value: 'weekdays', label: `Repeat ${REPEAT_WEEKDAYS_SHORT_LABEL}` },
 ]
 
 const SWIPE_THRESHOLD = 70
@@ -103,13 +104,15 @@ const getDayOfWeek = (isoDate) => {
 
 const getNextWeekdayISODate = (isoDate) => {
   let nextDate = addDaysToISODate(isoDate, 1)
-  while (true) {
+  for (let attempt = 0; attempt < 7; attempt += 1) {
     const day = getDayOfWeek(nextDate)
     if (day !== 0 && day !== 6) {
       return nextDate
     }
     nextDate = addDaysToISODate(nextDate, 1)
   }
+
+  return addDaysToISODate(isoDate, 1)
 }
 
 const getNextRecurringDate = (isoDate, recurringRule) => {
@@ -680,7 +683,7 @@ function App() {
     }
 
     if (task.recurring === 'weekdays') {
-      return '⏭ Later (M-F)'
+      return `⏭ Later (${REPEAT_WEEKDAYS_SHORT_LABEL})`
     }
 
     return task.recurring === 'weekly' ? '⏭ Later (+7d)' : '⏭ Later'
