@@ -2,7 +2,6 @@ import Dexie from 'dexie'
 
 const LEGACY_TASKS_KEY = 'duedly.tasks.v1'
 const LEGACY_TIMEZONE_KEY = 'duedly.timezone.v1'
-const MIGRATION_META_KEY = 'duedly.dexie.migration.v1'
 
 const SETTINGS_KEYS = {
   timezone: 'timezone',
@@ -29,41 +28,12 @@ const safeLocalStorageGet = (key) => {
   }
 }
 
-const safeLocalStorageSet = (key, value) => {
+const safeLocalStorageRemove = (key) => {
   try {
-    window.localStorage.setItem(key, value)
+    window.localStorage.removeItem(key)
   } catch {
     // ignore storage failures
   }
-}
-
-const readMigrationMeta = () => {
-  const raw = safeLocalStorageGet(MIGRATION_META_KEY)
-  if (!raw) {
-    return {
-      migrated: false,
-      stableLaunches: 0,
-    }
-  }
-
-  try {
-    const parsed = JSON.parse(raw)
-    return {
-      migrated: Boolean(parsed.migrated),
-      stableLaunches: Number.isFinite(parsed.stableLaunches)
-        ? Math.max(0, Math.min(2, parsed.stableLaunches))
-        : 0,
-    }
-  } catch {
-    return {
-      migrated: false,
-      stableLaunches: 0,
-    }
-  }
-}
-
-const writeMigrationMeta = (meta) => {
-  safeLocalStorageSet(MIGRATION_META_KEY, JSON.stringify(meta))
 }
 
 const parseIsoDate = (value) => {
@@ -116,8 +86,10 @@ const normalizeTask = (task) => {
   const recurring = RECURRING_VALUES.includes(task.recurring) ? task.recurring : 'none'
   const color = typeof task.color === 'string' && task.color ? task.color : '#374151'
   const lastUpdatedCandidate = typeof task.last_updated === 'string' ? task.last_updated : null
+  const createdAt = Number.isFinite(task.createdAt) ? task.createdAt : getNow()
+  const fallbackLastUpdated = new Date(createdAt).toISOString()
   const lastUpdated = Number.isNaN(Date.parse(lastUpdatedCandidate || ''))
-    ? getNowIso()
+    ? fallbackLastUpdated
     : String(lastUpdatedCandidate)
 
   return {
@@ -126,7 +98,7 @@ const normalizeTask = (task) => {
     dueDate,
     isDone: Boolean(task.isDone),
     color,
-    createdAt: Number.isFinite(task.createdAt) ? task.createdAt : getNow(),
+    createdAt,
     completedAt: Number.isFinite(task.completedAt) ? task.completedAt : null,
     recurring,
     originalTaskId: typeof task.originalTaskId === 'string' ? task.originalTaskId : null,
@@ -198,13 +170,6 @@ const mergeTasks = (localTasks, remoteTasks, onEqualTimestamp) => {
   return Array.from(byId.values())
 }
 
-const writeLegacyBackup = (tasks, settings) => {
-  safeLocalStorageSet(LEGACY_TASKS_KEY, JSON.stringify(tasks))
-  if (settings.timezone) {
-    safeLocalStorageSet(LEGACY_TIMEZONE_KEY, settings.timezone)
-  }
-}
-
 const readDexieTasks = async () => {
   const tasks = await db.tasks.toArray()
   return tasks.map(normalizeTask).filter(Boolean)
@@ -243,102 +208,50 @@ const migrateFromLegacy = async () => {
   if (legacyTimezone) {
     await db.settings.put({ id: SETTINGS_KEYS.timezone, value: legacyTimezone })
   }
-
-  const meta = readMigrationMeta()
-  writeMigrationMeta({
-    migrated: true,
-    stableLaunches: meta.stableLaunches,
-  })
+  safeLocalStorageRemove(LEGACY_TASKS_KEY)
+  safeLocalStorageRemove(LEGACY_TIMEZONE_KEY)
 }
 
 export const taskStorage = {
   async initialize(defaultTimeZone) {
-    const existingMeta = readMigrationMeta()
-
-    if (!existingMeta.migrated) {
-      await migrateFromLegacy()
-    }
-
-    let tasks = []
-    let settings = { timezone: null, syncEnabled: false }
-    let dexieReady
-
     try {
-      tasks = await readDexieTasks()
-      settings = await readSettings()
-      dexieReady = true
-    } catch {
-      dexieReady = false
-    }
-
-    const previousLaunches = existingMeta.stableLaunches
-    const stableLaunches = dexieReady ? Math.min(previousLaunches + 1, 2) : 0
-
-    writeMigrationMeta({
-      migrated: true,
-      stableLaunches,
-    })
-
-    const fallbackActive = stableLaunches < 2
-
-    if (fallbackActive) {
-      const legacyTasks = readLegacyTasks()
-      if (legacyTasks.length) {
-        tasks = mergeTasks(tasks, legacyTasks)
-        if (dexieReady) {
-          await upsertTasks(tasks)
-        }
-      }
+      await migrateFromLegacy()
+      const tasks = await readDexieTasks()
+      const settings = await readSettings()
 
       if (!settings.timezone) {
-        settings.timezone = readLegacyTimezone() || defaultTimeZone
-        if (dexieReady) {
-          await writeSettings(settings)
-        }
-      }
-    }
-
-    if (!settings.timezone) {
-      settings.timezone = defaultTimeZone
-      if (dexieReady) {
+        settings.timezone = defaultTimeZone
         await writeSettings(settings)
       }
-    }
 
-    return {
-      tasks,
-      settings,
-      fallbackActive,
+      return {
+        tasks,
+        settings,
+        fallbackActive: false,
+      }
+    } catch {
+      return {
+        tasks: [],
+        settings: {
+          timezone: defaultTimeZone,
+          syncEnabled: false,
+          statusIndicator: null,
+        },
+        fallbackActive: false,
+      }
     }
   },
 
-  async saveTask(task, mirrorLegacy) {
+  async saveTask(task) {
     await db.tasks.put(normalizeTask(task))
-
-    if (mirrorLegacy) {
-      const tasks = await readDexieTasks()
-      const settings = await readSettings()
-      writeLegacyBackup(tasks, settings)
-    }
   },
 
-  async deleteTask(taskId, mirrorLegacy) {
+  async deleteTask(taskId) {
     await db.tasks.delete(taskId)
-
-    if (mirrorLegacy) {
-      const tasks = await readDexieTasks()
-      const settings = await readSettings()
-      writeLegacyBackup(tasks, settings)
-    }
   },
 
-  async saveSettings(settings, mirrorLegacy) {
+  async saveSettings(settings) {
     await writeSettings(settings)
-
-    if (mirrorLegacy) {
-      const tasks = await readDexieTasks()
-      writeLegacyBackup(tasks, settings)
-    }
   },
 
   mergeForSync(localTasks, remoteTasks, onEqualTimestamp) {
@@ -347,7 +260,7 @@ export const taskStorage = {
     return mergeTasks(normalizedLocal, normalizedRemote, onEqualTimestamp)
   },
 
-  async replaceAllTasks(tasks, mirrorLegacy) {
+  async replaceAllTasks(tasks) {
     const normalizedTasks = tasks.map(normalizeTask).filter(Boolean)
     await db.transaction('rw', db.tasks, async () => {
       await db.tasks.clear()
@@ -355,11 +268,6 @@ export const taskStorage = {
         await db.tasks.bulkPut(normalizedTasks)
       }
     })
-
-    if (mirrorLegacy) {
-      const settings = await readSettings()
-      writeLegacyBackup(normalizedTasks, settings)
-    }
   },
 }
 

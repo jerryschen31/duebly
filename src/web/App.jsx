@@ -92,6 +92,8 @@ const addDaysToISODate = (isoDate, daysToAdd) => {
   return date.toISOString().slice(0, 10)
 }
 
+const getSeriesId = (task) => task.originalTaskId || task.id
+
 const getLabelByColor = (color) => {
   return LABELS.find((label) => label.color === color) || LABELS[0]
 }
@@ -294,6 +296,7 @@ function App() {
   const today = useMemo(() => {
     return toISODateInTimeZone(new Date(nowTick), selectedTimeZone)
   }, [nowTick, selectedTimeZone])
+  const tomorrow = useMemo(() => addDaysToISODate(today, 1), [today])
 
   const effectiveDraftDueDate = isDraftDateAuto ? today : draftDueDate
 
@@ -532,7 +535,32 @@ function App() {
   }
 
   const canSwipeRight = (task) => {
-    return activeTab === TAB_KEYS.notDone && !task.isDone && task.recurring === 'none'
+    return activeTab === TAB_KEYS.notDone && !task.isDone
+  }
+
+  const getSwipeTargetDate = (task) => {
+    const days = task.recurring === 'weekly' ? 7 : 1
+    return addDaysToISODate(today, days)
+  }
+
+  const getLaterToast = (targetDate) => {
+    const label = targetDate === tomorrow ? 'tomorrow' : targetDate
+    return `saving task for later (${label})`
+  }
+
+  const hasRecurringDuplicateAtDate = (task, targetDate) => {
+    const taskSeriesId = getSeriesId(task)
+    return tasks.some((candidate) => {
+      if (candidate.id === task.id || candidate.isDone || candidate.dueDate !== targetDate) {
+        return false
+      }
+
+      if (candidate.recurring !== task.recurring) {
+        return false
+      }
+
+      return getSeriesId(candidate) === taskSeriesId
+    })
   }
 
   const onTaskSwipe = (task, offsetX) => {
@@ -546,31 +574,56 @@ function App() {
     }
 
     if (offsetX >= SWIPE_THRESHOLD && canSwipeRight(task)) {
+      const targetDate = getSwipeTargetDate(task)
+      if (task.recurring !== 'none' && hasRecurringDuplicateAtDate(task, targetDate)) {
+        pushToast(getLaterToast(targetDate))
+        return
+      }
+
       const updatedTask = updateTaskInState(task.id, (currentTask) => ({
         ...currentTask,
-        dueDate: addDaysToISODate(currentTask.dueDate, 1),
+        dueDate: targetDate,
         last_updated: taskModel.getNowIso(),
       }))
 
       if (updatedTask) {
         persistTask(updatedTask)
-        pushToast('Moved to tomorrow')
+        pushToast(getLaterToast(targetDate))
       }
     }
   }
 
   const onTaskTextLongPress = (taskId) => {
-    const element = textRefs.current.get(taskId)
-    if (!element) {
+    const textElement = textRefs.current.get(taskId)
+    if (!textElement) {
+      return
+    }
+
+    const textNode = textElement.firstChild
+    if (!textNode || textNode.nodeType !== Node.TEXT_NODE) {
+      return
+    }
+
+    const textValue = textNode.textContent || ''
+    if (!textValue) {
       return
     }
 
     const range = document.createRange()
-    range.selectNodeContents(element)
+    range.setStart(textNode, 0)
+    range.setEnd(textNode, textValue.length)
 
     const selection = window.getSelection()
     selection?.removeAllRanges()
     selection?.addRange(range)
+  }
+
+  const swipeRightHintLabel = (task) => {
+    if (!canSwipeRight(task)) {
+      return null
+    }
+
+    return task.recurring === 'weekly' ? '⏭ Later (+7d)' : '⏭ Later'
   }
 
   const renderEmptyMessage = () => {
@@ -775,7 +828,7 @@ function App() {
                     {swipeAction === 'left' ? (
                       <span>{task.isDone ? '🗑 Delete' : '✅ Done'}</span>
                     ) : null}
-                    {swipeAction === 'right' && canSwipeRight(task) ? <span>⏭ Tomorrow</span> : null}
+                    {swipeAction === 'right' && canSwipeRight(task) ? <span>{swipeRightHintLabel(task)}</span> : null}
                   </div>
 
                   <motion.article
