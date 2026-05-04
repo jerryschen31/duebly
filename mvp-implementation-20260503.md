@@ -2,7 +2,7 @@
 
 ## What was implemented
 
-- Created a runnable npm web app (React + Vite) at repository root.
+- Created a runnable npm app (React + Vite) at repository root (in the `src` directory).
 - Implemented mobile-friendly MVP shell:
   - Top navigation with hamburger menu, clickable **Duedly** title, **Share**, and **Login** buttons.
   - Hamburger menu contains **Set Time Zone** selector.
