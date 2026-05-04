@@ -97,7 +97,7 @@ const normalizeTask = (task) => {
   const lastUpdatedCandidate = typeof task.last_updated === 'string' ? task.last_updated : null
   const lastUpdated = Number.isNaN(Date.parse(lastUpdatedCandidate || ''))
     ? getNowIso()
-    : lastUpdatedCandidate
+    : String(lastUpdatedCandidate)
 
   return {
     id: String(task.id),

@@ -46,6 +46,14 @@ const RECURRING_OPTIONS = [
 const SWIPE_THRESHOLD = 70
 const TOAST_DURATION_MS = 1800
 
+const createId = () => {
+  if (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID()
+  }
+
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`
+}
+
 const toISODateInTimeZone = (date, timeZone) => {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone,
@@ -242,7 +250,7 @@ function App() {
   }, [])
 
   const pushToast = (message) => {
-    const id = crypto.randomUUID()
+    const id = createId()
     setToasts((prev) => [...prev, { id, message }])
 
     const timeoutId = window.setTimeout(() => {
@@ -364,7 +372,7 @@ function App() {
     }
 
     const newTask = {
-      id: crypto.randomUUID(),
+      id: createId(),
       text,
       dueDate: effectiveDraftDueDate,
       isDone: false,
@@ -732,7 +740,7 @@ function App() {
                     {swipeAction === 'left' ? (
                       <span>{task.isDone ? '🗑 Delete' : '✅ Done'}</span>
                     ) : null}
-                    {swipeAction === 'right' ? <span>⏭ Tomorrow</span> : null}
+                    {swipeAction === 'right' && canSwipeRight(task) ? <span>⏭ Tomorrow</span> : null}
                   </div>
 
                   <motion.article
