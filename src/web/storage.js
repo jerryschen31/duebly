@@ -1,7 +1,7 @@
 import Dexie from 'dexie'
 
-const LEGACY_TASKS_KEY = 'duedly.tasks.v1'
-const LEGACY_TIMEZONE_KEY = 'duedly.timezone.v1'
+const LEGACY_TASKS_KEY = 'duebly.tasks.v1'
+const LEGACY_TIMEZONE_KEY = 'duebly.timezone.v1'
 
 const SETTINGS_KEYS = {
   timezone: 'timezone',
@@ -34,7 +34,7 @@ const shouldDeleteOldTasks = parseBooleanFlag(
   true,
 )
 
-const db = new Dexie('duedly-db')
+const db = new Dexie('duebly-db')
 db.version(1).stores({
   tasks: '&id, dueDate, isDone, createdAt, completedAt, recurring, last_updated',
   settings: '&id',

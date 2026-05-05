@@ -990,7 +990,7 @@ function App() {
   if (!isReady) {
     return (
       <div className="app-shell loading-shell">
-        <p>Loading Duedly…</p>
+        <p>Loading Duebly...</p>
       </div>
     )
   }
@@ -1028,7 +1028,7 @@ function App() {
             ) : null}
           </div>
           <button type="button" className="brand-button" onClick={() => switchTab(TAB_KEYS.notDone)}>
-            Duedly
+            Duebly
           </button>
           <ProgressRing completed={notDoneStatusStats.completed} total={notDoneStatusStats.total} />
         </div>

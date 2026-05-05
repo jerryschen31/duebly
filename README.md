@@ -1,6 +1,6 @@
-# duedly
+# duebly
 
-Initial MVP implementation of the Duedly task app.
+Initial MVP implementation of the Duebly task app.
 
 ## Run locally
 

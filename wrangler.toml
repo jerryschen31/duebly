@@ -1,6 +1,6 @@
-name = "duedly"
+name = "duebly"
 compatibility_date = "2026-05-01"
 
 [env.dev]
-name = "duedly-dev"
+name = "duebly-dev"
 

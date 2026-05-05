@@ -1,4 +1,4 @@
-# Duedly - to-do list app
+# Duebly - to-do list app
 
 ## Overview
 
@@ -17,7 +17,7 @@ The goal is a simple, web client-only to-do list website to help me (and any oth
 ## UI/UX Features
 
 ### Overall Page
-- There should be a top nav-bar with a hamburger menu on the top-left, and two buttons at the top-right - "Share" and "Login". Just to the right of the hamburger menu should be a clickable header text "Duedly". The nav-bar should look like what is on this landing page: https://kinnoo.ai
+- There should be a top nav-bar with a hamburger menu on the top-left, and two buttons at the top-right - "Share" and "Login". Just to the right of the hamburger menu should be a clickable header text "Duebly". The nav-bar should look like what is on this landing page: https://kinnoo.ai
 - A div element "tab-bar" with the same height (or a bit thinner) as the nav-bar should span the entire width of the page, and should show three clickable buttons for the 3 different tabs: "Not Done", "Done", "Planned". Clicking on a button will show the respective to-do list.
 - The main div element below this "tab-bar" div element shows the main to-do list. By default, the "Not Done" list is shown. This main div element is the to-do list that takes up the remainder of the page.
 - The hamburger menu should have one element - "Set Time Zone". Clicking on this should show a list of time zones and allow the user to select the time zone.

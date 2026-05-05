@@ -10,8 +10,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'pwa-192.png', 'pwa-512.png'],
       manifest: {
-        name: 'Duedly',
-        short_name: 'Duedly',
+        name: 'Duebly',
+        short_name: 'Duebly',
         description: 'Opinionated task manager',
         theme_color: '#2563eb',
         background_color: '#f3f4f6',

@@ -1,10 +1,10 @@
-# Duedly MVP implementation (2026-05-03)
+# Duebly MVP implementation (2026-05-03)
 
 ## What was implemented
 
 - Created a runnable npm app (React + Vite) at repository root (in the `src` directory).
 - Implemented mobile-friendly MVP shell:
-  - Top navigation with hamburger menu, clickable **Duedly** title, **Share**, and **Login** buttons.
+   - Top navigation with hamburger menu, clickable **Duebly** title, **Share**, and **Login** buttons.
   - Hamburger menu contains **Set Time Zone** selector.
 - Implemented 3 working tabs:
   - **Not Done**: active tasks with due date <= today (in selected timezone), reverse chronological.
@@ -46,7 +46,7 @@ Add these explicit requirements to reduce ambiguity and improve one-shot success
    - Define exact secondary sort for same-date tasks in each tab.
 5. **UI behavior details**
    - Clarify whether **Add Task** is visible in all tabs or only Not Done/Planned.
-   - Specify expected behavior for clicking **Duedly** title and hamburger interactions.
+   - Specify expected behavior for clicking **Duebly** title and hamburger interactions.
    - Define menu-close behavior (outside click, Escape key, etc.).
 6. **Validation/error UX**
    - Required text length limits, invalid date handling, and user-facing validation messages.
