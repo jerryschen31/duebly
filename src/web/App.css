@@ -339,11 +339,19 @@
 .task-row-shell {
   position: relative;
   overflow: visible;
-  isolation: isolate;
 }
 
 .task-row-shell.menu-open {
-  z-index: 60;
+  z-index: 200;
+}
+
+.task-row-shell.menu-open .task-row {
+  z-index: 210;
+}
+
+.task-row-shell.menu-open .task-menu-wrap {
+  position: relative;
+  z-index: 220;
 }
 
 .swipe-hint {
@@ -460,7 +468,7 @@
   border-radius: 0.5rem;
   background: white;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
-  z-index: 90;
+  z-index: 230;
   overflow: visible;
 }
 
@@ -493,7 +501,7 @@
   border-radius: 0.5rem;
   background: #ffffff;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
-  z-index: 95;
+  z-index: 240;
 }
 
 .empty-state {
