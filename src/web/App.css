@@ -194,6 +194,17 @@
   min-width: 0;
 }
 
+.composer-meta-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.composer-meta-row input[type='date'] {
+  min-width: 0;
+}
+
 .recurring-menu-wrap {
   position: relative;
 }
@@ -253,13 +264,9 @@
 
 .label-select-wrap {
   position: relative;
-  display: grid;
-  gap: 0.4rem;
-}
-
-.label-select-wrap span {
-  font-size: 0.9rem;
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .label-trigger,
@@ -271,12 +278,13 @@
 }
 
 .label-trigger {
-  justify-content: space-between;
-  width: 100%;
+  justify-content: flex-start;
+  width: auto;
   border: 1px solid #d1d5db;
   border-radius: 0.5rem;
   padding: 0.5rem 0.65rem;
   background: #ffffff;
+  white-space: nowrap;
 }
 
 .label-dropdown,
@@ -304,6 +312,11 @@
   padding: 0.45rem 0.6rem;
 }
 
+.label-option {
+  justify-content: flex-start;
+  gap: 0.4rem;
+}
+
 .label-option:hover,
 .task-label-selector button:hover {
   background: #f9fafb;
@@ -325,6 +338,12 @@
 
 .task-row-shell {
   position: relative;
+  overflow: visible;
+  isolation: isolate;
+}
+
+.task-row-shell.menu-open {
+  z-index: 60;
 }
 
 .swipe-hint {
@@ -334,27 +353,46 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 0.84rem;
+  font-weight: 600;
+  pointer-events: none;
+  z-index: 0;
   opacity: 0;
   transition: opacity 100ms ease;
-  pointer-events: none;
+}
+
+.swipe-hint span {
+  white-space: nowrap;
 }
 
 .swipe-hint.show {
   opacity: 1;
 }
 
-.swipe-hint.left {
-  background: #ef4444;
-  color: #ffffff;
+.swipe-hint.move-done {
+  background: #22c55e;
+  color: #111827;
+  justify-content: flex-end;
+  padding-right: 0.75rem;
 }
 
-.swipe-hint.right {
-  background: #f59e0b;
+.swipe-hint.delete {
+  background: #ef4444;
+  color: #ffffff;
+  justify-content: flex-end;
+  padding-right: 0.75rem;
+}
+
+.swipe-hint.save-later {
+  background: #f97316;
   color: #111827;
+  justify-content: flex-start;
+  padding-left: 0.75rem;
 }
 
 .task-row {
   position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: auto auto auto 1fr auto;
   align-items: center;
@@ -409,6 +447,12 @@
   width: 12.5rem;
 }
 
+.recurring-menu-wrap .task-menu.recurring-menu {
+  left: 0;
+  right: auto;
+  width: min(16rem, calc(100vw - 2rem));
+}
+
 .task-menu {
   position: absolute;
   top: 2.1rem;
@@ -416,7 +460,7 @@
   border-radius: 0.5rem;
   background: white;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
-  z-index: 28;
+  z-index: 90;
   overflow: visible;
 }
 
@@ -432,7 +476,7 @@
 }
 
 .task-label-selector-wrap {
-  z-index: 29;
+  z-index: 95;
 }
 
 .task-label-selector {
@@ -449,7 +493,7 @@
   border-radius: 0.5rem;
   background: #ffffff;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
-  z-index: 31;
+  z-index: 95;
 }
 
 .empty-state {
@@ -480,6 +524,20 @@
   box-shadow: 0 8px 22px rgba(0, 0, 0, 0.2);
 }
 
+.swatch-hint {
+  position: fixed;
+  z-index: 85;
+  transform: translate(-50%, -100%);
+  background: #111827;
+  color: #ffffff;
+  border-radius: 0.5rem;
+  padding: 0.32rem 0.5rem;
+  font-size: 0.78rem;
+  line-height: 1.15;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+}
+
 @media (min-width: 768px) {
   .content {
     padding: 1rem;
@@ -488,6 +546,19 @@
   .composer {
     grid-template-columns: 1fr auto auto auto;
     align-items: end;
+  }
+
+  .composer-meta-row {
+    display: contents;
+  }
+
+  .label-trigger {
+    width: 100%;
+  }
+
+  .label-select-wrap {
+    display: grid;
+    gap: 0.4rem;
   }
 }
 
@@ -503,11 +574,40 @@
   .task-menu-wrap {
     grid-column: 1 / -1;
     justify-self: end;
+    position: relative;
   }
 
   .task-label-selector {
     width: min(90vw, 16rem);
     right: 0;
+  }
+
+  .recurring-menu-wrap .task-menu.recurring-menu {
+    position: absolute;
+    top: calc(100% + 0.35rem);
+    left: 0;
+    right: auto;
+    max-height: min(65dvh, 18rem);
+    overflow-y: auto;
+  }
+
+  .task-row-shell .task-menu {
+    position: absolute;
+    top: calc(100% + 0.35rem);
+    right: 0;
+    left: auto;
+    width: min(90vw, 16rem);
+    max-height: min(70dvh, 24rem);
+    overflow-y: auto;
+    z-index: 95;
+  }
+
+  .task-row-shell .task-frequency-submenu {
+    position: static;
+    width: auto;
+    margin: 0.35rem 0.6rem 0.6rem;
+    box-shadow: none;
+    border-color: #e5e7eb;
   }
 }
 

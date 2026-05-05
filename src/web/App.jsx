@@ -46,6 +46,7 @@ const RECURRING_MENU_OPTIONS = [
 ]
 
 const SWIPE_THRESHOLD = 70
+const SWIPE_COMMIT_DELAY_MS = 170
 const TOAST_DURATION_MS = 1800
 
 const createId = () => {
@@ -196,6 +197,13 @@ function App() {
   const [isTimezoneMenuOpen, setIsTimezoneMenuOpen] = useState(false)
   const [selectedTimeZone, setSelectedTimeZone] = useState(defaultTimeZone)
   const [nowTick, setNowTick] = useState(() => taskModel.getNow())
+  const [viewportWidth, setViewportWidth] = useState(() => {
+    if (typeof window === 'undefined') {
+      return 390
+    }
+
+    return window.innerWidth
+  })
   const [draftText, setDraftText] = useState('')
   const [draftDueDate, setDraftDueDate] = useState(() => toISODateInTimeZone(new Date(), defaultTimeZone))
   const [draftColor, setDraftColor] = useState(LABELS[0].color)
@@ -206,12 +214,16 @@ function App() {
   const [editingTaskId, setEditingTaskId] = useState(null)
   const [editingText, setEditingText] = useState('')
   const [frequencySelectorTaskId, setFrequencySelectorTaskId] = useState(null)
-  const [dragOffsets, setDragOffsets] = useState({})
+  const [swipeIntentByTaskId, setSwipeIntentByTaskId] = useState({})
+  const [swipeCommitByTaskId, setSwipeCommitByTaskId] = useState({})
   const [toasts, setToasts] = useState([])
+  const [swatchHint, setSwatchHint] = useState(null)
 
   const toastTimeoutsRef = useRef(new Map())
   const longPressBubbleRef = useRef(null)
+  const swatchHintTimeoutRef = useRef(null)
   const longPressTextRef = useRef(null)
+  const swipeCommitTimeoutsRef = useRef(new Map())
   const textRefs = useRef(new Map())
   const mirrorLegacyRef = useRef(false)
 
@@ -243,6 +255,15 @@ function App() {
     }, 60_000)
 
     return () => window.clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    const onResize = () => {
+      setViewportWidth(window.innerWidth)
+    }
+
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
   }, [])
 
   useEffect(() => {
@@ -290,6 +311,12 @@ function App() {
       toastTimeouts.forEach((timeoutId) => {
         window.clearTimeout(timeoutId)
       })
+      if (swatchHintTimeoutRef.current) {
+        window.clearTimeout(swatchHintTimeoutRef.current)
+      }
+      swipeCommitTimeoutsRef.current.forEach((timeoutId) => {
+        window.clearTimeout(timeoutId)
+      })
     }
   }, [])
 
@@ -303,6 +330,28 @@ function App() {
     }, TOAST_DURATION_MS)
 
     toastTimeoutsRef.current.set(id, timeoutId)
+  }
+
+  const showSwatchHint = (message, anchorRect) => {
+    if (!anchorRect) {
+      return
+    }
+
+    setSwatchHint({
+      id: createId(),
+      message,
+      left: anchorRect.left + anchorRect.width / 2,
+      top: Math.max(8, anchorRect.top - 8),
+    })
+
+    if (swatchHintTimeoutRef.current) {
+      window.clearTimeout(swatchHintTimeoutRef.current)
+    }
+
+    swatchHintTimeoutRef.current = window.setTimeout(() => {
+      setSwatchHint(null)
+      swatchHintTimeoutRef.current = null
+    }, 1300)
   }
 
   useEffect(() => {
@@ -488,11 +537,11 @@ function App() {
   }
 
   const getLaterToast = (targetDate) => {
-    const label = targetDate === tomorrow ? 'tomorrow' : targetDate
-    return `saving task for later (${label})`
+    return targetDate === tomorrow ? 'Moved to tomorrow' : `Moved to ${targetDate}`
   }
 
-  const toggleTaskDone = (task, isDone) => {
+  const toggleTaskDone = (task, isDone, options = {}) => {
+    const { suppressRecurringToast = false } = options
     const updatedTask = updateTaskInState(task.id, (currentTask) => {
       if (isDone && currentTask.recurring !== 'none') {
         return {
@@ -516,14 +565,28 @@ function App() {
       persistTask(updatedTask)
     }
 
-    if (isDone && task.recurring !== 'none' && updatedTask) {
-      pushToast(getLaterToast(updatedTask.dueDate))
+    if (isDone && task.recurring !== 'none' && updatedTask && !suppressRecurringToast) {
+      pushToast('Moved to next occurrence')
       setActiveTab(TAB_KEYS.notDone)
     }
   }
 
   const deleteTask = (taskId) => {
     setTasks((prev) => prev.filter((task) => task.id !== taskId))
+    setSwipeCommitByTaskId((prev) => {
+      if (!prev[taskId]) {
+        return prev
+      }
+
+      const next = { ...prev }
+      delete next[taskId]
+      return next
+    })
+    const commitTimeoutId = swipeCommitTimeoutsRef.current.get(taskId)
+    if (commitTimeoutId) {
+      window.clearTimeout(commitTimeoutId)
+      swipeCommitTimeoutsRef.current.delete(taskId)
+    }
     taskStorage.deleteTask(taskId, mirrorLegacyRef.current)
     setMenuTaskId(null)
     setLabelSelectorTaskId(null)
@@ -606,7 +669,13 @@ function App() {
     return activeTab === TAB_KEYS.notDone && !task.isDone
   }
 
-  const getSwipeTargetDate = (recurringRule) => getRecurringTargetDate(recurringRule)
+  const getSwipeTargetDate = (recurringRule) => {
+    if (recurringRule === 'none') {
+      return tomorrow
+    }
+
+    return getRecurringTargetDate(recurringRule)
+  }
 
   const hasRecurringDuplicateAtDate = (task, targetDate) => {
     const taskSeriesId = getSeriesId(task)
@@ -623,17 +692,19 @@ function App() {
     })
   }
 
-  const onTaskSwipe = (task, offsetX) => {
-    if (offsetX <= -SWIPE_THRESHOLD) {
+  const onTaskSwipe = (task, swipeDirection) => {
+    if (swipeDirection === 'left') {
       if (task.isDone) {
         deleteTask(task.id)
+        pushToast('Task Deleted')
       } else {
-        toggleTaskDone(task, true)
+        toggleTaskDone(task, true, { suppressRecurringToast: true })
+        pushToast('Moved to Done')
       }
       return
     }
 
-    if (offsetX >= SWIPE_THRESHOLD && canSwipeRight(task)) {
+    if (swipeDirection === 'right' && canSwipeRight(task)) {
       const targetDate = getSwipeTargetDate(task.recurring)
       if (task.recurring !== 'none' && hasRecurringDuplicateAtDate(task, targetDate)) {
         pushToast(getLaterToast(targetDate))
@@ -648,9 +719,56 @@ function App() {
 
       if (updatedTask) {
         persistTask(updatedTask)
-        pushToast(getLaterToast(targetDate))
+        pushToast('Saved for tomorrow')
       }
     }
+  }
+
+  const getSwipeCommitThreshold = () => {
+    return Math.max(SWIPE_THRESHOLD, Math.floor(viewportWidth / 3))
+  }
+
+  const startSwipeCommit = (task, swipeDirection) => {
+    setSwipeCommitByTaskId((prev) => {
+      if (prev[task.id]) {
+        return prev
+      }
+
+      return {
+        ...prev,
+        [task.id]: swipeDirection,
+      }
+    })
+
+    setSwipeIntentByTaskId((prev) => ({
+      ...prev,
+      [task.id]: swipeDirection,
+    }))
+
+    const timeoutId = window.setTimeout(() => {
+      swipeCommitTimeoutsRef.current.delete(task.id)
+      onTaskSwipe(task, swipeDirection)
+      setSwipeCommitByTaskId((prev) => {
+        if (!prev[task.id]) {
+          return prev
+        }
+
+        const next = { ...prev }
+        delete next[task.id]
+        return next
+      })
+      setSwipeIntentByTaskId((prev) => {
+        if (!prev[task.id]) {
+          return prev
+        }
+
+        const next = { ...prev }
+        delete next[task.id]
+        return next
+      })
+    }, SWIPE_COMMIT_DELAY_MS)
+
+    swipeCommitTimeoutsRef.current.set(task.id, timeoutId)
   }
 
   const onTaskTextLongPress = (taskId) => {
@@ -683,12 +801,20 @@ function App() {
       return null
     }
 
-    if (task.recurring === 'weekdays') {
-      return `⏭ Later (${REPEAT_WEEKDAYS_SHORT_LABEL})`
-    }
-
-    return task.recurring === 'weekly' ? '⏭ Later (+7d)' : '⏭ Later'
+    return 'Save for Later'
   }
+
+  const isMobileViewport = viewportWidth <= 640
+  const rowShellMotionProps = isMobileViewport
+    ? {
+      initial: false,
+      transition: { duration: 0 },
+    }
+    : {
+      initial: false,
+      exit: { opacity: 0, height: 0, marginBottom: 0 },
+      transition: { duration: 0.18, ease: 'easeOut' },
+    }
 
   const persistTaskBatch = ({ save = [], deleteIds = [] }) => {
     save.forEach((task) => {
@@ -917,44 +1043,45 @@ function App() {
             <label className="sr-only" htmlFor="new-task-date">
               Due date
             </label>
-            <input
-              id="new-task-date"
-              type="date"
-              value={effectiveDraftDueDate}
-              onChange={(event) => {
-                setDraftDueDate(event.target.value)
-                setIsDraftDateAuto(false)
-              }}
-              required
-            />
-            <div className="label-select-wrap">
-              <span>Label</span>
-              <button
-                type="button"
-                className="label-trigger"
-                onClick={() => setIsDraftLabelOpen((prev) => !prev)}
-              >
-                <span className="label-dot" style={{ backgroundColor: draftColor }} />
-                <span>{getLabelByColor(draftColor).name}</span>
-              </button>
-              {isDraftLabelOpen ? (
-                <div className="label-dropdown">
-                  {LABELS.map((label) => (
-                    <button
-                      key={label.id}
-                      type="button"
-                      className="label-option"
-                      onClick={() => {
-                        setDraftColor(label.color)
-                        setIsDraftLabelOpen(false)
-                      }}
-                    >
-                      <span className="label-dot" style={{ backgroundColor: label.color }} />
-                      <span>{label.name}</span>
-                    </button>
-                  ))}
-                </div>
-              ) : null}
+            <div className="composer-meta-row">
+              <input
+                id="new-task-date"
+                type="date"
+                value={effectiveDraftDueDate}
+                onChange={(event) => {
+                  setDraftDueDate(event.target.value)
+                  setIsDraftDateAuto(false)
+                }}
+                required
+              />
+              <div className="label-select-wrap">
+                <button
+                  type="button"
+                  className="label-trigger"
+                  onClick={() => setIsDraftLabelOpen((prev) => !prev)}
+                >
+                  <span className="label-dot" style={{ backgroundColor: draftColor }} />
+                  <span>{getLabelByColor(draftColor).name}</span>
+                </button>
+                {isDraftLabelOpen ? (
+                  <div className="label-dropdown">
+                    {LABELS.map((label) => (
+                      <button
+                        key={label.id}
+                        type="button"
+                        className="label-option"
+                        onClick={() => {
+                          setDraftColor(label.color)
+                          setIsDraftLabelOpen(false)
+                        }}
+                      >
+                        <span className="label-dot" style={{ backgroundColor: label.color }} />
+                        <span>{label.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
             </div>
             <button type="submit" className="primary-button" disabled={!draftText.trim() || !effectiveDraftDueDate}>
               Add Task
@@ -968,40 +1095,116 @@ function App() {
         <section className="task-list" aria-live="polite">
           {visibleTasks.length === 0 ? <p className="empty-state">{renderEmptyMessage()}</p> : null}
 
+            <AnimatePresence initial={false}>
             {visibleTasks.map((task) => {
-              const dragOffset = dragOffsets[task.id] || 0
-              const swipeAction = dragOffset > 10 ? 'right' : dragOffset < -10 ? 'left' : null
               const label = getLabelByColor(task.color)
+              const commitDirection = swipeCommitByTaskId[task.id] || null
+              const swipeIntent = swipeIntentByTaskId[task.id] || null
+              const isCommitInProgress = Boolean(commitDirection)
+              const swipeDragLimit = Math.max(100, getSwipeCommitThreshold() + 20)
+              const activeSwipe = commitDirection || swipeIntent
+              const swipeClass = activeSwipe === 'left'
+                ? task.isDone
+                  ? 'delete'
+                  : 'move-done'
+                : activeSwipe === 'right'
+                  ? 'save-later'
+                  : ''
+              const swipeText = activeSwipe === 'left'
+                ? task.isDone
+                  ? 'Delete'
+                  : 'Mark as Done'
+                : activeSwipe === 'right' && canSwipeRight(task)
+                  ? swipeRightHintLabel(task)
+                  : ''
+              const rowShellClassName =
+                menuTaskId === task.id || frequencySelectorTaskId === task.id || labelSelectorTaskId === task.id
+                  ? 'task-row-shell menu-open'
+                  : 'task-row-shell'
 
               return (
-                <div key={task.id} className="task-row-shell">
-                  <div className={`swipe-hint ${swipeAction ? `show ${swipeAction}` : ''}`}>
-                    {swipeAction === 'left' ? (
-                      <span>{task.isDone ? '🗑 Delete' : '✅ Done'}</span>
-                    ) : null}
-                    {swipeAction === 'right' && canSwipeRight(task) ? <span>{swipeRightHintLabel(task)}</span> : null}
+                <motion.div
+                  key={task.id}
+                  className={rowShellClassName}
+                  {...rowShellMotionProps}
+                >
+                  <div className={`swipe-hint ${activeSwipe ? 'show' : ''} ${swipeClass}`}>
+                    <span>{swipeText}</span>
                   </div>
 
                   <motion.article
                     className="task-row"
-                    drag="x"
+                    drag={isCommitInProgress ? false : 'x'}
                     dragDirectionLock
-                    dragConstraints={{ left: -110, right: 110 }}
-                    dragElastic={0.25}
+                    dragConstraints={{ left: -swipeDragLimit, right: swipeDragLimit }}
+                    dragElastic={0.08}
                     dragMomentum={false}
-                    onDrag={(event, info) => {
-                      setDragOffsets((prev) => ({
-                        ...prev,
-                        [task.id]: info.offset.x,
-                      }))
-                    }}
+                    dragSnapToOrigin
+                    dragTransition={{ bounceStiffness: 700, bounceDamping: 38 }}
+                    style={{ touchAction: 'pan-y' }}
+                    animate={
+                      commitDirection === 'left'
+                        ? { x: `-${Math.max(320, viewportWidth)}px`, opacity: 0 }
+                        : commitDirection === 'right'
+                          ? { x: `${Math.max(320, viewportWidth)}px`, opacity: 0 }
+                          : { x: 0, opacity: 1 }
+                    }
+                    transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
                     onDragEnd={(event, info) => {
-                      setDragOffsets((prev) => {
+                      setSwipeIntentByTaskId((prev) => {
+                        if (!prev[task.id]) {
+                          return prev
+                        }
+
                         const next = { ...prev }
                         delete next[task.id]
                         return next
                       })
-                      onTaskSwipe(task, info.offset.x)
+
+                      if (isCommitInProgress) {
+                        return
+                      }
+
+                      const commitThreshold = getSwipeCommitThreshold()
+                      const absOffset = Math.abs(info.offset.x)
+                      if (absOffset < commitThreshold) {
+                        return
+                      }
+
+                      const swipeDirection = info.offset.x < 0 ? 'left' : 'right'
+                      if (swipeDirection === 'right' && !canSwipeRight(task)) {
+                        return
+                      }
+
+                      startSwipeCommit(task, swipeDirection)
+                    }}
+                    onDrag={(event, info) => {
+                      if (isCommitInProgress) {
+                        return
+                      }
+
+                      const nextIntent = info.offset.x <= -12 ? 'left' : info.offset.x >= 12 && canSwipeRight(task) ? 'right' : null
+                      setSwipeIntentByTaskId((prev) => {
+                        const current = prev[task.id] || null
+                        if (current === nextIntent) {
+                          return prev
+                        }
+
+                        if (!nextIntent) {
+                          if (!prev[task.id]) {
+                            return prev
+                          }
+
+                          const next = { ...prev }
+                          delete next[task.id]
+                          return next
+                        }
+
+                        return {
+                          ...prev,
+                          [task.id]: nextIntent,
+                        }
+                      })
                     }}
                   >
                     <input
@@ -1025,14 +1228,22 @@ function App() {
                       title={label.name}
                       style={{ backgroundColor: task.color }}
                       aria-label={`Label ${label.name}`}
-                      onTouchStart={() => {
+                      onTouchStart={(event) => {
+                        const swatchRect = event.currentTarget.getBoundingClientRect()
                         longPressBubbleRef.current = window.setTimeout(() => {
-                          pushToast(label.name)
+                          showSwatchHint(label.name, swatchRect)
                         }, 450)
                       }}
                       onTouchEnd={() => {
                         if (longPressBubbleRef.current) {
                           window.clearTimeout(longPressBubbleRef.current)
+                          longPressBubbleRef.current = null
+                        }
+                      }}
+                      onTouchCancel={() => {
+                        if (longPressBubbleRef.current) {
+                          window.clearTimeout(longPressBubbleRef.current)
+                          longPressBubbleRef.current = null
                         }
                       }}
                     />
@@ -1168,9 +1379,10 @@ function App() {
                       </div>
                     </div>
                   ) : null}
-                </div>
+                </motion.div>
               )
             })}
+            </AnimatePresence>
         </section>
       </main>
 
@@ -1191,6 +1403,24 @@ function App() {
           ))}
         </AnimatePresence>
       </div>
+
+      <AnimatePresence>
+        {swatchHint ? (
+          <motion.div
+            key={swatchHint.id}
+            className="swatch-hint"
+            style={{ left: swatchHint.left, top: swatchHint.top }}
+            variants={toastVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            transition={{ duration: 0.14 }}
+            aria-hidden="true"
+          >
+            {swatchHint.message}
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   )
 }
