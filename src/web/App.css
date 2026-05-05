@@ -398,6 +398,13 @@
   padding-left: 0.75rem;
 }
 
+.swipe-hint.undo {
+  background: #facc15;
+  color: #111827;
+  justify-content: flex-start;
+  padding-left: 0.75rem;
+}
+
 .task-row {
   position: relative;
   z-index: 1;
@@ -472,6 +479,11 @@
   overflow: visible;
 }
 
+.task-menu.open-up {
+  top: auto;
+  bottom: calc(100% + 0.35rem);
+}
+
 .task-menu button {
   display: block;
   width: 100%;
@@ -502,6 +514,38 @@
   background: #ffffff;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
   z-index: 240;
+}
+
+.task-frequency-submenu.open-up {
+  top: auto;
+  bottom: calc(100% + 0.25rem);
+}
+
+.task-edit-modal {
+  position: fixed;
+  z-index: 260;
+  transform: translateY(-100%);
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 0.65rem;
+  padding: 0.65rem;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.18);
+  display: grid;
+  gap: 0.55rem;
+}
+
+.task-edit-modal-input {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 0.55rem 0.65rem;
+  font: inherit;
+}
+
+.task-edit-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
 }
 
 .empty-state {
@@ -610,12 +654,29 @@
     z-index: 95;
   }
 
+  .task-row-shell .task-menu.open-up {
+    top: auto;
+    bottom: calc(100% + 0.35rem);
+  }
+
   .task-row-shell .task-frequency-submenu {
-    position: static;
-    width: auto;
-    margin: 0.35rem 0.6rem 0.6rem;
-    box-shadow: none;
-    border-color: #e5e7eb;
+    position: absolute;
+    top: calc(100% + 0.25rem);
+    right: 0;
+    left: auto;
+    width: min(90vw, 16rem);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+    border-color: #d1d5db;
+    z-index: 240;
+  }
+
+  .task-row-shell .task-frequency-submenu.open-up {
+    top: auto;
+    bottom: calc(100% + 0.25rem);
+  }
+
+  .task-edit-modal {
+    max-width: calc(100vw - 1rem);
   }
 }
 

@@ -213,19 +213,36 @@ function App() {
   const [draftRecurring, setDraftRecurring] = useState('none')
   const [editingTaskId, setEditingTaskId] = useState(null)
   const [editingText, setEditingText] = useState('')
+  const [editingModalAnchor, setEditingModalAnchor] = useState(null)
   const [frequencySelectorTaskId, setFrequencySelectorTaskId] = useState(null)
+  const [isTaskMenuOpenUp, setIsTaskMenuOpenUp] = useState(false)
+  const [isFrequencyMenuOpenUp, setIsFrequencyMenuOpenUp] = useState(false)
   const [swipeIntentByTaskId, setSwipeIntentByTaskId] = useState({})
   const [swipeCommitByTaskId, setSwipeCommitByTaskId] = useState({})
   const [toasts, setToasts] = useState([])
   const [swatchHint, setSwatchHint] = useState(null)
+  const isMobileViewport = viewportWidth <= 640
 
   const toastTimeoutsRef = useRef(new Map())
   const longPressBubbleRef = useRef(null)
   const swatchHintTimeoutRef = useRef(null)
   const longPressTextRef = useRef(null)
+  const taskMenuButtonRefs = useRef(new Map())
+  const editModalInputRef = useRef(null)
   const swipeCommitTimeoutsRef = useRef(new Map())
   const textRefs = useRef(new Map())
   const mirrorLegacyRef = useRef(false)
+
+  const getShouldOpenUp = (anchorElement, estimatedHeight = 240) => {
+    if (!anchorElement) {
+      return false
+    }
+
+    const rect = anchorElement.getBoundingClientRect()
+    const spaceBelow = window.innerHeight - rect.bottom
+    const canFitBelow = spaceBelow >= estimatedHeight
+    return !canFitBelow
+  }
 
   useEffect(() => {
     let isMounted = true
@@ -280,6 +297,8 @@ function App() {
       if (!target.closest('.task-menu-wrap')) {
         setMenuTaskId(null)
         setFrequencySelectorTaskId(null)
+        setIsTaskMenuOpenUp(false)
+        setIsFrequencyMenuOpenUp(false)
       }
 
       if (!target.closest('.label-select-wrap')) {
@@ -292,6 +311,10 @@ function App() {
 
       if (!target.closest('.task-label-selector-wrap')) {
         setLabelSelectorTaskId(null)
+      }
+
+      if (isMobileViewport && editingTaskId && !target.closest('.task-edit-modal')) {
+        cancelEditTask()
       }
 
     }
@@ -319,6 +342,19 @@ function App() {
       })
     }
   }, [])
+
+  useEffect(() => {
+    if (!isMobileViewport || !editingTaskId || !editModalInputRef.current) {
+      return
+    }
+
+    const input = editModalInputRef.current
+    window.requestAnimationFrame(() => {
+      input.focus()
+      const end = input.value.length
+      input.setSelectionRange(end, end)
+    })
+  }, [isMobileViewport, editingTaskId])
 
   const pushToast = (message) => {
     const id = createId()
@@ -629,6 +665,8 @@ function App() {
     setMenuTaskId(null)
     setLabelSelectorTaskId(null)
     setFrequencySelectorTaskId(null)
+    setIsTaskMenuOpenUp(false)
+    setIsFrequencyMenuOpenUp(false)
   }
 
   const beginEditTask = (task) => {
@@ -636,6 +674,20 @@ function App() {
     setEditingText(task.text)
     setMenuTaskId(null)
     setFrequencySelectorTaskId(null)
+
+    if (isMobileViewport) {
+      const menuButton = taskMenuButtonRefs.current.get(task.id)
+      if (menuButton) {
+        const rect = menuButton.getBoundingClientRect()
+        const modalWidth = Math.min(360, viewportWidth - 16)
+        const modalLeft = Math.max(8, Math.min(rect.right - modalWidth, viewportWidth - modalWidth - 8))
+        setEditingModalAnchor({
+          left: modalLeft,
+          top: Math.max(10, rect.top - 10),
+          width: modalWidth,
+        })
+      }
+    }
   }
 
   const saveEditTask = (taskId) => {
@@ -643,6 +695,7 @@ function App() {
     if (!text) {
       setEditingTaskId(null)
       setEditingText('')
+      setEditingModalAnchor(null)
       return
     }
 
@@ -658,15 +711,17 @@ function App() {
 
     setEditingTaskId(null)
     setEditingText('')
+    setEditingModalAnchor(null)
   }
 
   const cancelEditTask = () => {
     setEditingTaskId(null)
     setEditingText('')
+    setEditingModalAnchor(null)
   }
 
   const canSwipeRight = (task) => {
-    return activeTab === TAB_KEYS.notDone && !task.isDone
+    return (activeTab === TAB_KEYS.notDone && !task.isDone) || (activeTab === TAB_KEYS.done && task.isDone)
   }
 
   const getSwipeTargetDate = (recurringRule) => {
@@ -705,6 +760,20 @@ function App() {
     }
 
     if (swipeDirection === 'right' && canSwipeRight(task)) {
+      if (activeTab === TAB_KEYS.done && task.isDone) {
+        const updatedTask = updateTaskInState(task.id, (currentTask) => ({
+          ...currentTask,
+          isDone: false,
+          completedAt: null,
+          last_updated: taskModel.getNowIso(),
+        }))
+
+        if (updatedTask) {
+          persistTask(updatedTask)
+        }
+        return
+      }
+
       const targetDate = getSwipeTargetDate(task.recurring)
       if (task.recurring !== 'none' && hasRecurringDuplicateAtDate(task, targetDate)) {
         pushToast(getLaterToast(targetDate))
@@ -801,10 +870,13 @@ function App() {
       return null
     }
 
+    if (activeTab === TAB_KEYS.done) {
+      return 'Undo'
+    }
+
     return 'Save for Later'
   }
 
-  const isMobileViewport = viewportWidth <= 640
   const rowShellMotionProps = isMobileViewport
     ? {
       initial: false,
@@ -887,14 +959,18 @@ function App() {
     setFrequencySelectorTaskId(null)
   }
 
-  const toggleTaskMenu = (taskId) => {
+  const toggleTaskMenu = (taskId, triggerElement) => {
     setMenuTaskId((prev) => {
       if (prev === taskId) {
         setFrequencySelectorTaskId(null)
+        setIsTaskMenuOpenUp(false)
+        setIsFrequencyMenuOpenUp(false)
         return null
       }
 
       setFrequencySelectorTaskId(null)
+      setIsTaskMenuOpenUp(getShouldOpenUp(triggerElement, 240))
+      setIsFrequencyMenuOpenUp(false)
       return taskId
     })
   }
@@ -1108,7 +1184,9 @@ function App() {
                   ? 'delete'
                   : 'move-done'
                 : activeSwipe === 'right'
-                  ? 'save-later'
+                  ? activeTab === TAB_KEYS.done
+                    ? 'undo'
+                    : 'save-later'
                   : ''
               const swipeText = activeSwipe === 'left'
                 ? task.isDone
@@ -1249,7 +1327,7 @@ function App() {
                     />
 
                     <div className="task-main">
-                      {editingTaskId === task.id ? (
+                      {editingTaskId === task.id && !isMobileViewport ? (
                         <input
                           className="task-edit-input"
                           value={editingText}
@@ -1314,26 +1392,37 @@ function App() {
                       <button
                         type="button"
                         className="icon-button"
-                        onClick={() => toggleTaskMenu(task.id)}
+                        onClick={(event) => toggleTaskMenu(task.id, event.currentTarget)}
                         aria-label={`Open menu for ${task.text}`}
+                        ref={(element) => {
+                          if (element) {
+                            taskMenuButtonRefs.current.set(task.id, element)
+                          } else {
+                            taskMenuButtonRefs.current.delete(task.id)
+                          }
+                        }}
                       >
                         ⋯
                       </button>
                       {menuTaskId === task.id ? (
-                        <div className="task-menu">
+                        <div className={`task-menu ${isTaskMenuOpenUp ? 'open-up' : ''}`}>
                           <button type="button" onClick={() => beginEditTask(task)}>
                             Edit task
                           </button>
                           <button
                             type="button"
-                            onClick={() => {
-                              setFrequencySelectorTaskId((prev) => (prev === task.id ? null : task.id))
+                            onClick={(event) => {
+                              setFrequencySelectorTaskId((prev) => {
+                                const next = prev === task.id ? null : task.id
+                                setIsFrequencyMenuOpenUp(next ? getShouldOpenUp(event.currentTarget, 200) : false)
+                                return next
+                              })
                             }}
                           >
                             Change frequency
                           </button>
                           {frequencySelectorTaskId === task.id ? (
-                            <div className="task-frequency-submenu">
+                            <div className={`task-frequency-submenu ${isFrequencyMenuOpenUp ? 'open-up' : ''}`}>
                               {RECURRING_MENU_OPTIONS.map((option) => (
                                 <button
                                   key={option.value}
@@ -1421,6 +1510,48 @@ function App() {
           </motion.div>
         ) : null}
       </AnimatePresence>
+
+      {isMobileViewport && editingTaskId ? (
+        <div
+          className="task-edit-modal"
+          style={
+            editingModalAnchor
+              ? {
+                left: editingModalAnchor.left,
+                top: editingModalAnchor.top,
+                width: editingModalAnchor.width,
+              }
+              : undefined
+          }
+        >
+          <label className="sr-only" htmlFor="task-edit-modal-input">
+            Edit task description
+          </label>
+          <input
+            id="task-edit-modal-input"
+            ref={editModalInputRef}
+            className="task-edit-modal-input"
+            value={editingText}
+            onChange={(event) => setEditingText(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                saveEditTask(editingTaskId)
+              }
+              if (event.key === 'Escape') {
+                cancelEditTask()
+              }
+            }}
+          />
+          <div className="task-edit-modal-actions">
+            <button type="button" className="ghost-button" onClick={cancelEditTask}>
+              Cancel
+            </button>
+            <button type="button" className="primary-button" onClick={() => saveEditTask(editingTaskId)}>
+              Save
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
