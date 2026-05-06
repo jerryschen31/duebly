@@ -156,6 +156,7 @@ const SYNC_STATUS_LABELS = {
   error: 'Sync error',
   offline: 'Offline',
 }
+const LOGIN_PATH = '/login'
 
 const ProgressRing = ({ completed, total }) => {
   const size = 36
@@ -205,6 +206,12 @@ function App() {
     getGoogleAccessToken,
   } = useAuth()
   const defaultTimeZone = getDefaultTimeZone()
+  const [currentPath, setCurrentPath] = useState(() => {
+    if (typeof window === 'undefined') {
+      return '/'
+    }
+    return window.location.pathname || '/'
+  })
   const [isReady, setIsReady] = useState(false)
   const [tasks, setTasks] = useState([])
   const [activeTab, setActiveTab] = useState(TAB_KEYS.notDone)
@@ -252,6 +259,33 @@ function App() {
   const localStateRef = useRef({ tasks: [], timezone: defaultTimeZone, statusIndicator: null })
   const syncEngineRef = useRef(null)
   const syncReadyRef = useRef(false)
+  const isLoginRoute = authEnabled && currentPath === LOGIN_PATH
+
+  const navigateTo = useCallback((nextPath) => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    if (window.location.pathname !== nextPath) {
+      window.history.pushState({}, '', nextPath)
+    }
+    setCurrentPath(nextPath)
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined
+    }
+
+    const handlePopState = () => {
+      setCurrentPath(window.location.pathname || '/')
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
+    }
+  }, [])
 
   const cancelEditTask = useCallback(() => {
     setEditingTaskId(null)
@@ -1044,7 +1078,7 @@ function App() {
     return "You're all caught up!"
   }
 
-  if (authEnabled && authLoading) {
+  if (isLoginRoute && authLoading) {
     return (
       <div className="app-shell loading-shell">
         <p>Loading Duebly...</p>
@@ -1052,7 +1086,7 @@ function App() {
     )
   }
 
-  if (authEnabled && !isAuthenticated) {
+  if (isLoginRoute && !isAuthenticated) {
     return (
       <div className="app-shell loading-shell">
         <div className="auth-gate-card">
@@ -1060,6 +1094,9 @@ function App() {
           <p>Use your Google account via Kinde to enable secure task sync.</p>
           <button type="button" className="primary-button" onClick={() => login()}>
             Sign in with Google
+          </button>
+          <button type="button" className="ghost-button" onClick={() => navigateTo('/')}>
+            Continue without sign-in
           </button>
           {authError ? <p className="sync-status error">{authError}</p> : null}
         </div>
@@ -1118,13 +1155,17 @@ function App() {
               {SYNC_STATUS_LABELS[syncStatus] || SYNC_STATUS_LABELS.idle}
             </span>
           ) : null}
-          {authEnabled ? (
+          {authEnabled && isAuthenticated ? (
             <>
               {user?.email ? <span className="user-chip">{user.email}</span> : null}
               <button type="button" className="ghost-button" onClick={() => logout()}>
                 Logout
               </button>
             </>
+          ) : authEnabled ? (
+            <button type="button" className="ghost-button" onClick={() => navigateTo(LOGIN_PATH)}>
+              Login
+            </button>
           ) : (
             <button
               type="button"
