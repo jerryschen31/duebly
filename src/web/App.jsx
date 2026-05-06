@@ -2,6 +2,10 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { taskModel, taskStorage } from './storage'
+import { useAuth } from './auth/authContext'
+import { appEnv } from './config/env'
+import { createGoogleDriveClient } from './sync/googleDriveClient'
+import { createSyncEngine } from './sync/syncEngine'
 
 const TAB_KEYS = {
   notDone: 'not-done',
@@ -145,10 +149,12 @@ const toastVariants = {
   exit: { opacity: 0, y: -8, scale: 0.98 },
 }
 
-const syncService = {
-  isAuthenticated: () => false,
-  pullRemoteTasks: async () => [],
-  pushMergedTasks: async () => {},
+const SYNC_STATUS_LABELS = {
+  idle: 'Sync idle',
+  syncing: 'Syncing…',
+  success: 'Synced',
+  error: 'Sync error',
+  offline: 'Offline',
 }
 
 const ProgressRing = ({ completed, total }) => {
@@ -188,6 +194,16 @@ const ProgressRing = ({ completed, total }) => {
 }
 
 function App() {
+  const {
+    authEnabled,
+    isAuthenticated,
+    user,
+    loading: authLoading,
+    error: authError,
+    login,
+    logout,
+    getGoogleAccessToken,
+  } = useAuth()
   const defaultTimeZone = getDefaultTimeZone()
   const [isReady, setIsReady] = useState(false)
   const [tasks, setTasks] = useState([])
@@ -221,6 +237,7 @@ function App() {
   const [swipeCommitByTaskId, setSwipeCommitByTaskId] = useState({})
   const [toasts, setToasts] = useState([])
   const [swatchHint, setSwatchHint] = useState(null)
+  const [syncStatus, setSyncStatus] = useState('idle')
   const isMobileViewport = viewportWidth <= 640
 
   const toastTimeoutsRef = useRef(new Map())
@@ -232,6 +249,15 @@ function App() {
   const swipeCommitTimeoutsRef = useRef(new Map())
   const textRefs = useRef(new Map())
   const mirrorLegacyRef = useRef(false)
+  const localStateRef = useRef({ tasks: [], timezone: defaultTimeZone, statusIndicator: null })
+  const syncEngineRef = useRef(null)
+  const syncReadyRef = useRef(false)
+
+  function cancelEditTask() {
+    setEditingTaskId(null)
+    setEditingText('')
+    setEditingModalAnchor(null)
+  }
 
   const getShouldOpenUp = (anchorElement, estimatedHeight = 240) => {
     if (!anchorElement) {
@@ -314,7 +340,9 @@ function App() {
       }
 
       if (isMobileViewport && editingTaskId && !target.closest('.task-edit-modal')) {
-        cancelEditTask()
+        setEditingTaskId(null)
+        setEditingText('')
+        setEditingModalAnchor(null)
       }
 
     }
@@ -326,10 +354,11 @@ function App() {
       document.removeEventListener('mousedown', onPointerDown)
       document.removeEventListener('touchstart', onPointerDown)
     }
-  }, [])
+  }, [editingTaskId, isMobileViewport])
 
   useEffect(() => {
     const toastTimeouts = toastTimeoutsRef.current
+    const swipeCommitTimeouts = swipeCommitTimeoutsRef.current
     return () => {
       toastTimeouts.forEach((timeoutId) => {
         window.clearTimeout(timeoutId)
@@ -337,7 +366,7 @@ function App() {
       if (swatchHintTimeoutRef.current) {
         window.clearTimeout(swatchHintTimeoutRef.current)
       }
-      swipeCommitTimeoutsRef.current.forEach((timeoutId) => {
+      swipeCommitTimeouts.forEach((timeoutId) => {
         window.clearTimeout(timeoutId)
       })
     }
@@ -391,35 +420,53 @@ function App() {
   }
 
   useEffect(() => {
-    const syncOnReconnect = async () => {
-      if (!syncService.isAuthenticated()) {
-        return
-      }
-
-      try {
-        const remoteTasks = await syncService.pullRemoteTasks()
-        const merged = taskStorage.mergeForSync(tasks, remoteTasks, (localTask, remoteTask) => {
-          if (import.meta.env.DEV) {
-            console.warn('Equal timestamp conflict resolved with remote preference', {
-              localTask,
-              remoteTask,
-            })
-          }
-        })
-
-        setTasks(merged)
-        await taskStorage.replaceAllTasks(merged, mirrorLegacyRef.current)
-        await syncService.pushMergedTasks(merged)
-      } catch (error) {
-        if (import.meta.env.DEV) {
-          console.warn('Deferred sync failed', error)
-        }
-      }
+    if (!appEnv.authEnabled || !appEnv.remoteSyncEnabled || syncEngineRef.current) {
+      return
     }
 
-    window.addEventListener('online', syncOnReconnect)
-    return () => window.removeEventListener('online', syncOnReconnect)
-  }, [tasks])
+    const driveClient = createGoogleDriveClient({ getAccessToken: getGoogleAccessToken })
+    syncEngineRef.current = createSyncEngine({
+      taskStorage,
+      driveClient,
+      getLocalState: () => localStateRef.current,
+      applyLocalState: ({ tasks: mergedTasks, timezone }) => {
+        setTasks(mergedTasks)
+        setSelectedTimeZone(getSupportedTimeZone(timezone || defaultTimeZone))
+      },
+      onStatusChange: setSyncStatus,
+    })
+  }, [defaultTimeZone, getGoogleAccessToken])
+
+  useEffect(() => {
+    if (!isReady || !syncEngineRef.current) {
+      return
+    }
+
+    let isMounted = true
+    syncReadyRef.current = false
+
+    syncEngineRef.current.start(Boolean(isAuthenticated))
+      .finally(() => {
+        if (isMounted) {
+          syncReadyRef.current = true
+        }
+      })
+
+    return () => {
+      isMounted = false
+      syncReadyRef.current = false
+      syncEngineRef.current?.stop()
+    }
+  }, [isAuthenticated, isReady])
+
+  useEffect(() => {
+    return () => {
+      if (syncEngineRef.current) {
+        syncEngineRef.current.destroy()
+        syncEngineRef.current = null
+      }
+    }
+  }, [])
 
   const today = useMemo(() => {
     return toISODateInTimeZone(new Date(nowTick), selectedTimeZone)
@@ -499,15 +546,32 @@ function App() {
       return
     }
 
+    const syncEnabled = appEnv.remoteSyncEnabled && authEnabled && isAuthenticated
     taskStorage.saveSettings(
       {
         timezone: selectedTimeZone,
-        syncEnabled: false,
+        syncEnabled,
         statusIndicator: notDoneStatusStats,
       },
       mirrorLegacyRef.current,
     )
-  }, [isReady, selectedTimeZone, notDoneStatusStats])
+  }, [authEnabled, isAuthenticated, isReady, notDoneStatusStats, selectedTimeZone])
+
+  useEffect(() => {
+    localStateRef.current = {
+      tasks,
+      timezone: selectedTimeZone,
+      statusIndicator: notDoneStatusStats,
+    }
+  }, [notDoneStatusStats, selectedTimeZone, tasks])
+
+  useEffect(() => {
+    if (!isReady || !syncReadyRef.current || !syncEngineRef.current) {
+      return
+    }
+
+    syncEngineRef.current.schedulePush()
+  }, [isReady, selectedTimeZone, tasks])
 
   const persistTask = (task) => {
     taskStorage.saveTask(task, mirrorLegacyRef.current)
@@ -709,12 +773,6 @@ function App() {
       persistTask(updatedTask)
     }
 
-    setEditingTaskId(null)
-    setEditingText('')
-    setEditingModalAnchor(null)
-  }
-
-  const cancelEditTask = () => {
     setEditingTaskId(null)
     setEditingText('')
     setEditingModalAnchor(null)
@@ -987,6 +1045,29 @@ function App() {
     return "You're all caught up!"
   }
 
+  if (authEnabled && authLoading) {
+    return (
+      <div className="app-shell loading-shell">
+        <p>Loading Duebly...</p>
+      </div>
+    )
+  }
+
+  if (authEnabled && !isAuthenticated) {
+    return (
+      <div className="app-shell loading-shell">
+        <div className="auth-gate-card">
+          <h1>Sign in to Duebly</h1>
+          <p>Use your Google account via Kinde to enable secure task sync.</p>
+          <button type="button" className="primary-button" onClick={() => login()}>
+            Sign in with Google
+          </button>
+          {authError ? <p className="sync-status error">{authError}</p> : null}
+        </div>
+      </div>
+    )
+  }
+
   if (!isReady) {
     return (
       <div className="app-shell loading-shell">
@@ -1033,13 +1114,27 @@ function App() {
           <ProgressRing completed={notDoneStatusStats.completed} total={notDoneStatusStats.total} />
         </div>
         <div className="top-right">
-          <button
-            type="button"
-            className="ghost-button"
-            onClick={() => window.alert('Login is not part of this MVP yet.')}
-          >
-            Login
-          </button>
+          {appEnv.remoteSyncEnabled && authEnabled ? (
+            <span className={`sync-status ${syncStatus === 'error' ? 'error' : ''}`}>
+              {SYNC_STATUS_LABELS[syncStatus] || SYNC_STATUS_LABELS.idle}
+            </span>
+          ) : null}
+          {authEnabled ? (
+            <>
+              {user?.email ? <span className="user-chip">{user.email}</span> : null}
+              <button type="button" className="ghost-button" onClick={() => logout()}>
+                Logout
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="ghost-button"
+              onClick={() => window.alert('Login is not part of this MVP yet.')}
+            >
+              Login
+            </button>
+          )}
         </div>
       </header>
 
