@@ -180,7 +180,13 @@
   border: 1px solid #d1d5db;
   border-radius: 0.5rem;
   padding: 0.55rem 0.65rem;
+  height: 2.25rem;
   font: inherit;
+}
+
+.composer .icon-button,
+.composer .label-trigger {
+  height: 2.25rem;
 }
 
 .composer-text-row {
@@ -612,7 +618,7 @@
 
   .composer {
     grid-template-columns: 1fr auto auto auto auto;
-    align-items: end;
+    align-items: center;
   }
 
   .composer-meta-row {
