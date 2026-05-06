@@ -40,7 +40,7 @@ export const createSyncEngine = ({
     'Drive API request failed (403)',
   ]
 
-  const isDriveAuthStateError = (error) => {
+  const isDriveAuthenticationError = (error) => {
     const message = String(error?.message || '')
     return DRIVE_AUTH_ERROR_MARKERS.some((marker) => message.includes(marker))
   }
@@ -68,7 +68,7 @@ export const createSyncEngine = ({
       if (import.meta.env.DEV) {
         console.warn('Drive push failed', error)
       }
-      setStatus(isDriveAuthStateError(error) ? SYNC_STATUS.idle : SYNC_STATUS.error)
+      setStatus(isDriveAuthenticationError(error) ? SYNC_STATUS.idle : SYNC_STATUS.error)
     }
   }
 
@@ -120,7 +120,7 @@ export const createSyncEngine = ({
       if (import.meta.env.DEV) {
         console.warn('Drive merge/bootstrap sync failed', error)
       }
-      setStatus(isDriveAuthStateError(error) ? SYNC_STATUS.idle : SYNC_STATUS.error)
+      setStatus(isDriveAuthenticationError(error) ? SYNC_STATUS.idle : SYNC_STATUS.error)
       isBootstrapped = false
     }
   }

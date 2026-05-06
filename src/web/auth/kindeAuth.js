@@ -6,7 +6,10 @@ const shouldUseLocalStorageSession = (() => {
   try {
     const hostname = new URL(appEnv.kinde.domain).hostname
     return hostname.endsWith('.kinde.com')
-  } catch {
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn('Unable to parse Kinde domain for session storage mode', error)
+    }
     return false
   }
 })()
