@@ -204,6 +204,7 @@ function App() {
   const {
     authEnabled,
     isAuthenticated,
+    user,
     loading: authLoading,
     error: authError,
     login,
@@ -261,6 +262,7 @@ function App() {
   const syncEngineRef = useRef(null)
   const syncReadyRef = useRef(false)
   const shouldShowLoginPage = authEnabled && currentPath === LOGIN_PATH
+  const authNavEnabled = authEnabled || isAuthenticated
 
   const navigateTo = useCallback((nextPath) => {
     if (typeof window === 'undefined') {
@@ -272,6 +274,11 @@ function App() {
     }
     setCurrentPath(nextPath)
   }, [])
+
+  const handleLogout = useCallback(async () => {
+    await logout()
+    navigateTo('/')
+  }, [logout, navigateTo])
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -1156,11 +1163,14 @@ function App() {
               {SYNC_STATUS_LABELS[syncStatus] || SYNC_STATUS_LABELS.idle}
             </span>
           ) : null}
-          {authEnabled && isAuthenticated ? (
-            <button type="button" className="ghost-button" onClick={() => logout()}>
-              Logout
-            </button>
-          ) : authEnabled ? (
+          {authNavEnabled && isAuthenticated ? (
+            <>
+              <span className="user-chip">Logged in as {user?.email || 'your account'}</span>
+              <button type="button" className="ghost-button" onClick={handleLogout}>
+                Logout
+              </button>
+            </>
+          ) : authNavEnabled ? (
             <>
               <button type="button" className="ghost-button" onClick={() => register()}>
                 Create an Account
