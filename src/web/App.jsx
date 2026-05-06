@@ -444,9 +444,9 @@ function App() {
     syncReadyRef.current = false
 
     syncEngineRef.current.start(Boolean(isAuthenticated))
-      .finally(() => {
+      .then((bootstrapped) => {
         if (isMounted) {
-          syncReadyRef.current = true
+          syncReadyRef.current = Boolean(bootstrapped)
         }
       })
 

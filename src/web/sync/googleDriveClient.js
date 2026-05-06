@@ -9,7 +9,11 @@ const wait = (ms) => new Promise((resolve) => {
 })
 
 const buildMultipartBody = (snapshot) => {
-  const boundary = `duebly-${Math.random().toString(16).slice(2)}`
+  const randomBoundaryPart =
+    globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function'
+      ? globalThis.crypto.randomUUID()
+      : Math.random().toString(16).slice(2)
+  const boundary = `duebly-${randomBoundaryPart}`
   const metadata = {
     name: appEnv.driveAppDataFilename,
     parents: ['appDataFolder'],
@@ -83,7 +87,7 @@ export const createGoogleDriveClient = ({ getAccessToken }) => {
 
       if (response.status === 429 && attempt < retries) {
         attempt += 1
-        await wait(400 * (attempt + 1))
+        await wait(400 * 2 ** attempt)
         continue
       }
 

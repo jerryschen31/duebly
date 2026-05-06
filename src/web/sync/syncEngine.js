@@ -146,13 +146,14 @@ export const createSyncEngine = ({
       if (!isSyncEnabled || !appEnv.remoteSyncEnabled) {
         isBootstrapped = false
         setStatus(SYNC_STATUS.idle)
-        return
+        return false
       }
 
       window.addEventListener('online', handleOnline)
       document.addEventListener('visibilitychange', handleVisibilityChange)
 
       await mergeAndApply()
+      return isBootstrapped
     },
 
     stop() {

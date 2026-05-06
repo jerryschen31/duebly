@@ -61,5 +61,6 @@ export const appEnv = {
 }
 
 export const getAuthScope = () => {
-  return 'openid profile email offline https://www.googleapis.com/auth/drive.appdata'
+  return AUTH_SCOPE
 }
+const AUTH_SCOPE = 'openid profile email offline https://www.googleapis.com/auth/drive.appdata'
