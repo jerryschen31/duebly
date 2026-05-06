@@ -37,14 +37,14 @@ If any item is missing, stop and ask for it before making implementation edits.
 
 ### Step 1: Edit src/.env.example (create if missing)
 - [ ] Add:
-  - `VITE_AUTH_ENABLED=false`
-  - `VITE_DRIVE_SYNC_ENABLED=false`
-  - `VITE_KINDE_DOMAIN=`
-  - `VITE_KINDE_CLIENT_ID=`
-  - `VITE_KINDE_REDIRECT_URI=`
-  - `VITE_KINDE_LOGOUT_URI=`
-  - `VITE_DRIVE_APPDATA_FILENAME=duebly_backup.json`
-  - `VITE_SYNC_PUSH_DEBOUNCE_MS=3000`
+  - `DUEBLY_AUTH_ENABLED=false`
+  - `DUEBLY_DRIVE_SYNC_ENABLED=false`
+  - `DUEBLY_KINDE_DOMAIN=https://duebly.kinde.com`
+  - `DUEBLY_KINDE_CLIENT_ID=(in copilot environment)`
+  - `DUEBLY_KINDE_REDIRECT_URI=https://duebly.app`
+  - `DUEBLY_KINDE_LOGOUT_URI=https://duebly.app`
+  - `DUEBLY_DRIVE_APPDATA_FILENAME=duebly_backup.json`
+  - `DUEBLY_SYNC_PUSH_DEBOUNCE_MS=3000`
 
 ### Step 2: Edit src/package.json
 - [ ] Add required dependencies for Kinde SPA integration.
@@ -118,7 +118,7 @@ If any item is missing, stop and ask for it before making implementation edits.
 
 ## Final Acceptance Checklist (Must Pass Before Merge)
 
-- [ ] With `VITE_AUTH_ENABLED=false` and `VITE_DRIVE_SYNC_ENABLED=false`, behavior matches current app.
+- [ ] With `DUEBLY_AUTH_ENABLED=false` and `DUEBLY_DRIVE_SYNC_ENABLED=false`, behavior matches current app.
 - [ ] With auth on and sync off, login/logout works and local task behavior is unchanged.
 - [ ] With auth on and sync on, pull/merge/push workflow works end-to-end.
 - [ ] Offline edits never block; sync resumes on reconnect.
