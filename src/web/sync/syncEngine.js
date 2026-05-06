@@ -33,6 +33,16 @@ export const createSyncEngine = ({
     }
   }
 
+  const isDriveAuthStateError = (error) => {
+    const message = String(error?.message || '')
+    return (
+      message.includes('Missing Google access token') ||
+      message.includes('Unable to refresh Google access token') ||
+      message.includes('Drive API request failed (401)') ||
+      message.includes('Drive API request failed (403)')
+    )
+  }
+
   const pushNow = async () => {
     if (!isSyncEnabled || !isBootstrapped || !appEnv.remoteSyncEnabled) {
       return
@@ -56,7 +66,7 @@ export const createSyncEngine = ({
       if (import.meta.env.DEV) {
         console.warn('Drive push failed', error)
       }
-      setStatus(SYNC_STATUS.error)
+      setStatus(isDriveAuthStateError(error) ? SYNC_STATUS.idle : SYNC_STATUS.error)
     }
   }
 
@@ -108,7 +118,7 @@ export const createSyncEngine = ({
       if (import.meta.env.DEV) {
         console.warn('Drive merge/bootstrap sync failed', error)
       }
-      setStatus(SYNC_STATUS.error)
+      setStatus(isDriveAuthStateError(error) ? SYNC_STATUS.idle : SYNC_STATUS.error)
       isBootstrapped = false
     }
   }

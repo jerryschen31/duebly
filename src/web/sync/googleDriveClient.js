@@ -9,7 +9,8 @@ const wait = (ms) => new Promise((resolve) => {
   window.setTimeout(resolve, ms)
 })
 
-const buildMultipartBody = (snapshot) => {
+const buildMultipartBody = (snapshot, options = {}) => {
+  const { includeParents = false } = options
   const randomBoundaryPart =
     globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function'
       ? globalThis.crypto.randomUUID()
@@ -17,8 +18,10 @@ const buildMultipartBody = (snapshot) => {
   const boundary = `duebly-${randomBoundaryPart}`
   const metadata = {
     name: appEnv.driveAppDataFilename,
-    parents: ['appDataFolder'],
     mimeType: 'application/json',
+  }
+  if (includeParents) {
+    metadata.parents = ['appDataFolder']
   }
 
   const body =

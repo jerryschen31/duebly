@@ -2,6 +2,14 @@ import createKindeClient from '@kinde-oss/kinde-auth-pkce-js'
 import { appEnv, AUTH_SCOPE } from '../config/env'
 
 let kindeClientPromise = null
+const shouldUseLocalStorageSession = (() => {
+  try {
+    const hostname = new URL(appEnv.kinde.domain).hostname
+    return hostname.endsWith('.kinde.com')
+  } catch {
+    return false
+  }
+})()
 
 const ensureClient = async () => {
   if (!appEnv.authEnabled) {
@@ -19,6 +27,7 @@ const ensureClient = async () => {
       redirect_uri: appEnv.kinde.redirectUri,
       logout_uri: appEnv.kinde.logoutUri,
       scope: AUTH_SCOPE,
+      is_dangerously_use_local_storage: shouldUseLocalStorageSession,
     }).catch((error) => {
       kindeClientPromise = null
       throw error

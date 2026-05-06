@@ -41,8 +41,13 @@ export const AuthProvider = ({ children }) => {
           return
         }
 
+        const nextUser = authenticated ? await kindeAuth.getUser() : null
+        if (!isMounted) {
+          return
+        }
+
         setIsAuthenticated(authenticated)
-        setUser(authenticated ? await kindeAuth.getUser() : null)
+        setUser(nextUser)
         setError(null)
       } catch (initError) {
         if (!isMounted) {
