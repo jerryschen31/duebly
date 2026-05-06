@@ -185,7 +185,7 @@
 
 .composer-text-row {
   display: grid;
-  grid-template-columns: auto auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 0.35rem;
 }
@@ -196,9 +196,9 @@
 
 .composer-meta-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.35rem;
 }
 
 .composer-meta-row input[type='date'] {
@@ -611,7 +611,7 @@
   }
 
   .composer {
-    grid-template-columns: 1fr auto auto auto;
+    grid-template-columns: 1fr auto auto auto auto;
     align-items: end;
   }
 

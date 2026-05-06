@@ -1163,37 +1163,6 @@ function App() {
           <h1>Add Task</h1>
           <form className="composer" onSubmit={addTask}>
             <div className="composer-text-row">
-              <div className="recurring-menu-wrap">
-                <button
-                  type="button"
-                  className={`icon-button recurring-trigger ${draftRecurring !== 'none' ? 'active' : ''}`}
-                  aria-label="Set recurring rule"
-                  onClick={() => setIsDraftRecurringMenuOpen((prev) => !prev)}
-                >
-                  ☰
-                </button>
-                {isDraftRecurringMenuOpen ? (
-                  <div className="task-menu recurring-menu">
-                    {RECURRING_MENU_OPTIONS.map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        className={draftRecurring === option.value ? 'active' : ''}
-                        aria-pressed={draftRecurring === option.value}
-                        onClick={() => {
-                          setDraftRecurring(option.value)
-                          setIsDraftRecurringMenuOpen(false)
-                        }}
-                      >
-                        <span>{option.label}</span>
-                        <span className="recurring-option-check" aria-hidden="true">
-                          {draftRecurring === option.value ? '✓' : ''}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
               <button
                 type="button"
                 className={`icon-button mic-trigger ${isListening ? 'listening' : ''}`}
@@ -1228,6 +1197,37 @@ function App() {
               Due date
             </label>
             <div className="composer-meta-row">
+              <div className="recurring-menu-wrap">
+                <button
+                  type="button"
+                  className={`icon-button recurring-trigger ${draftRecurring !== 'none' ? 'active' : ''}`}
+                  aria-label="Set recurring rule"
+                  onClick={() => setIsDraftRecurringMenuOpen((prev) => !prev)}
+                >
+                  ☰
+                </button>
+                {isDraftRecurringMenuOpen ? (
+                  <div className="task-menu recurring-menu">
+                    {RECURRING_MENU_OPTIONS.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className={draftRecurring === option.value ? 'active' : ''}
+                        aria-pressed={draftRecurring === option.value}
+                        onClick={() => {
+                          setDraftRecurring(option.value)
+                          setIsDraftRecurringMenuOpen(false)
+                        }}
+                      >
+                        <span>{option.label}</span>
+                        <span className="recurring-option-check" aria-hidden="true">
+                          {draftRecurring === option.value ? '✓' : ''}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
               <input
                 id="new-task-date"
                 type="date"
