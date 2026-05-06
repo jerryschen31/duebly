@@ -214,6 +214,21 @@
   color: #2563eb;
 }
 
+.mic-trigger {
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.mic-trigger.listening {
+  border-color: #dc2626;
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.mic-trigger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .recurring-menu {
   position: absolute;
   top: 2.1rem;

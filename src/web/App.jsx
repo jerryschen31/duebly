@@ -221,6 +221,8 @@ function App() {
   const [swipeCommitByTaskId, setSwipeCommitByTaskId] = useState({})
   const [toasts, setToasts] = useState([])
   const [swatchHint, setSwatchHint] = useState(null)
+  const [isSpeechSupported, setIsSpeechSupported] = useState(false)
+  const [isListening, setIsListening] = useState(false)
   const isMobileViewport = viewportWidth <= 640
 
   const toastTimeoutsRef = useRef(new Map())
@@ -232,6 +234,7 @@ function App() {
   const swipeCommitTimeoutsRef = useRef(new Map())
   const textRefs = useRef(new Map())
   const mirrorLegacyRef = useRef(false)
+  const speechRecognitionRef = useRef(null)
 
   const getShouldOpenUp = (anchorElement, estimatedHeight = 240) => {
     if (!anchorElement) {
@@ -284,6 +287,11 @@ function App() {
   }, [])
 
   useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+    setIsSpeechSupported(Boolean(SpeechRecognition))
+  }, [])
+
+  useEffect(() => {
     const onPointerDown = (event) => {
       const target = event.target
       if (!(target instanceof HTMLElement)) {
@@ -330,6 +338,7 @@ function App() {
 
   useEffect(() => {
     const toastTimeouts = toastTimeoutsRef.current
+    const swipeCommitTimeouts = swipeCommitTimeoutsRef.current
     return () => {
       toastTimeouts.forEach((timeoutId) => {
         window.clearTimeout(timeoutId)
@@ -337,9 +346,14 @@ function App() {
       if (swatchHintTimeoutRef.current) {
         window.clearTimeout(swatchHintTimeoutRef.current)
       }
-      swipeCommitTimeoutsRef.current.forEach((timeoutId) => {
+      swipeCommitTimeouts.forEach((timeoutId) => {
         window.clearTimeout(timeoutId)
       })
+      const recognition = speechRecognitionRef.current
+      if (recognition) {
+        recognition.stop()
+        speechRecognitionRef.current = null
+      }
     }
   }, [])
 
@@ -388,6 +402,85 @@ function App() {
       setSwatchHint(null)
       swatchHintTimeoutRef.current = null
     }, 1300)
+  }
+
+  const stopSpeechToText = () => {
+    const recognition = speechRecognitionRef.current
+    if (!recognition) {
+      setIsListening(false)
+      return
+    }
+
+    recognition.stop()
+    speechRecognitionRef.current = null
+    setIsListening(false)
+  }
+
+  const startSpeechToText = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      pushToast('Speech-to-text is not supported in this browser')
+      return
+    }
+
+    const recognition = new SpeechRecognition()
+    recognition.continuous = false
+    recognition.interimResults = false
+    recognition.lang = navigator.language || 'en-US'
+
+    try {
+      recognition.processLocally = true
+    } catch {
+      // processLocally is not supported in all browsers
+    }
+
+    recognition.onstart = () => {
+      setIsListening(true)
+    }
+
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .slice(event.resultIndex)
+        .map((result) => result[0]?.transcript || '')
+        .join(' ')
+        .trim()
+
+      if (!transcript) {
+        return
+      }
+
+      setDraftText((prev) => {
+        const next = prev.trim()
+          ? `${prev.trimEnd()} ${transcript}`
+          : transcript
+        return next.slice(0, 200)
+      })
+    }
+
+    recognition.onerror = (event) => {
+      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+        pushToast('Microphone permission was denied')
+      } else if (event.error !== 'aborted') {
+        pushToast('Speech-to-text failed, please try again')
+      }
+    }
+
+    recognition.onend = () => {
+      setIsListening(false)
+      if (speechRecognitionRef.current === recognition) {
+        speechRecognitionRef.current = null
+      }
+    }
+
+    speechRecognitionRef.current = recognition
+
+    try {
+      recognition.start()
+    } catch {
+      speechRecognitionRef.current = null
+      setIsListening(false)
+      pushToast('Unable to start speech-to-text')
+    }
   }
 
   useEffect(() => {
@@ -1103,6 +1196,23 @@ function App() {
                   </div>
                 ) : null}
               </div>
+              <button
+                type="button"
+                className={`icon-button mic-trigger ${isListening ? 'listening' : ''}`}
+                aria-label={isListening ? 'Stop speech to text' : 'Start speech to text'}
+                title={isSpeechSupported ? 'Speak task description' : 'Speech-to-text not supported'}
+                disabled={!isSpeechSupported}
+                onClick={() => {
+                  if (isListening) {
+                    stopSpeechToText()
+                    return
+                  }
+
+                  startSpeechToText()
+                }}
+              >
+                {isListening ? '🎙️' : '🎤'}
+              </button>
               <label className="sr-only" htmlFor="new-task-text">
                 Task description
               </label>
