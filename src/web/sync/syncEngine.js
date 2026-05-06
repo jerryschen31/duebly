@@ -33,14 +33,16 @@ export const createSyncEngine = ({
     }
   }
 
+  const DRIVE_AUTH_ERROR_MARKERS = [
+    'Missing Google access token',
+    'Unable to refresh Google access token',
+    'Drive API request failed (401)',
+    'Drive API request failed (403)',
+  ]
+
   const isDriveAuthStateError = (error) => {
     const message = String(error?.message || '')
-    return (
-      message.includes('Missing Google access token') ||
-      message.includes('Unable to refresh Google access token') ||
-      message.includes('Drive API request failed (401)') ||
-      message.includes('Drive API request failed (403)')
-    )
+    return DRIVE_AUTH_ERROR_MARKERS.some((marker) => message.includes(marker))
   }
 
   const pushNow = async () => {
