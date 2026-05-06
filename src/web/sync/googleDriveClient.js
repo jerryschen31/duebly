@@ -3,6 +3,7 @@ import { createSnapshot, normalizeSnapshot } from './snapshot'
 
 const DRIVE_API_BASE = 'https://www.googleapis.com/drive/v3'
 const DRIVE_UPLOAD_API_BASE = 'https://www.googleapis.com/upload/drive/v3'
+const BASE_RETRY_DELAY_MS = 400
 
 const wait = (ms) => new Promise((resolve) => {
   window.setTimeout(resolve, ms)
@@ -87,7 +88,7 @@ export const createGoogleDriveClient = ({ getAccessToken }) => {
 
       if (response.status === 429 && attempt < retries) {
         attempt += 1
-        await wait(400 * 2 ** attempt)
+        await wait(BASE_RETRY_DELAY_MS * 2 ** attempt)
         continue
       }
 
