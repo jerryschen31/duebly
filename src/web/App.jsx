@@ -157,6 +157,12 @@ const SYNC_STATUS_LABELS = {
   offline: 'Offline',
 }
 const LOGIN_PATH = '/login'
+const getCurrentPath = () => {
+  if (typeof window === 'undefined') {
+    return '/'
+  }
+  return window.location.pathname || '/'
+}
 
 const ProgressRing = ({ completed, total }) => {
   const size = 36
@@ -206,12 +212,7 @@ function App() {
     getGoogleAccessToken,
   } = useAuth()
   const defaultTimeZone = getDefaultTimeZone()
-  const [currentPath, setCurrentPath] = useState(() => {
-    if (typeof window === 'undefined') {
-      return '/'
-    }
-    return window.location.pathname || '/'
-  })
+  const [currentPath, setCurrentPath] = useState(() => getCurrentPath())
   const [isReady, setIsReady] = useState(false)
   const [tasks, setTasks] = useState([])
   const [activeTab, setActiveTab] = useState(TAB_KEYS.notDone)
@@ -259,7 +260,7 @@ function App() {
   const localStateRef = useRef({ tasks: [], timezone: defaultTimeZone, statusIndicator: null })
   const syncEngineRef = useRef(null)
   const syncReadyRef = useRef(false)
-  const isLoginRoute = authEnabled && currentPath === LOGIN_PATH
+  const shouldShowLoginGate = authEnabled && currentPath === LOGIN_PATH
 
   const navigateTo = useCallback((nextPath) => {
     if (typeof window === 'undefined') {
@@ -278,7 +279,7 @@ function App() {
     }
 
     const handlePopState = () => {
-      setCurrentPath(window.location.pathname || '/')
+      setCurrentPath(getCurrentPath())
     }
 
     window.addEventListener('popstate', handlePopState)
@@ -1078,7 +1079,7 @@ function App() {
     return "You're all caught up!"
   }
 
-  if (isLoginRoute && authLoading) {
+  if (shouldShowLoginGate && authLoading) {
     return (
       <div className="app-shell loading-shell">
         <p>Loading Duebly...</p>
@@ -1086,7 +1087,7 @@ function App() {
     )
   }
 
-  if (isLoginRoute && !isAuthenticated) {
+  if (shouldShowLoginGate && !isAuthenticated) {
     return (
       <div className="app-shell loading-shell">
         <div className="auth-gate-card">
