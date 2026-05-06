@@ -41,6 +41,7 @@ DUEBLY_KINDE_DOMAIN=https://duebly.kinde.com
 DUEBLY_KINDE_CLIENT_ID=...
 DUEBLY_KINDE_REDIRECT_URI=https://duebly.app
 DUEBLY_KINDE_LOGOUT_URI=https://duebly.app
+DUEBLY_KINDE_SCOPE=openid profile email offline
 
 # Drive sync tuning
 DUEBLY_DRIVE_APPDATA_FILENAME=duebly_backup.json
@@ -53,6 +54,7 @@ Behavior:
 - With auth on, `/` still loads the local-first task page; sign-in is shown at `/login`.
 - If auth is on and sync is off, users can sign in/out with no Drive calls.
 - If sync is on and Drive/token calls fail, local editing remains available and status shows an error.
+- Default auth scope is `openid profile email offline`; do not add Google Drive scopes to social login scopes.
 
 ## Deploy
 ....

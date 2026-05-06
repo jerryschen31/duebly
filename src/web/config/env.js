@@ -42,6 +42,7 @@ const kinde = {
   clientId: readEnv('DUEBLY_KINDE_CLIENT_ID'),
   redirectUri: readEnv('DUEBLY_KINDE_REDIRECT_URI'),
   logoutUri: readEnv('DUEBLY_KINDE_LOGOUT_URI'),
+  scope: readEnv('DUEBLY_KINDE_SCOPE'),
 }
 
 const kindeRequired = ['domain', 'clientId', 'redirectUri', 'logoutUri']
@@ -62,4 +63,4 @@ export const appEnv = {
   missingKindeConfig,
 }
 
-export const AUTH_SCOPE = 'openid profile email offline https://www.googleapis.com/auth/drive.appdata'
+export const AUTH_SCOPE = kinde.scope || 'openid profile email offline'
