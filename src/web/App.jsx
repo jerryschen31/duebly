@@ -260,7 +260,7 @@ function App() {
   const localStateRef = useRef({ tasks: [], timezone: defaultTimeZone, statusIndicator: null })
   const syncEngineRef = useRef(null)
   const syncReadyRef = useRef(false)
-  const shouldShowLoginGate = authEnabled && currentPath === LOGIN_PATH
+  const shouldShowLoginPage = authEnabled && currentPath === LOGIN_PATH
 
   const navigateTo = useCallback((nextPath) => {
     if (typeof window === 'undefined') {
@@ -1079,7 +1079,7 @@ function App() {
     return "You're all caught up!"
   }
 
-  if (shouldShowLoginGate && authLoading) {
+  if (shouldShowLoginPage && authLoading) {
     return (
       <div className="app-shell loading-shell">
         <p>Loading Duebly...</p>
@@ -1087,7 +1087,7 @@ function App() {
     )
   }
 
-  if (shouldShowLoginGate && !isAuthenticated) {
+  if (shouldShowLoginPage && !isAuthenticated) {
     return (
       <div className="app-shell loading-shell">
         <div className="auth-gate-card">
