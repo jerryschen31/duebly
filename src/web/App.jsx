@@ -224,10 +224,7 @@ function App() {
   const [swatchHint, setSwatchHint] = useState(null)
   const [isListening, setIsListening] = useState(false)
   const isMobileViewport = viewportWidth <= 640
-  const isSpeechSupported = useMemo(() => {
-    return typeof window !== 'undefined'
-      && Boolean(window.SpeechRecognition || window.webkitSpeechRecognition)
-  }, [])
+  const isSpeechSupported = Boolean(globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition)
 
   const toastTimeoutsRef = useRef(new Map())
   const longPressBubbleRef = useRef(null)
@@ -427,12 +424,8 @@ function App() {
     recognition.interimResults = false
     recognition.lang = navigator.language || 'en-US'
 
-    try {
-      // Non-standard flag used by some engines to prefer on-device/local processing.
-      recognition.processLocally = true
-    } catch {
-      // processLocally is not supported in all browsers
-    }
+    // Non-standard flag used by some engines to prefer on-device/local processing.
+    recognition.processLocally = true
 
     recognition.onstart = () => {
       setIsListening(true)
@@ -450,8 +443,9 @@ function App() {
       }
 
       setDraftText((prev) => {
-        const next = prev.trim()
-          ? `${prev.trimEnd()} ${transcript}`
+        const trimmedPrev = prev.trim()
+        const next = trimmedPrev
+          ? `${trimmedPrev} ${transcript}`
           : transcript
         return next.slice(0, MAX_TASK_DESCRIPTION_LENGTH)
       })
@@ -477,6 +471,10 @@ function App() {
     try {
       recognition.start()
     } catch {
+      recognition.onstart = null
+      recognition.onresult = null
+      recognition.onerror = null
+      recognition.onend = null
       speechRecognitionRef.current = null
       setIsListening(false)
       pushToast('Unable to start speech-to-text')
