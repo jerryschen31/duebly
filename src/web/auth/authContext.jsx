@@ -20,12 +20,6 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [error, setError] = useState(null)
 
-  const refreshAuthState = useCallback(async () => {
-    const authenticated = await kindeAuth.isAuthenticated()
-    setIsAuthenticated(authenticated)
-    setUser(authenticated ? await kindeAuth.getUser() : null)
-  }, [])
-
   useEffect(() => {
     let isMounted = true
 
@@ -76,25 +70,23 @@ export const AuthProvider = ({ children }) => {
     setError(null)
     try {
       await kindeAuth.login()
-      await refreshAuthState()
     } catch (authError) {
       setError(authError instanceof Error ? authError.message : 'Failed to sign in')
       setIsAuthenticated(false)
       setUser(null)
     }
-  }, [refreshAuthState])
+  }, [])
 
   const register = useCallback(async () => {
     setError(null)
     try {
       await kindeAuth.register()
-      await refreshAuthState()
     } catch (authError) {
       setError(authError instanceof Error ? authError.message : 'Failed to create account')
       setIsAuthenticated(false)
       setUser(null)
     }
-  }, [refreshAuthState])
+  }, [])
 
   const logout = useCallback(async () => {
     setError(null)
