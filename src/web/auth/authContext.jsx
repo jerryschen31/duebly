@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { kindeAuth } from './kindeAuth'
 import { appEnv } from '../config/env'
 
@@ -65,15 +65,19 @@ export const AuthProvider = ({ children }) => {
     }
   }, [])
 
-  const login = async () => {
+  const login = useCallback(async () => {
     setError(null)
     await kindeAuth.login()
-  }
+  }, [])
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     setError(null)
     await kindeAuth.logout()
-  }
+  }, [])
+
+  const getGoogleAccessToken = useCallback((options = {}) => {
+    return kindeAuth.getGoogleAccessToken(options)
+  }, [])
 
   const value = useMemo(
     () => ({
@@ -84,9 +88,9 @@ export const AuthProvider = ({ children }) => {
       error,
       login,
       logout,
-      getGoogleAccessToken: kindeAuth.getGoogleAccessToken,
+      getGoogleAccessToken,
     }),
-    [error, isAuthenticated, loading, user],
+    [error, getGoogleAccessToken, isAuthenticated, loading, login, logout, user],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

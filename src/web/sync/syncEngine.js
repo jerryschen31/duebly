@@ -52,7 +52,10 @@ export const createSyncEngine = ({
         settings: { timezone: localState.timezone },
       })
       setStatus(SYNC_STATUS.success)
-    } catch {
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.warn('Drive push failed', error)
+      }
       setStatus(SYNC_STATUS.error)
     }
   }
@@ -101,7 +104,10 @@ export const createSyncEngine = ({
 
       setStatus(SYNC_STATUS.success)
       isBootstrapped = true
-    } catch {
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.warn('Drive merge/bootstrap sync failed', error)
+      }
       setStatus(SYNC_STATUS.error)
       isBootstrapped = true
     }

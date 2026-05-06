@@ -96,14 +96,15 @@ export const createGoogleDriveClient = ({ getAccessToken }) => {
       return appDataFileId
     }
 
-    const query = encodeURIComponent(`name='${appEnv.driveAppDataFilename.replace(/'/g, "\\'")}' and trashed=false`)
     const list = await requestWithRetry(
-      `${DRIVE_API_BASE}/files?spaces=appDataFolder&fields=files(id,name)&pageSize=1&q=${query}`,
+      `${DRIVE_API_BASE}/files?spaces=appDataFolder&fields=files(id,name)&pageSize=100`,
       { method: 'GET' },
       { expectedStatuses: [200] },
     )
 
-    const existingFile = Array.isArray(list?.files) ? list.files[0] : null
+    const existingFile = Array.isArray(list?.files)
+      ? list.files.find((file) => file?.name === appEnv.driveAppDataFilename)
+      : null
     if (existingFile?.id) {
       appDataFileId = existingFile.id
       return appDataFileId
@@ -152,7 +153,10 @@ export const createGoogleDriveClient = ({ getAccessToken }) => {
     let parsed
     try {
       parsed = JSON.parse(text)
-    } catch {
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.warn('Invalid Drive snapshot JSON payload', error)
+      }
       return null
     }
 
