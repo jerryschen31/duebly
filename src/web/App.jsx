@@ -221,9 +221,10 @@ function App() {
   const [swipeCommitByTaskId, setSwipeCommitByTaskId] = useState({})
   const [toasts, setToasts] = useState([])
   const [swatchHint, setSwatchHint] = useState(null)
-  const [isSpeechSupported, setIsSpeechSupported] = useState(false)
   const [isListening, setIsListening] = useState(false)
   const isMobileViewport = viewportWidth <= 640
+  const isSpeechSupported = typeof window !== 'undefined'
+    && Boolean(window.SpeechRecognition || window.webkitSpeechRecognition)
 
   const toastTimeoutsRef = useRef(new Map())
   const longPressBubbleRef = useRef(null)
@@ -284,11 +285,6 @@ function App() {
 
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
-  }, [])
-
-  useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-    setIsSpeechSupported(Boolean(SpeechRecognition))
   }, [])
 
   useEffect(() => {
