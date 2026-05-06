@@ -109,7 +109,7 @@ export const createSyncEngine = ({
         console.warn('Drive merge/bootstrap sync failed', error)
       }
       setStatus(SYNC_STATUS.error)
-      isBootstrapped = true
+      isBootstrapped = false
     }
   }
 

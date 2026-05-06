@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { taskModel, taskStorage } from './storage'
 import { useAuth } from './auth/authContext'
@@ -253,11 +253,11 @@ function App() {
   const syncEngineRef = useRef(null)
   const syncReadyRef = useRef(false)
 
-  function cancelEditTask() {
+  const cancelEditTask = useCallback(() => {
     setEditingTaskId(null)
     setEditingText('')
     setEditingModalAnchor(null)
-  }
+  }, [])
 
   const getShouldOpenUp = (anchorElement, estimatedHeight = 240) => {
     if (!anchorElement) {
@@ -340,9 +340,7 @@ function App() {
       }
 
       if (isMobileViewport && editingTaskId && !target.closest('.task-edit-modal')) {
-        setEditingTaskId(null)
-        setEditingText('')
-        setEditingModalAnchor(null)
+        cancelEditTask()
       }
 
     }
@@ -354,7 +352,7 @@ function App() {
       document.removeEventListener('mousedown', onPointerDown)
       document.removeEventListener('touchstart', onPointerDown)
     }
-  }, [editingTaskId, isMobileViewport])
+  }, [cancelEditTask, editingTaskId, isMobileViewport])
 
   useEffect(() => {
     const toastTimeouts = toastTimeoutsRef.current
@@ -757,9 +755,7 @@ function App() {
   const saveEditTask = (taskId) => {
     const text = editingText.trim()
     if (!text) {
-      setEditingTaskId(null)
-      setEditingText('')
-      setEditingModalAnchor(null)
+      cancelEditTask()
       return
     }
 
@@ -773,9 +769,7 @@ function App() {
       persistTask(updatedTask)
     }
 
-    setEditingTaskId(null)
-    setEditingText('')
-    setEditingModalAnchor(null)
+    cancelEditTask()
   }
 
   const canSwipeRight = (task) => {

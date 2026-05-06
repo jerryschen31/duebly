@@ -47,7 +47,10 @@ export const createGoogleDriveClient = ({ getAccessToken }) => {
       throw new Error('Missing Google access token for Drive API')
     }
 
-    for (let attempt = 0; attempt <= retries; attempt += 1) {
+    let attempt = 0
+    let refreshedOnce = false
+
+    while (attempt <= retries) {
       const response = await fetch(url, {
         ...init,
         headers: {
@@ -69,15 +72,17 @@ export const createGoogleDriveClient = ({ getAccessToken }) => {
         return text ? JSON.parse(text) : null
       }
 
-      if (response.status === 401 && allowRefresh) {
+      if (response.status === 401 && allowRefresh && !refreshedOnce) {
         token = await getAccessToken({ forceRefresh: true })
         if (!token) {
           throw new Error('Unable to refresh Google access token for Drive API')
         }
+        refreshedOnce = true
         continue
       }
 
       if (response.status === 429 && attempt < retries) {
+        attempt += 1
         await wait(400 * (attempt + 1))
         continue
       }
