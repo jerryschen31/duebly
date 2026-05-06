@@ -34,11 +34,8 @@ const readEnv = (name, legacyName) => {
   return ''
 }
 
-const authEnabled = parseBoolean(readEnv('DUEBLY_AUTH_ENABLED', 'VITE_AUTH_ENABLED'), false)
-const remoteSyncEnabled = parseBoolean(
-  readEnv('DUEBLY_DRIVE_SYNC_ENABLED', 'VITE_DRIVE_SYNC_ENABLED'),
-  false,
-)
+const authEnabledRaw = readEnv('DUEBLY_AUTH_ENABLED', 'VITE_AUTH_ENABLED')
+const remoteSyncEnabledRaw = readEnv('DUEBLY_DRIVE_SYNC_ENABLED', 'VITE_DRIVE_SYNC_ENABLED')
 
 const kinde = {
   domain: readEnv('DUEBLY_KINDE_DOMAIN'),
@@ -49,6 +46,11 @@ const kinde = {
 
 const kindeRequired = ['domain', 'clientId', 'redirectUri', 'logoutUri']
 const missingKindeConfig = kindeRequired.filter((key) => !kinde[key])
+const kindeRequiredSatisfied = missingKindeConfig.length === 0
+const authEnabled = authEnabledRaw
+  ? parseBoolean(authEnabledRaw, false)
+  : kindeRequiredSatisfied
+const remoteSyncEnabled = parseBoolean(remoteSyncEnabledRaw, false)
 
 export const appEnv = {
   authEnabled,
@@ -56,7 +58,7 @@ export const appEnv = {
   driveAppDataFilename: readEnv('DUEBLY_DRIVE_APPDATA_FILENAME') || 'duebly_backup.json',
   syncPushDebounceMs: parseInteger(readEnv('DUEBLY_SYNC_PUSH_DEBOUNCE_MS'), 3000),
   kinde,
-  kindeRequiredSatisfied: missingKindeConfig.length === 0,
+  kindeRequiredSatisfied,
   missingKindeConfig,
 }
 

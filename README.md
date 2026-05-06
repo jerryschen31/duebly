@@ -49,6 +49,7 @@ DUEBLY_SYNC_PUSH_DEBOUNCE_MS=3000
 
 Behavior:
 - If auth is off, app behavior stays local-first and unchanged.
+- If `DUEBLY_AUTH_ENABLED` is omitted, auth auto-enables when all required Kinde vars are present.
 - If auth is on and sync is off, users can sign in/out with no Drive calls.
 - If sync is on and Drive/token calls fail, local editing remains available and status shows an error.
 
