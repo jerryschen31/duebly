@@ -48,6 +48,7 @@ const RECURRING_MENU_OPTIONS = [
 const SWIPE_THRESHOLD = 70
 const SWIPE_COMMIT_DELAY_MS = 170
 const TOAST_DURATION_MS = 1800
+const MAX_TASK_DESCRIPTION_LENGTH = 200
 
 const createId = () => {
   if (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function') {
@@ -221,7 +222,9 @@ function App() {
   const [swipeCommitByTaskId, setSwipeCommitByTaskId] = useState({})
   const [toasts, setToasts] = useState([])
   const [swatchHint, setSwatchHint] = useState(null)
+  const [isListening, setIsListening] = useState(false)
   const isMobileViewport = viewportWidth <= 640
+  const isSpeechSupported = Boolean(globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition)
 
   const toastTimeoutsRef = useRef(new Map())
   const longPressBubbleRef = useRef(null)
@@ -232,6 +235,7 @@ function App() {
   const swipeCommitTimeoutsRef = useRef(new Map())
   const textRefs = useRef(new Map())
   const mirrorLegacyRef = useRef(false)
+  const speechRecognitionRef = useRef(null)
 
   const getShouldOpenUp = (anchorElement, estimatedHeight = 240) => {
     if (!anchorElement) {
@@ -330,6 +334,7 @@ function App() {
 
   useEffect(() => {
     const toastTimeouts = toastTimeoutsRef.current
+    const swipeCommitTimeouts = swipeCommitTimeoutsRef.current
     return () => {
       toastTimeouts.forEach((timeoutId) => {
         window.clearTimeout(timeoutId)
@@ -337,9 +342,14 @@ function App() {
       if (swatchHintTimeoutRef.current) {
         window.clearTimeout(swatchHintTimeoutRef.current)
       }
-      swipeCommitTimeoutsRef.current.forEach((timeoutId) => {
+      swipeCommitTimeouts.forEach((timeoutId) => {
         window.clearTimeout(timeoutId)
       })
+      const recognition = speechRecognitionRef.current
+      if (recognition) {
+        recognition.stop()
+        speechRecognitionRef.current = null
+      }
     }
   }, [])
 
@@ -388,6 +398,87 @@ function App() {
       setSwatchHint(null)
       swatchHintTimeoutRef.current = null
     }, 1300)
+  }
+
+  const stopSpeechToText = () => {
+    const recognition = speechRecognitionRef.current
+    if (!recognition) {
+      setIsListening(false)
+      return
+    }
+
+    recognition.stop()
+    speechRecognitionRef.current = null
+    setIsListening(false)
+  }
+
+  const startSpeechToText = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      pushToast('Speech-to-text is not supported in this browser')
+      return
+    }
+
+    const recognition = new SpeechRecognition()
+    recognition.continuous = false
+    recognition.interimResults = false
+    recognition.lang = navigator.language || 'en-US'
+
+    // Non-standard flag used by some engines to prefer on-device/local processing.
+    recognition.processLocally = true
+
+    recognition.onstart = () => {
+      setIsListening(true)
+    }
+
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .slice(event.resultIndex)
+        .map((result) => result[0]?.transcript || '')
+        .join(' ')
+        .trim()
+
+      if (!transcript) {
+        return
+      }
+
+      setDraftText((prev) => {
+        const trimmedPrev = prev.trim()
+        const next = trimmedPrev
+          ? `${trimmedPrev} ${transcript}`
+          : transcript
+        return next.slice(0, MAX_TASK_DESCRIPTION_LENGTH)
+      })
+    }
+
+    recognition.onerror = (event) => {
+      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+        pushToast('Microphone permission was denied')
+      } else if (event.error !== 'aborted') {
+        pushToast('Speech-to-text failed, please try again')
+      }
+    }
+
+    recognition.onend = () => {
+      setIsListening(false)
+      if (speechRecognitionRef.current === recognition) {
+        speechRecognitionRef.current = null
+      }
+    }
+
+    speechRecognitionRef.current = recognition
+
+    try {
+      recognition.start()
+    } catch {
+      recognition.onstart = null
+      recognition.onresult = null
+      recognition.onerror = null
+      recognition.onend = null
+      speechRecognitionRef.current = null
+      setIsListening(false)
+      pushToast('Unable to start speech-to-text')
+    }
   }
 
   useEffect(() => {
@@ -1072,6 +1163,40 @@ function App() {
           <h1>Add Task</h1>
           <form className="composer" onSubmit={addTask}>
             <div className="composer-text-row">
+              <button
+                type="button"
+                className={`icon-button mic-trigger ${isListening ? 'listening' : ''}`}
+                aria-label={isListening ? 'Stop speech to text' : 'Start speech to text'}
+                title={isSpeechSupported ? 'Speak task description' : 'Speech-to-text not supported'}
+                disabled={!isSpeechSupported}
+                onClick={() => {
+                  if (isListening) {
+                    stopSpeechToText()
+                    return
+                  }
+
+                  startSpeechToText()
+                }}
+              >
+                {isListening ? '🎙️' : '🎤'}
+              </button>
+              <label className="sr-only" htmlFor="new-task-text">
+                Task description
+              </label>
+              <input
+                id="new-task-text"
+                type="text"
+                placeholder="Task description"
+                value={draftText}
+                onChange={(event) => setDraftText(event.target.value)}
+                maxLength={MAX_TASK_DESCRIPTION_LENGTH}
+                required
+              />
+            </div>
+            <label className="sr-only" htmlFor="new-task-date">
+              Due date
+            </label>
+            <div className="composer-meta-row">
               <div className="recurring-menu-wrap">
                 <button
                   type="button"
@@ -1103,23 +1228,6 @@ function App() {
                   </div>
                 ) : null}
               </div>
-              <label className="sr-only" htmlFor="new-task-text">
-                Task description
-              </label>
-              <input
-                id="new-task-text"
-                type="text"
-                placeholder="Task description"
-                value={draftText}
-                onChange={(event) => setDraftText(event.target.value)}
-                maxLength={200}
-                required
-              />
-            </div>
-            <label className="sr-only" htmlFor="new-task-date">
-              Due date
-            </label>
-            <div className="composer-meta-row">
               <input
                 id="new-task-date"
                 type="date"
