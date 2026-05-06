@@ -1,5 +1,5 @@
 import createKindeClient from '@kinde-oss/kinde-auth-pkce-js'
-import { appEnv, getAuthScope } from '../config/env'
+import { appEnv, AUTH_SCOPE } from '../config/env'
 
 let kindeClientPromise = null
 
@@ -18,7 +18,7 @@ const ensureClient = async () => {
       client_id: appEnv.kinde.clientId,
       redirect_uri: appEnv.kinde.redirectUri,
       logout_uri: appEnv.kinde.logoutUri,
-      scope: getAuthScope(),
+      scope: AUTH_SCOPE,
     }).catch((error) => {
       kindeClientPromise = null
       throw error

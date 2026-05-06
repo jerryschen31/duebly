@@ -88,7 +88,7 @@ export const createGoogleDriveClient = ({ getAccessToken }) => {
 
       if (response.status === 429 && attempt < retries) {
         attempt += 1
-        await wait(BASE_RETRY_DELAY_MS * 2 ** attempt)
+        await wait(BASE_RETRY_DELAY_MS * 2 ** (attempt - 1))
         continue
       }
 

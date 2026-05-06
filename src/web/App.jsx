@@ -449,6 +449,11 @@ function App() {
           syncReadyRef.current = Boolean(bootstrapped)
         }
       })
+      .catch((error) => {
+        if (import.meta.env.DEV) {
+          console.warn('Failed to start sync engine', error)
+        }
+      })
 
     return () => {
       isMounted = false

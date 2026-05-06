@@ -60,7 +60,4 @@ export const appEnv = {
   missingKindeConfig,
 }
 
-export const getAuthScope = () => {
-  return AUTH_SCOPE
-}
-const AUTH_SCOPE = 'openid profile email offline https://www.googleapis.com/auth/drive.appdata'
+export const AUTH_SCOPE = 'openid profile email offline https://www.googleapis.com/auth/drive.appdata'
