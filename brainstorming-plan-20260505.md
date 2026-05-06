@@ -25,20 +25,20 @@ This makes integration practical without large rewrites.
 The following must be confirmed before coding starts. Mark each item as complete.
 
 ### Identity / Kinde
-- Kinde app type supports browser SPA with PKCE.
-- Allowed callback URLs include local and production URLs.
-- Allowed logout redirect URLs include local and production URLs.
-- Allowed origins include local and production frontend origins.
-- Google social connection is enabled in Kinde.
-- Kinde authorization request includes Google Drive scope: https://www.googleapis.com/auth/drive.appdata.
-- Confirm whether the frontend can retrieve a valid Google access token from Kinde session APIs.
+- Kinde app type supports browser SPA with PKCE. [yes]
+- Allowed callback URLs include local and production URLs. [yes]
+- Allowed logout redirect URLs include local and production URLs. [yes]
+- Allowed origins include local and production frontend origins. [yes]
+- Google social connection is enabled in Kinde. [yes]
+- Kinde authorization request includes Google Drive scope: https://www.googleapis.com/auth/drive.appdata. [yes]
+- Confirm whether the frontend can retrieve a valid Google access token from Kinde session APIs. [won't know until we implement login]
 
 ### Google Cloud
-- OAuth consent screen configured and published/test-mode users added.
-- OAuth client type is Web application.
-- Drive API enabled in Google Cloud project.
-- Scope authorized: https://www.googleapis.com/auth/drive.appdata.
-- If refresh tokens are needed, policy for offline access is defined.
+- OAuth consent screen configured and published/test-mode users added. [yes]
+- OAuth client type is Web application. [yes]
+- Drive API enabled in Google Cloud project. [yes]
+- Scope authorized: https://www.googleapis.com/auth/drive.appdata. [yes]
+- If refresh tokens are needed, policy for offline access is defined. [not sure]
 
 ### Runtime / Env
 - No hardcoded API tokens in source.
@@ -48,7 +48,7 @@ The following must be confirmed before coding starts. Mark each item as complete
 ## Critical Design Decision (Must Resolve First)
 You need one of these token strategies:
 
-1. Preferred: Kinde exposes Google provider access token to the SPA.
+1. Preferred: Kinde exposes Google provider access token to the SPA. [this one]
 2. Alternative: Add a minimal backend token broker (Cloudflare Worker) to exchange/refresh tokens securely.
 
 If neither is available, direct Drive AppData sync from frontend cannot be done reliably.
@@ -228,10 +228,16 @@ Use this checklist as the execution order. Do not reorder steps. Keep existing b
 
 ### A. Human Inputs Before Agent Starts
 
-- [ ] Confirm token strategy: Kinde provider token in SPA, or token broker fallback.
-- [ ] Confirm final callback/logout/origin URLs in Kinde for local + prod.
-- [ ] Confirm Drive scope is granted in auth flow: https://www.googleapis.com/auth/drive.appdata.
-- [ ] Confirm environment variable names and values for local/dev/prod.
+- [y] Confirm token strategy: Kinde provider token in SPA [this one], or token broker fallback.
+- [y] Confirm final callback/logout/origin URLs in Kinde for local + prod.
+- [y] Confirm Drive scope is granted in auth flow: https://www.googleapis.com/auth/drive.appdata.
+- [y] Confirm environment variable names and values for local/dev/prod.
+Saved in copilot environment variables as env vars / secrets:
+DUEBLY_KINDE_CLIENT_ID
+DUEBLY_KINDE_DOMAIN
+DUEBLY_GOOGLE_CLIENT_ID
+DUEBLY_KINDE_REDIRECT_URI
+DUEBLY_KINDE_LOGOUT_URI
 
 ### B. Feature Flags and Safe Defaults (must be first)
 
@@ -243,14 +249,14 @@ Use this checklist as the execution order. Do not reorder steps. Keep existing b
 
 1. Edit [src/.env.example](src/.env.example) (create if missing)
 - [ ] Add documented variables:
-  - `VITE_AUTH_ENABLED=false`
-  - `VITE_DRIVE_SYNC_ENABLED=false`
-  - `VITE_KINDE_DOMAIN=`
-  - `VITE_KINDE_CLIENT_ID=`
-  - `VITE_KINDE_REDIRECT_URI=`
-  - `VITE_KINDE_LOGOUT_URI=`
-  - `VITE_DRIVE_APPDATA_FILENAME=duebly_backup.json`
-  - `VITE_SYNC_PUSH_DEBOUNCE_MS=3000`
+  - `DUEBLY_AUTH_ENABLED=false`
+  - `DUEBLY_DRIVE_SYNC_ENABLED=false`
+  - `DUEBLY_KINDE_DOMAIN=https://duebly.kinde.com`
+  - `DUEBLY_KINDE_CLIENT_ID=(in copilot environment)`
+  - `DUEBLY_KINDE_REDIRECT_URI=https://duebly.app`
+  - `DUEBLY_KINDE_LOGOUT_URI=https://duebly.app`
+  - `DUEBLY_DRIVE_APPDATA_FILENAME=duebly_backup.json`
+  - `DUEBLY_SYNC_PUSH_DEBOUNCE_MS=3000`
 
 2. Edit [src/package.json](src/package.json)
 - [ ] Add required dependencies for Kinde SPA integration.
