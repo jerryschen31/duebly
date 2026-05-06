@@ -9,6 +9,7 @@ const AuthContext = createContext({
   loading: false,
   error: null,
   login: async () => {},
+  register: async () => {},
   logout: async () => {},
   getGoogleAccessToken: async () => null,
 })
@@ -70,6 +71,11 @@ export const AuthProvider = ({ children }) => {
     await kindeAuth.login()
   }, [])
 
+  const register = useCallback(async () => {
+    setError(null)
+    await kindeAuth.register()
+  }, [])
+
   const logout = useCallback(async () => {
     setError(null)
     await kindeAuth.logout()
@@ -87,10 +93,11 @@ export const AuthProvider = ({ children }) => {
       loading,
       error,
       login,
+      register,
       logout,
       getGoogleAccessToken,
     }),
-    [error, getGoogleAccessToken, isAuthenticated, loading, login, logout, user],
+    [error, getGoogleAccessToken, isAuthenticated, loading, login, logout, register, user],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

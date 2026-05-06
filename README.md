@@ -52,6 +52,7 @@ Behavior:
 - If auth is off, app behavior stays local-first and unchanged.
 - If `DUEBLY_AUTH_ENABLED` is omitted, auth auto-enables when all required Kinde vars are present.
 - With auth on, `/` still loads the local-first task page; sign-in is shown at `/login`.
+- With auth on, the top nav shows **Create an Account** + **Login** when signed out, and only **Logout** when signed in.
 - If auth is on and sync is off, users can sign in/out with no Drive calls.
 - If sync is on and Drive/token calls fail, local editing remains available and status shows an error.
 - Default auth scope is `openid profile email offline`; do not add Google Drive scopes to social login scopes.

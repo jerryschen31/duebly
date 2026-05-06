@@ -204,10 +204,10 @@ function App() {
   const {
     authEnabled,
     isAuthenticated,
-    user,
     loading: authLoading,
     error: authError,
     login,
+    register,
     logout,
     getGoogleAccessToken,
   } = useAuth()
@@ -1157,16 +1157,18 @@ function App() {
             </span>
           ) : null}
           {authEnabled && isAuthenticated ? (
+            <button type="button" className="ghost-button" onClick={() => logout()}>
+              Logout
+            </button>
+          ) : authEnabled ? (
             <>
-              {user?.email ? <span className="user-chip">{user.email}</span> : null}
-              <button type="button" className="ghost-button" onClick={() => logout()}>
-                Logout
+              <button type="button" className="ghost-button" onClick={() => register()}>
+                Create an Account
+              </button>
+              <button type="button" className="ghost-button" onClick={() => navigateTo(LOGIN_PATH)}>
+                Login
               </button>
             </>
-          ) : authEnabled ? (
-            <button type="button" className="ghost-button" onClick={() => navigateTo(LOGIN_PATH)}>
-              Login
-            </button>
           ) : (
             <button
               type="button"

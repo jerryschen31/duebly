@@ -47,6 +47,15 @@ export const kindeAuth = {
     await client.login()
   },
 
+  async register() {
+    const client = await ensureClient()
+    if (!client) {
+      return
+    }
+
+    await client.register()
+  },
+
   async logout() {
     const client = await ensureClient()
     if (!client) {
