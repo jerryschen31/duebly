@@ -48,6 +48,7 @@ const RECURRING_MENU_OPTIONS = [
 const SWIPE_THRESHOLD = 70
 const SWIPE_COMMIT_DELAY_MS = 170
 const TOAST_DURATION_MS = 1800
+const MAX_TASK_DESCRIPTION_LENGTH = 200
 
 const createId = () => {
   if (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function') {
@@ -223,8 +224,10 @@ function App() {
   const [swatchHint, setSwatchHint] = useState(null)
   const [isListening, setIsListening] = useState(false)
   const isMobileViewport = viewportWidth <= 640
-  const isSpeechSupported = typeof window !== 'undefined'
-    && Boolean(window.SpeechRecognition || window.webkitSpeechRecognition)
+  const isSpeechSupported = useMemo(() => {
+    return typeof window !== 'undefined'
+      && Boolean(window.SpeechRecognition || window.webkitSpeechRecognition)
+  }, [])
 
   const toastTimeoutsRef = useRef(new Map())
   const longPressBubbleRef = useRef(null)
@@ -425,6 +428,7 @@ function App() {
     recognition.lang = navigator.language || 'en-US'
 
     try {
+      // Non-standard flag used by some engines to prefer on-device/local processing.
       recognition.processLocally = true
     } catch {
       // processLocally is not supported in all browsers
@@ -449,7 +453,7 @@ function App() {
         const next = prev.trim()
           ? `${prev.trimEnd()} ${transcript}`
           : transcript
-        return next.slice(0, 200)
+        return next.slice(0, MAX_TASK_DESCRIPTION_LENGTH)
       })
     }
 
@@ -1218,7 +1222,7 @@ function App() {
                 placeholder="Task description"
                 value={draftText}
                 onChange={(event) => setDraftText(event.target.value)}
-                maxLength={200}
+                maxLength={MAX_TASK_DESCRIPTION_LENGTH}
                 required
               />
             </div>
