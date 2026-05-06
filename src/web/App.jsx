@@ -1165,7 +1165,9 @@ function App() {
           ) : null}
           {authNavEnabled && isAuthenticated ? (
             <>
-              <span className="user-chip">Logged in as {user?.email || 'your account'}</span>
+              <span className="user-chip" aria-label="Currently logged in account">
+                Logged in as {user?.email || 'your account'}
+              </span>
               <button type="button" className="ghost-button" onClick={handleLogout}>
                 Logout
               </button>
