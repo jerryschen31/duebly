@@ -1909,6 +1909,7 @@ function App() {
                     return
                   }
 
+                  // Prevent mobile long-press text-selection/copy menus from stealing the hold gesture.
                   event.preventDefault()
                   micLongPressTriggeredRef.current = false
                   micIgnoreNextClickRef.current = false
