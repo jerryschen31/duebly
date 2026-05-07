@@ -787,7 +787,7 @@ const getSpeechLanguageCandidates = (preferredLocale) => {
   return Array.from(candidates)
 }
 
-const isMobileBrowser = () => {
+const isTouchCapableBrowser = () => {
   if (typeof navigator === 'undefined') {
     return false
   }
@@ -836,7 +836,7 @@ function App() {
   const [swatchHint, setSwatchHint] = useState(null)
   const [isListening, setIsListening] = useState(false)
   const isMobileViewport = viewportWidth <= 640
-  const isMobileSpeechHoldEnabled = isMobileViewport && isMobileBrowser()
+  const isMobileSpeechHoldEnabled = isMobileViewport && isTouchCapableBrowser()
   const isSpeechSupported = Boolean(globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition)
 
   const toastTimeoutsRef = useRef(new Map())
@@ -1967,6 +1967,8 @@ function App() {
                   if (isListening) {
                     stopSpeechToText()
                   }
+
+                  micLongPressTriggeredRef.current = false
                 }}
                 onContextMenu={(event) => {
                   if (isMobileSpeechHoldEnabled) {
