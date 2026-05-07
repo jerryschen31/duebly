@@ -581,6 +581,16 @@ const SWIPE_THRESHOLD = 70
 const SWIPE_COMMIT_DELAY_MS = 170
 const TOAST_DURATION_MS = 1800
 const MAX_TASK_DESCRIPTION_LENGTH = 200
+const SPEECH_LANGUAGE_FALLBACKS = {
+  'en-US': ['en-US', 'en'],
+  'en-GB': ['en-GB', 'en-US', 'en'],
+  'zh-CN': ['zh-CN', 'cmn-Hans-CN', 'cmn-Hans'],
+  'ja-JP': ['ja-JP', 'ja'],
+  'ko-KR': ['ko-KR', 'ko'],
+  'fr-FR': ['fr-FR', 'fr'],
+  'es-ES': ['es-ES', 'es'],
+  'it-IT': ['it-IT', 'it'],
+}
 
 const createId = () => {
   if (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function') {
@@ -750,6 +760,23 @@ const getDefaultLanguage = () => {
   }
 
   return getSupportedLanguage(navigator.language)
+}
+
+const getSpeechLanguageCandidates = (preferredLocale) => {
+  const candidates = new Set()
+  const configuredCandidates = SPEECH_LANGUAGE_FALLBACKS[preferredLocale] || [preferredLocale]
+  configuredCandidates.forEach((candidate) => {
+    if (typeof candidate === 'string' && candidate.trim()) {
+      candidates.add(candidate.trim())
+    }
+  })
+
+  if (typeof navigator !== 'undefined' && typeof navigator.language === 'string' && navigator.language.trim()) {
+    candidates.add(navigator.language.trim())
+  }
+
+  candidates.add(DEFAULT_LANGUAGE_CODE)
+  return Array.from(candidates)
 }
 
 function App() {
@@ -1034,12 +1061,12 @@ function App() {
     }
 
     const recognition = new SpeechRecognition()
+    const languageCandidates = getSpeechLanguageCandidates(activeLanguage.locale)
+    let languageIndex = 0
+
     recognition.continuous = false
     recognition.interimResults = false
-    recognition.lang = activeLanguage.locale
-
-    // Non-standard flag used by some engines to prefer on-device/local processing.
-    recognition.processLocally = true
+    recognition.lang = languageCandidates[languageIndex] || activeLanguage.locale
 
     recognition.onstart = () => {
       setIsListening(true)
@@ -1066,6 +1093,26 @@ function App() {
     }
 
     recognition.onerror = (event) => {
+      if (event.error === 'language-not-supported' && languageIndex < languageCandidates.length - 1) {
+        languageIndex += 1
+        recognition.lang = languageCandidates[languageIndex]
+        if (import.meta.env.DEV) {
+          console.warn('Speech language fallback', {
+            from: languageCandidates[languageIndex - 1],
+            to: recognition.lang,
+          })
+        }
+
+        window.setTimeout(() => {
+          try {
+            recognition.start()
+          } catch {
+            pushToast(translate('speechFailedToast'))
+          }
+        }, 0)
+        return
+      }
+
       if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
         pushToast(translate('micDeniedToast'))
       } else if (event.error !== 'aborted') {
