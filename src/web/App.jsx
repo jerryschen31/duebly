@@ -1094,7 +1094,12 @@ function App() {
     }
 
     recognition.onerror = (event) => {
-      if (!isRetryingLanguage && event.error === 'language-not-supported' && languageIndex < languageCandidates.length - 1) {
+      const hasNextLanguageCandidate = languageIndex < languageCandidates.length - 1
+      const shouldRetryWithFallbackLanguage = !isRetryingLanguage
+        && event.error === 'language-not-supported'
+        && hasNextLanguageCandidate
+
+      if (shouldRetryWithFallbackLanguage) {
         isRetryingLanguage = true
         languageIndex += 1
         recognition.lang = languageCandidates[languageIndex]
@@ -1105,6 +1110,7 @@ function App() {
           })
         }
 
+        // Delay restart to the next task so the current error cycle fully settles first.
         window.setTimeout(() => {
           try {
             recognition.start()
