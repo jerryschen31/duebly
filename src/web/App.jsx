@@ -9,19 +9,548 @@ const TAB_KEYS = {
   planned: 'planned',
 }
 
+const LANGUAGE_OPTIONS = [
+  { code: 'en-US', locale: 'en-US', flag: '🇺🇸' },
+  { code: 'en-GB', locale: 'en-GB', flag: '🇬🇧' },
+  { code: 'zh-CN', locale: 'zh-CN', flag: '🇨🇳' },
+  { code: 'ja-JP', locale: 'ja-JP', flag: '🇯🇵' },
+  { code: 'ko-KR', locale: 'ko-KR', flag: '🇰🇷' },
+  { code: 'fr-FR', locale: 'fr-FR', flag: '🇫🇷' },
+  { code: 'es-ES', locale: 'es-ES', flag: '🇪🇸' },
+  { code: 'it-IT', locale: 'it-IT', flag: '🇮🇹' },
+]
+
+const DEFAULT_LANGUAGE_CODE = LANGUAGE_OPTIONS[0].code
+
+const TRANSLATIONS = {
+  'en-US': {
+    languageName: 'American English',
+    openMenu: 'Open menu',
+    openLanguageMenu: 'Open language menu',
+    chooseLanguage: 'Choose language',
+    setTimeZone: 'Set Time Zone',
+    login: 'Login',
+    loginMvpAlert: 'Login is not part of this MVP yet.',
+    taskListTabs: 'Task list tabs',
+    notDoneTab: 'Not Done',
+    doneTab: 'Done',
+    plannedTab: 'Planned',
+    addTaskTitle: 'Add Task',
+    startSpeechToText: 'Start speech to text',
+    stopSpeechToText: 'Stop speech to text',
+    speakTaskDescription: 'Speak task description',
+    speechNotSupportedTitle: 'Speech-to-text not supported',
+    taskDescription: 'Task description',
+    dueDate: 'Due date',
+    setRecurringRule: 'Set recurring rule',
+    doesNotRepeat: 'Does not repeat',
+    repeatDaily: 'Repeat daily',
+    repeatWeekly: 'Repeat weekly',
+    repeatWeekdaysShort: 'M-F',
+    repeatWeekdays: 'Repeat M-F',
+    addTask: 'Add Task',
+    today: 'Today',
+    loading: 'Loading Duebly...',
+    emptyDone: 'No completed tasks yet.',
+    emptyPlanned: 'Nothing planned for the future.',
+    emptyNotDone: "You're all caught up!",
+    movedToTomorrow: 'Moved to tomorrow',
+    movedToDate: 'Moved to {date}',
+    movedToNextOccurrence: 'Moved to next occurrence',
+    taskDeleted: 'Task Deleted',
+    movedToDone: 'Moved to Done',
+    savedForTomorrow: 'Saved for tomorrow',
+    saveForLater: 'Save for Later',
+    undo: 'Undo',
+    delete: 'Delete',
+    markAsDone: 'Mark as Done',
+    recurringTask: 'Recurring task',
+    recurringBadge: '(recurring)',
+    editTask: 'Edit task',
+    changeFrequency: 'Change frequency',
+    changeLabel: 'Change label',
+    deleteTask: 'Delete task',
+    editTaskDescription: 'Edit task description',
+    cancel: 'Cancel',
+    save: 'Save',
+    speechUnsupportedToast: 'Speech-to-text is not supported in this browser',
+    micDeniedToast: 'Microphone permission was denied',
+    speechFailedToast: 'Speech-to-text failed, please try again',
+    unableStartSpeechToast: 'Unable to start speech-to-text',
+    progressAria: 'Not Done progress {completed} out of {total}',
+    markTaskDoneAria: 'Mark {task} as done',
+    changeDateAria: 'Change date for {task}',
+    labelAria: 'Label {label}',
+    openTaskMenuAria: 'Open menu for {task}',
+    labelGeneral: 'General',
+    labelPriority: 'Priority',
+    labelWork: 'Work',
+    labelLife: 'Life',
+    labelHealth: 'Health',
+    labelFinance: 'Finance',
+    labelFamily: 'Family',
+    labelHome: 'Home',
+    labelErrands: 'Errands',
+    labelSchool: 'School',
+    labelEvent: 'Event',
+    labelTravel: 'Travel',
+  },
+  'en-GB': {
+    languageName: 'British English',
+    changeLabel: 'Change colour label',
+  },
+  'zh-CN': {
+    languageName: '简体中文',
+    openMenu: '打开菜单',
+    openLanguageMenu: '打开语言菜单',
+    chooseLanguage: '选择语言',
+    setTimeZone: '设置时区',
+    login: '登录',
+    loginMvpAlert: '登录暂未包含在此 MVP 中。',
+    taskListTabs: '任务列表标签',
+    notDoneTab: '待办',
+    doneTab: '已完成',
+    plannedTab: '计划',
+    addTaskTitle: '添加任务',
+    startSpeechToText: '开始语音转文字',
+    stopSpeechToText: '停止语音转文字',
+    speakTaskDescription: '说出任务描述',
+    speechNotSupportedTitle: '浏览器不支持语音转文字',
+    taskDescription: '任务描述',
+    dueDate: '截止日期',
+    setRecurringRule: '设置重复规则',
+    doesNotRepeat: '不重复',
+    repeatDaily: '每天重复',
+    repeatWeekly: '每周重复',
+    repeatWeekdaysShort: '周一至周五',
+    repeatWeekdays: '每周一至周五重复',
+    addTask: '添加任务',
+    today: '今天',
+    loading: 'Duebly 加载中...',
+    emptyDone: '还没有已完成任务。',
+    emptyPlanned: '未来暂无计划任务。',
+    emptyNotDone: '你已全部完成！',
+    movedToTomorrow: '已移动到明天',
+    movedToDate: '已移动到 {date}',
+    movedToNextOccurrence: '已移动到下一次',
+    taskDeleted: '任务已删除',
+    movedToDone: '已移至已完成',
+    savedForTomorrow: '已保存到明天',
+    saveForLater: '稍后处理',
+    undo: '撤销',
+    delete: '删除',
+    markAsDone: '标记为已完成',
+    recurringTask: '重复任务',
+    recurringBadge: '(重复)',
+    editTask: '编辑任务',
+    changeFrequency: '修改频率',
+    changeLabel: '修改标签',
+    deleteTask: '删除任务',
+    editTaskDescription: '编辑任务描述',
+    cancel: '取消',
+    save: '保存',
+    speechUnsupportedToast: '此浏览器不支持语音转文字',
+    micDeniedToast: '麦克风权限被拒绝',
+    speechFailedToast: '语音转文字失败，请重试',
+    unableStartSpeechToast: '无法启动语音转文字',
+    progressAria: '待办进度 {completed}/{total}',
+    markTaskDoneAria: '将 {task} 标记为已完成',
+    changeDateAria: '修改 {task} 的日期',
+    labelAria: '标签 {label}',
+    openTaskMenuAria: '打开 {task} 的菜单',
+    labelGeneral: '通用',
+    labelPriority: '优先',
+    labelWork: '工作',
+    labelLife: '生活',
+    labelHealth: '健康',
+    labelFinance: '财务',
+    labelFamily: '家庭',
+    labelHome: '居家',
+    labelErrands: '跑腿',
+    labelSchool: '学校',
+    labelEvent: '活动',
+    labelTravel: '旅行',
+  },
+  'ja-JP': {
+    languageName: '日本語',
+    openMenu: 'メニューを開く',
+    openLanguageMenu: '言語メニューを開く',
+    chooseLanguage: '言語を選択',
+    setTimeZone: 'タイムゾーンを設定',
+    login: 'ログイン',
+    loginMvpAlert: 'ログインはこの MVP では未対応です。',
+    taskListTabs: 'タスク一覧タブ',
+    notDoneTab: '未完了',
+    doneTab: '完了',
+    plannedTab: '予定',
+    addTaskTitle: 'タスクを追加',
+    startSpeechToText: '音声入力を開始',
+    stopSpeechToText: '音声入力を停止',
+    speakTaskDescription: 'タスク内容を話す',
+    speechNotSupportedTitle: 'このブラウザは音声入力に対応していません',
+    taskDescription: 'タスク内容',
+    dueDate: '期限日',
+    setRecurringRule: '繰り返し設定',
+    doesNotRepeat: '繰り返さない',
+    repeatDaily: '毎日繰り返す',
+    repeatWeekly: '毎週繰り返す',
+    repeatWeekdays: '平日に繰り返す',
+    addTask: 'タスクを追加',
+    today: '今日',
+    loading: 'Duebly を読み込み中...',
+    emptyDone: '完了したタスクはまだありません。',
+    emptyPlanned: '今後の予定タスクはありません。',
+    emptyNotDone: 'すべて完了しています！',
+    movedToTomorrow: '明日に移動しました',
+    movedToDate: '{date} に移動しました',
+    movedToNextOccurrence: '次の予定に移動しました',
+    taskDeleted: 'タスクを削除しました',
+    movedToDone: '完了に移動しました',
+    savedForTomorrow: '明日用に保存しました',
+    saveForLater: 'あとで対応',
+    undo: '元に戻す',
+    delete: '削除',
+    markAsDone: '完了にする',
+    recurringTask: '繰り返しタスク',
+    recurringBadge: '(繰り返し)',
+    editTask: 'タスクを編集',
+    changeFrequency: '頻度を変更',
+    changeLabel: 'ラベルを変更',
+    deleteTask: 'タスクを削除',
+    editTaskDescription: 'タスク内容を編集',
+    cancel: 'キャンセル',
+    save: '保存',
+    speechUnsupportedToast: 'このブラウザは音声入力に対応していません',
+    micDeniedToast: 'マイクの権限が拒否されました',
+    speechFailedToast: '音声入力に失敗しました。もう一度お試しください',
+    unableStartSpeechToast: '音声入力を開始できませんでした',
+    progressAria: '未完了の進捗 {completed}/{total}',
+    markTaskDoneAria: '{task} を完了にする',
+    changeDateAria: '{task} の日付を変更',
+    labelAria: 'ラベル {label}',
+    openTaskMenuAria: '{task} のメニューを開く',
+    labelGeneral: '一般',
+    labelPriority: '優先',
+    labelWork: '仕事',
+    labelLife: '生活',
+    labelHealth: '健康',
+    labelFinance: '財務',
+    labelFamily: '家族',
+    labelHome: '家',
+    labelErrands: '用事',
+    labelSchool: '学校',
+    labelEvent: 'イベント',
+    labelTravel: '旅行',
+  },
+  'ko-KR': {
+    languageName: '한국어',
+    openMenu: '메뉴 열기',
+    openLanguageMenu: '언어 메뉴 열기',
+    chooseLanguage: '언어 선택',
+    setTimeZone: '시간대 설정',
+    login: '로그인',
+    loginMvpAlert: '로그인은 현재 MVP에 포함되어 있지 않습니다.',
+    taskListTabs: '작업 목록 탭',
+    notDoneTab: '미완료',
+    doneTab: '완료됨',
+    plannedTab: '예정',
+    addTaskTitle: '작업 추가',
+    startSpeechToText: '음성 입력 시작',
+    stopSpeechToText: '음성 입력 중지',
+    speakTaskDescription: '작업 설명 말하기',
+    speechNotSupportedTitle: '이 브라우저는 음성 입력을 지원하지 않습니다',
+    taskDescription: '작업 설명',
+    dueDate: '마감일',
+    setRecurringRule: '반복 규칙 설정',
+    doesNotRepeat: '반복 안 함',
+    repeatDaily: '매일 반복',
+    repeatWeekly: '매주 반복',
+    repeatWeekdays: '평일 반복',
+    addTask: '작업 추가',
+    today: '오늘',
+    loading: 'Duebly 로딩 중...',
+    emptyDone: '완료된 작업이 아직 없습니다.',
+    emptyPlanned: '예정된 작업이 없습니다.',
+    emptyNotDone: '모두 완료했습니다!',
+    movedToTomorrow: '내일로 이동됨',
+    movedToDate: '{date}(으)로 이동됨',
+    movedToNextOccurrence: '다음 일정으로 이동됨',
+    taskDeleted: '작업이 삭제됨',
+    movedToDone: '완료됨으로 이동됨',
+    savedForTomorrow: '내일로 저장됨',
+    saveForLater: '나중에 처리',
+    undo: '실행 취소',
+    delete: '삭제',
+    markAsDone: '완료로 표시',
+    recurringTask: '반복 작업',
+    recurringBadge: '(반복)',
+    editTask: '작업 편집',
+    changeFrequency: '빈도 변경',
+    changeLabel: '라벨 변경',
+    deleteTask: '작업 삭제',
+    editTaskDescription: '작업 설명 편집',
+    cancel: '취소',
+    save: '저장',
+    speechUnsupportedToast: '이 브라우저는 음성 입력을 지원하지 않습니다',
+    micDeniedToast: '마이크 권한이 거부되었습니다',
+    speechFailedToast: '음성 입력에 실패했습니다. 다시 시도해 주세요',
+    unableStartSpeechToast: '음성 입력을 시작할 수 없습니다',
+    progressAria: '미완료 진행률 {completed}/{total}',
+    markTaskDoneAria: '{task} 완료로 표시',
+    changeDateAria: '{task} 날짜 변경',
+    labelAria: '라벨 {label}',
+    openTaskMenuAria: '{task} 메뉴 열기',
+    labelGeneral: '일반',
+    labelPriority: '우선',
+    labelWork: '업무',
+    labelLife: '생활',
+    labelHealth: '건강',
+    labelFinance: '재정',
+    labelFamily: '가족',
+    labelHome: '집',
+    labelErrands: '볼일',
+    labelSchool: '학교',
+    labelEvent: '이벤트',
+    labelTravel: '여행',
+  },
+  'fr-FR': {
+    languageName: 'Français',
+    openMenu: 'Ouvrir le menu',
+    openLanguageMenu: 'Ouvrir le menu des langues',
+    chooseLanguage: 'Choisir la langue',
+    setTimeZone: 'Définir le fuseau horaire',
+    login: 'Connexion',
+    loginMvpAlert: 'La connexion ne fait pas encore partie de ce MVP.',
+    taskListTabs: 'Onglets de tâches',
+    notDoneTab: 'À faire',
+    doneTab: 'Terminées',
+    plannedTab: 'Planifiées',
+    addTaskTitle: 'Ajouter une tâche',
+    startSpeechToText: 'Démarrer la dictée',
+    stopSpeechToText: 'Arrêter la dictée',
+    speakTaskDescription: 'Dicter la description de la tâche',
+    speechNotSupportedTitle: 'La dictée vocale n’est pas prise en charge',
+    taskDescription: 'Description de la tâche',
+    dueDate: 'Date d’échéance',
+    setRecurringRule: 'Définir la récurrence',
+    doesNotRepeat: 'Ne se répète pas',
+    repeatDaily: 'Répéter chaque jour',
+    repeatWeekly: 'Répéter chaque semaine',
+    repeatWeekdays: 'Répéter lun-ven',
+    addTask: 'Ajouter la tâche',
+    today: 'Aujourd’hui',
+    loading: 'Chargement de Duebly...',
+    emptyDone: 'Aucune tâche terminée pour le moment.',
+    emptyPlanned: 'Aucune tâche planifiée pour l’avenir.',
+    emptyNotDone: 'Tout est à jour !',
+    movedToTomorrow: 'Déplacée à demain',
+    movedToDate: 'Déplacée au {date}',
+    movedToNextOccurrence: 'Déplacée à la prochaine occurrence',
+    taskDeleted: 'Tâche supprimée',
+    movedToDone: 'Déplacée vers Terminées',
+    savedForTomorrow: 'Enregistrée pour demain',
+    saveForLater: 'Garder pour plus tard',
+    undo: 'Annuler',
+    delete: 'Supprimer',
+    markAsDone: 'Marquer comme terminée',
+    recurringTask: 'Tâche récurrente',
+    recurringBadge: '(récurrente)',
+    editTask: 'Modifier la tâche',
+    changeFrequency: 'Changer la fréquence',
+    changeLabel: 'Changer l’étiquette',
+    deleteTask: 'Supprimer la tâche',
+    editTaskDescription: 'Modifier la description de la tâche',
+    cancel: 'Annuler',
+    save: 'Enregistrer',
+    speechUnsupportedToast: 'La dictée vocale n’est pas prise en charge sur ce navigateur',
+    micDeniedToast: 'L’autorisation du microphone a été refusée',
+    speechFailedToast: 'La dictée vocale a échoué, veuillez réessayer',
+    unableStartSpeechToast: 'Impossible de démarrer la dictée vocale',
+    progressAria: 'Progression À faire {completed} sur {total}',
+    markTaskDoneAria: 'Marquer {task} comme terminée',
+    changeDateAria: 'Changer la date de {task}',
+    labelAria: 'Étiquette {label}',
+    openTaskMenuAria: 'Ouvrir le menu pour {task}',
+    labelGeneral: 'Général',
+    labelPriority: 'Priorité',
+    labelWork: 'Travail',
+    labelLife: 'Vie',
+    labelHealth: 'Santé',
+    labelFinance: 'Finance',
+    labelFamily: 'Famille',
+    labelHome: 'Maison',
+    labelErrands: 'Courses',
+    labelSchool: 'École',
+    labelEvent: 'Événement',
+    labelTravel: 'Voyage',
+  },
+  'es-ES': {
+    languageName: 'Español',
+    openMenu: 'Abrir menú',
+    openLanguageMenu: 'Abrir menú de idioma',
+    chooseLanguage: 'Elegir idioma',
+    setTimeZone: 'Configurar zona horaria',
+    login: 'Iniciar sesión',
+    loginMvpAlert: 'El inicio de sesión aún no forma parte de este MVP.',
+    taskListTabs: 'Pestañas de tareas',
+    notDoneTab: 'Pendientes',
+    doneTab: 'Hechas',
+    plannedTab: 'Planificadas',
+    addTaskTitle: 'Añadir tarea',
+    startSpeechToText: 'Iniciar voz a texto',
+    stopSpeechToText: 'Detener voz a texto',
+    speakTaskDescription: 'Decir descripción de la tarea',
+    speechNotSupportedTitle: 'Voz a texto no compatible',
+    taskDescription: 'Descripción de la tarea',
+    dueDate: 'Fecha límite',
+    setRecurringRule: 'Configurar repetición',
+    doesNotRepeat: 'No se repite',
+    repeatDaily: 'Repetir a diario',
+    repeatWeekly: 'Repetir semanalmente',
+    repeatWeekdays: 'Repetir lun-vie',
+    addTask: 'Añadir tarea',
+    today: 'Hoy',
+    loading: 'Cargando Duebly...',
+    emptyDone: 'Todavía no hay tareas completadas.',
+    emptyPlanned: 'No hay nada planificado para el futuro.',
+    emptyNotDone: '¡Todo al día!',
+    movedToTomorrow: 'Movido a mañana',
+    movedToDate: 'Movido a {date}',
+    movedToNextOccurrence: 'Movido a la próxima ocurrencia',
+    taskDeleted: 'Tarea eliminada',
+    movedToDone: 'Movido a Hechas',
+    savedForTomorrow: 'Guardado para mañana',
+    saveForLater: 'Guardar para después',
+    undo: 'Deshacer',
+    delete: 'Eliminar',
+    markAsDone: 'Marcar como hecha',
+    recurringTask: 'Tarea recurrente',
+    recurringBadge: '(recurrente)',
+    editTask: 'Editar tarea',
+    changeFrequency: 'Cambiar frecuencia',
+    changeLabel: 'Cambiar etiqueta',
+    deleteTask: 'Eliminar tarea',
+    editTaskDescription: 'Editar descripción de la tarea',
+    cancel: 'Cancelar',
+    save: 'Guardar',
+    speechUnsupportedToast: 'Voz a texto no es compatible con este navegador',
+    micDeniedToast: 'Se denegó el permiso del micrófono',
+    speechFailedToast: 'Falló voz a texto, inténtalo de nuevo',
+    unableStartSpeechToast: 'No se pudo iniciar voz a texto',
+    progressAria: 'Progreso de Pendientes {completed} de {total}',
+    markTaskDoneAria: 'Marcar {task} como hecha',
+    changeDateAria: 'Cambiar fecha de {task}',
+    labelAria: 'Etiqueta {label}',
+    openTaskMenuAria: 'Abrir menú para {task}',
+    labelGeneral: 'General',
+    labelPriority: 'Prioridad',
+    labelWork: 'Trabajo',
+    labelLife: 'Vida',
+    labelHealth: 'Salud',
+    labelFinance: 'Finanzas',
+    labelFamily: 'Familia',
+    labelHome: 'Hogar',
+    labelErrands: 'Recados',
+    labelSchool: 'Escuela',
+    labelEvent: 'Evento',
+    labelTravel: 'Viaje',
+  },
+  'it-IT': {
+    languageName: 'Italiano',
+    openMenu: 'Apri menu',
+    openLanguageMenu: 'Apri menu lingua',
+    chooseLanguage: 'Scegli lingua',
+    setTimeZone: 'Imposta fuso orario',
+    login: 'Accedi',
+    loginMvpAlert: 'Il login non fa ancora parte di questo MVP.',
+    taskListTabs: 'Schede elenco attività',
+    notDoneTab: 'Da fare',
+    doneTab: 'Fatte',
+    plannedTab: 'Pianificate',
+    addTaskTitle: 'Aggiungi attività',
+    startSpeechToText: 'Avvia voce a testo',
+    stopSpeechToText: 'Interrompi voce a testo',
+    speakTaskDescription: 'Pronuncia la descrizione attività',
+    speechNotSupportedTitle: 'Voce a testo non supportata',
+    taskDescription: 'Descrizione attività',
+    dueDate: 'Data di scadenza',
+    setRecurringRule: 'Imposta ricorrenza',
+    doesNotRepeat: 'Non si ripete',
+    repeatDaily: 'Ripeti ogni giorno',
+    repeatWeekly: 'Ripeti ogni settimana',
+    repeatWeekdays: 'Ripeti lun-ven',
+    addTask: 'Aggiungi attività',
+    today: 'Oggi',
+    loading: 'Caricamento di Duebly...',
+    emptyDone: 'Nessuna attività completata al momento.',
+    emptyPlanned: 'Niente pianificato per il futuro.',
+    emptyNotDone: 'Tutto aggiornato!',
+    movedToTomorrow: 'Spostata a domani',
+    movedToDate: 'Spostata al {date}',
+    movedToNextOccurrence: 'Spostata alla prossima occorrenza',
+    taskDeleted: 'Attività eliminata',
+    movedToDone: 'Spostata in Fatte',
+    savedForTomorrow: 'Salvata per domani',
+    saveForLater: 'Salva per dopo',
+    undo: 'Annulla',
+    delete: 'Elimina',
+    markAsDone: 'Segna come fatta',
+    recurringTask: 'Attività ricorrente',
+    recurringBadge: '(ricorrente)',
+    editTask: 'Modifica attività',
+    changeFrequency: 'Cambia frequenza',
+    changeLabel: 'Cambia etichetta',
+    deleteTask: 'Elimina attività',
+    editTaskDescription: 'Modifica descrizione attività',
+    cancel: 'Annulla',
+    save: 'Salva',
+    speechUnsupportedToast: 'Voce a testo non supportata in questo browser',
+    micDeniedToast: 'Permesso microfono negato',
+    speechFailedToast: 'Voce a testo non riuscita, riprova',
+    unableStartSpeechToast: 'Impossibile avviare voce a testo',
+    progressAria: 'Progresso Da fare {completed} su {total}',
+    markTaskDoneAria: 'Segna {task} come fatta',
+    changeDateAria: 'Cambia data per {task}',
+    labelAria: 'Etichetta {label}',
+    openTaskMenuAria: 'Apri menu per {task}',
+    labelGeneral: 'Generale',
+    labelPriority: 'Priorità',
+    labelWork: 'Lavoro',
+    labelLife: 'Vita',
+    labelHealth: 'Salute',
+    labelFinance: 'Finanza',
+    labelFamily: 'Famiglia',
+    labelHome: 'Casa',
+    labelErrands: 'Commissioni',
+    labelSchool: 'Scuola',
+    labelEvent: 'Evento',
+    labelTravel: 'Viaggio',
+  },
+}
+
+const interpolateText = (value, replacements = {}) => {
+  if (typeof value !== 'string') {
+    return ''
+  }
+
+  return Object.entries(replacements).reduce((text, [key, replacement]) => {
+    return text.replaceAll(`{${key}}`, String(replacement))
+  }, value)
+}
+
 const LABELS = [
-  { id: 'general', name: 'General', color: '#374151' },
-  { id: 'priority', name: 'Priority', color: '#ef4444' },
-  { id: 'work', name: 'Work', color: '#2563eb' },
-  { id: 'life', name: 'Life', color: '#f97316' },
-  { id: 'health', name: 'Health', color: '#16a34a' },
-  { id: 'finance', name: 'Finance', color: '#eab308' },
-  { id: 'family', name: 'Family', color: '#f472b6' },
-  { id: 'home', name: 'Home', color: '#a3e635' },
-  { id: 'errands', name: 'Errands', color: '#38bdf8' },
-  { id: 'school', name: 'School', color: '#a855f7' },
-  { id: 'event', name: 'Event', color: '#db2777' },
-  { id: 'travel', name: 'Travel', color: '#a16207' },
+  { id: 'general', textKey: 'labelGeneral', color: '#374151' },
+  { id: 'priority', textKey: 'labelPriority', color: '#ef4444' },
+  { id: 'work', textKey: 'labelWork', color: '#2563eb' },
+  { id: 'life', textKey: 'labelLife', color: '#f97316' },
+  { id: 'health', textKey: 'labelHealth', color: '#16a34a' },
+  { id: 'finance', textKey: 'labelFinance', color: '#eab308' },
+  { id: 'family', textKey: 'labelFamily', color: '#f472b6' },
+  { id: 'home', textKey: 'labelHome', color: '#a3e635' },
+  { id: 'errands', textKey: 'labelErrands', color: '#38bdf8' },
+  { id: 'school', textKey: 'labelSchool', color: '#a855f7' },
+  { id: 'event', textKey: 'labelEvent', color: '#db2777' },
+  { id: 'travel', textKey: 'labelTravel', color: '#a16207' },
 ]
 
 const TIMEZONE_OPTIONS = [
@@ -37,13 +566,7 @@ const TIMEZONE_OPTIONS = [
   'Australia/Sydney',
 ]
 
-const REPEAT_WEEKDAYS_SHORT_LABEL = 'M-F'
-const RECURRING_MENU_OPTIONS = [
-  { value: 'none', label: 'Does not repeat' },
-  { value: 'daily', label: 'Repeat daily' },
-  { value: 'weekly', label: 'Repeat weekly' },
-  { value: 'weekdays', label: `Repeat ${REPEAT_WEEKDAYS_SHORT_LABEL}` },
-]
+const RECURRING_MENU_OPTIONS = ['none', 'daily', 'weekly', 'weekdays']
 
 const SWIPE_THRESHOLD = 70
 const SWIPE_COMMIT_DELAY_MS = 170
@@ -152,7 +675,7 @@ const syncService = {
   pushMergedTasks: async () => {},
 }
 
-const ProgressRing = ({ completed, total }) => {
+const ProgressRing = ({ completed, total, ariaLabel }) => {
   const size = 36
   const strokeWidth = 4
   const radius = (size - strokeWidth) / 2
@@ -161,7 +684,7 @@ const ProgressRing = ({ completed, total }) => {
   const offset = circumference - (percentage / 100) * circumference
 
   return (
-    <div className="progress-ring" aria-label={`Not Done progress ${completed} out of ${total}`}>
+    <div className="progress-ring" aria-label={ariaLabel}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img">
         <circle
           className="ring-track"
@@ -188,15 +711,50 @@ const ProgressRing = ({ completed, total }) => {
   )
 }
 
+const getSupportedLanguage = (languageCodeCandidate) => {
+  if (typeof languageCodeCandidate !== 'string') {
+    return DEFAULT_LANGUAGE_CODE
+  }
+
+  const normalizedCandidate = languageCodeCandidate.trim()
+  if (!normalizedCandidate) {
+    return DEFAULT_LANGUAGE_CODE
+  }
+
+  const exact = LANGUAGE_OPTIONS.find((option) => option.code === normalizedCandidate)
+  if (exact) {
+    return exact.code
+  }
+
+  const candidatePrefix = normalizedCandidate.split('-')[0]?.toLowerCase()
+  const prefixMatch = LANGUAGE_OPTIONS.find((option) => option.code.split('-')[0].toLowerCase() === candidatePrefix)
+  if (prefixMatch) {
+    return prefixMatch.code
+  }
+
+  return DEFAULT_LANGUAGE_CODE
+}
+
+const getDefaultLanguage = () => {
+  if (typeof navigator === 'undefined') {
+    return DEFAULT_LANGUAGE_CODE
+  }
+
+  return getSupportedLanguage(navigator.language)
+}
+
 function App() {
   const defaultTimeZone = getDefaultTimeZone()
+  const defaultLanguage = getDefaultLanguage()
   const [isReady, setIsReady] = useState(false)
   const [tasks, setTasks] = useState([])
   const [activeTab, setActiveTab] = useState(TAB_KEYS.notDone)
   const [menuTaskId, setMenuTaskId] = useState(null)
   const [labelSelectorTaskId, setLabelSelectorTaskId] = useState(null)
   const [isTimezoneMenuOpen, setIsTimezoneMenuOpen] = useState(false)
+  const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false)
   const [selectedTimeZone, setSelectedTimeZone] = useState(defaultTimeZone)
+  const [selectedLanguage, setSelectedLanguage] = useState(defaultLanguage)
   const [nowTick, setNowTick] = useState(() => taskModel.getNow())
   const [viewportWidth, setViewportWidth] = useState(() => {
     if (typeof window === 'undefined') {
@@ -236,6 +794,37 @@ function App() {
   const textRefs = useRef(new Map())
   const mirrorLegacyRef = useRef(false)
   const speechRecognitionRef = useRef(null)
+  const languageMenu = useMemo(() => {
+    return LANGUAGE_OPTIONS.map((option) => {
+      const langText = { ...TRANSLATIONS[DEFAULT_LANGUAGE_CODE], ...(TRANSLATIONS[option.code] || {}) }
+      return {
+        ...option,
+        displayName: langText.languageName || option.code,
+      }
+    })
+  }, [])
+  const activeLanguage = useMemo(() => {
+    return languageMenu.find((option) => option.code === selectedLanguage) || languageMenu[0]
+  }, [languageMenu, selectedLanguage])
+  const text = useMemo(() => {
+    return { ...TRANSLATIONS[DEFAULT_LANGUAGE_CODE], ...(TRANSLATIONS[selectedLanguage] || {}) }
+  }, [selectedLanguage])
+  const t = (key, replacements) => interpolateText(text[key] || TRANSLATIONS[DEFAULT_LANGUAGE_CODE][key] || '', replacements)
+  const recurringMenuOptions = RECURRING_MENU_OPTIONS.map((value) => {
+    if (value === 'none') {
+      return { value, label: t('doesNotRepeat') }
+    }
+
+    if (value === 'daily') {
+      return { value, label: t('repeatDaily') }
+    }
+
+    if (value === 'weekly') {
+      return { value, label: t('repeatWeekly') }
+    }
+
+    return { value, label: t('repeatWeekdays') }
+  })
 
   const getShouldOpenUp = (anchorElement, estimatedHeight = 240) => {
     if (!anchorElement) {
@@ -260,6 +849,7 @@ function App() {
       mirrorLegacyRef.current = result.fallbackActive
       setTasks(result.tasks)
       setSelectedTimeZone(getSupportedTimeZone(result.settings.timezone || defaultTimeZone))
+      setSelectedLanguage(getSupportedLanguage(result.settings.language || defaultLanguage))
       setIsReady(true)
     }
 
@@ -268,7 +858,7 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [defaultTimeZone])
+  }, [defaultLanguage, defaultTimeZone])
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -296,6 +886,9 @@ function App() {
 
       if (!target.closest('.menu-wrap')) {
         setIsTimezoneMenuOpen(false)
+      }
+      if (!target.closest('.language-menu-wrap')) {
+        setIsLanguageMenuOpen(false)
       }
 
       if (!target.closest('.task-menu-wrap')) {
@@ -415,14 +1008,14 @@ function App() {
   const startSpeechToText = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
     if (!SpeechRecognition) {
-      pushToast('Speech-to-text is not supported in this browser')
+      pushToast(t('speechUnsupportedToast'))
       return
     }
 
     const recognition = new SpeechRecognition()
     recognition.continuous = false
     recognition.interimResults = false
-    recognition.lang = navigator.language || 'en-US'
+    recognition.lang = activeLanguage.locale
 
     // Non-standard flag used by some engines to prefer on-device/local processing.
     recognition.processLocally = true
@@ -453,9 +1046,9 @@ function App() {
 
     recognition.onerror = (event) => {
       if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-        pushToast('Microphone permission was denied')
+        pushToast(t('micDeniedToast'))
       } else if (event.error !== 'aborted') {
-        pushToast('Speech-to-text failed, please try again')
+        pushToast(t('speechFailedToast'))
       }
     }
 
@@ -477,7 +1070,7 @@ function App() {
       recognition.onend = null
       speechRecognitionRef.current = null
       setIsListening(false)
-      pushToast('Unable to start speech-to-text')
+      pushToast(t('unableStartSpeechToast'))
     }
   }
 
@@ -593,12 +1186,13 @@ function App() {
     taskStorage.saveSettings(
       {
         timezone: selectedTimeZone,
+        language: selectedLanguage,
         syncEnabled: false,
         statusIndicator: notDoneStatusStats,
       },
       mirrorLegacyRef.current,
     )
-  }, [isReady, selectedTimeZone, notDoneStatusStats])
+  }, [isReady, selectedLanguage, selectedTimeZone, notDoneStatusStats])
 
   const persistTask = (task) => {
     taskStorage.saveTask(task, mirrorLegacyRef.current)
@@ -664,7 +1258,7 @@ function App() {
   }
 
   const getLaterToast = (targetDate) => {
-    return targetDate === tomorrow ? 'Moved to tomorrow' : `Moved to ${targetDate}`
+    return targetDate === tomorrow ? t('movedToTomorrow') : t('movedToDate', { date: targetDate })
   }
 
   const toggleTaskDone = (task, isDone, options = {}) => {
@@ -693,7 +1287,7 @@ function App() {
     }
 
     if (isDone && task.recurring !== 'none' && updatedTask && !suppressRecurringToast) {
-      pushToast('Moved to next occurrence')
+      pushToast(t('movedToNextOccurrence'))
       setActiveTab(TAB_KEYS.notDone)
     }
   }
@@ -805,7 +1399,7 @@ function App() {
     setEditingModalAnchor(null)
   }
 
-  const cancelEditTask = () => {
+  function cancelEditTask() {
     setEditingTaskId(null)
     setEditingText('')
     setEditingModalAnchor(null)
@@ -842,10 +1436,10 @@ function App() {
     if (swipeDirection === 'left') {
       if (task.isDone) {
         deleteTask(task.id)
-        pushToast('Task Deleted')
+        pushToast(t('taskDeleted'))
       } else {
         toggleTaskDone(task, true, { suppressRecurringToast: true })
-        pushToast('Moved to Done')
+        pushToast(t('movedToDone'))
       }
       return
     }
@@ -879,7 +1473,7 @@ function App() {
 
       if (updatedTask) {
         persistTask(updatedTask)
-        pushToast('Saved for tomorrow')
+        pushToast(t('savedForTomorrow'))
       }
     }
   }
@@ -962,10 +1556,10 @@ function App() {
     }
 
     if (activeTab === TAB_KEYS.done) {
-      return 'Undo'
+      return t('undo')
     }
 
-    return 'Save for Later'
+    return t('saveForLater')
   }
 
   const rowShellMotionProps = isMobileViewport
@@ -1068,26 +1662,26 @@ function App() {
 
   const renderEmptyMessage = () => {
     if (activeTab === TAB_KEYS.done) {
-      return 'No completed tasks yet.'
+      return t('emptyDone')
     }
 
     if (activeTab === TAB_KEYS.planned) {
-      return 'Nothing planned for the future.'
+      return t('emptyPlanned')
     }
 
-    return "You're all caught up!"
+    return t('emptyNotDone')
   }
 
   if (!isReady) {
     return (
       <div className="app-shell loading-shell">
-        <p>Loading Duebly...</p>
+        <p>{t('loading')}</p>
       </div>
     )
   }
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" lang={activeLanguage.locale}>
       <header className="top-nav">
         <div className="top-left">
           <div className="menu-wrap">
@@ -1095,13 +1689,13 @@ function App() {
               type="button"
               className="icon-button"
               onClick={() => setIsTimezoneMenuOpen((prev) => !prev)}
-              aria-label="Open menu"
+              aria-label={t('openMenu')}
             >
               ☰
             </button>
             {isTimezoneMenuOpen ? (
               <div className="menu-popover">
-                <label htmlFor="timezone-select">Set Time Zone</label>
+                <label htmlFor="timezone-select">{t('setTimeZone')}</label>
                 <select
                   id="timezone-select"
                   value={selectedTimeZone}
@@ -1121,53 +1715,90 @@ function App() {
           <button type="button" className="brand-button" onClick={() => switchTab(TAB_KEYS.notDone)}>
             Duebly
           </button>
-          <ProgressRing completed={notDoneStatusStats.completed} total={notDoneStatusStats.total} />
+          <ProgressRing
+            completed={notDoneStatusStats.completed}
+            total={notDoneStatusStats.total}
+            ariaLabel={t('progressAria', {
+              completed: notDoneStatusStats.completed,
+              total: notDoneStatusStats.total,
+            })}
+          />
         </div>
         <div className="top-right">
+          <div className="language-menu-wrap">
+            <button
+              type="button"
+              className="icon-button"
+              onClick={() => setIsLanguageMenuOpen((prev) => !prev)}
+              aria-label={t('openLanguageMenu')}
+              title={t('chooseLanguage')}
+            >
+              {activeLanguage.flag}
+            </button>
+            {isLanguageMenuOpen ? (
+              <div className="menu-popover language-popover">
+                <label htmlFor="language-select">{t('chooseLanguage')}</label>
+                <select
+                  id="language-select"
+                  value={selectedLanguage}
+                  onChange={(event) => {
+                    setSelectedLanguage(event.target.value)
+                    setIsLanguageMenuOpen(false)
+                  }}
+                >
+                  {languageMenu.map((option) => (
+                    <option key={option.code} value={option.code}>
+                      {option.flag} {option.displayName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+          </div>
           <button
             type="button"
             className="ghost-button"
-            onClick={() => window.alert('Login is not part of this MVP yet.')}
+            onClick={() => window.alert(t('loginMvpAlert'))}
           >
-            Login
+            {t('login')}
           </button>
         </div>
       </header>
 
-      <nav className="tab-bar" aria-label="Task list tabs">
+      <nav className="tab-bar" aria-label={t('taskListTabs')}>
         <button
           type="button"
           className={`tab-button ${activeTab === TAB_KEYS.notDone ? 'active' : ''}`}
           onClick={() => switchTab(TAB_KEYS.notDone)}
         >
-          Not Done ({tabCounts[TAB_KEYS.notDone]})
+          {t('notDoneTab')} ({tabCounts[TAB_KEYS.notDone]})
         </button>
         <button
           type="button"
           className={`tab-button ${activeTab === TAB_KEYS.done ? 'active' : ''}`}
           onClick={() => switchTab(TAB_KEYS.done)}
         >
-          Done ({tabCounts[TAB_KEYS.done]})
+          {t('doneTab')} ({tabCounts[TAB_KEYS.done]})
         </button>
         <button
           type="button"
           className={`tab-button ${activeTab === TAB_KEYS.planned ? 'active' : ''}`}
           onClick={() => switchTab(TAB_KEYS.planned)}
         >
-          Planned ({tabCounts[TAB_KEYS.planned]})
+          {t('plannedTab')} ({tabCounts[TAB_KEYS.planned]})
         </button>
       </nav>
 
       <main className="content">
         <section className="composer-card">
-          <h1>Add Task</h1>
+          <h1>{t('addTaskTitle')}</h1>
           <form className="composer" onSubmit={addTask}>
             <div className="composer-text-row">
               <button
                 type="button"
                 className={`icon-button mic-trigger ${isListening ? 'listening' : ''}`}
-                aria-label={isListening ? 'Stop speech to text' : 'Start speech to text'}
-                title={isSpeechSupported ? 'Speak task description' : 'Speech-to-text not supported'}
+                aria-label={isListening ? t('stopSpeechToText') : t('startSpeechToText')}
+                title={isSpeechSupported ? t('speakTaskDescription') : t('speechNotSupportedTitle')}
                 disabled={!isSpeechSupported}
                 onClick={() => {
                   if (isListening) {
@@ -1181,12 +1812,12 @@ function App() {
                 {isListening ? '🎙️' : '🎤'}
               </button>
               <label className="sr-only" htmlFor="new-task-text">
-                Task description
+                {t('taskDescription')}
               </label>
               <input
                 id="new-task-text"
                 type="text"
-                placeholder="Task description"
+                placeholder={t('taskDescription')}
                 value={draftText}
                 onChange={(event) => setDraftText(event.target.value)}
                 maxLength={MAX_TASK_DESCRIPTION_LENGTH}
@@ -1194,21 +1825,21 @@ function App() {
               />
             </div>
             <label className="sr-only" htmlFor="new-task-date">
-              Due date
+              {t('dueDate')}
             </label>
             <div className="composer-meta-row">
               <div className="recurring-menu-wrap">
                 <button
                   type="button"
                   className={`icon-button recurring-trigger ${draftRecurring !== 'none' ? 'active' : ''}`}
-                  aria-label="Set recurring rule"
+                  aria-label={t('setRecurringRule')}
                   onClick={() => setIsDraftRecurringMenuOpen((prev) => !prev)}
                 >
                   ☰
                 </button>
                 {isDraftRecurringMenuOpen ? (
                   <div className="task-menu recurring-menu">
-                    {RECURRING_MENU_OPTIONS.map((option) => (
+                    {recurringMenuOptions.map((option) => (
                       <button
                         key={option.value}
                         type="button"
@@ -1232,6 +1863,7 @@ function App() {
                 id="new-task-date"
                 type="date"
                 value={effectiveDraftDueDate}
+                lang={activeLanguage.locale}
                 onChange={(event) => {
                   setDraftDueDate(event.target.value)
                   setIsDraftDateAuto(false)
@@ -1245,7 +1877,7 @@ function App() {
                   onClick={() => setIsDraftLabelOpen((prev) => !prev)}
                 >
                   <span className="label-dot" style={{ backgroundColor: draftColor }} />
-                  <span>{getLabelByColor(draftColor).name}</span>
+                  <span>{t(getLabelByColor(draftColor).textKey)}</span>
                 </button>
                 {isDraftLabelOpen ? (
                   <div className="label-dropdown">
@@ -1260,7 +1892,7 @@ function App() {
                         }}
                       >
                         <span className="label-dot" style={{ backgroundColor: label.color }} />
-                        <span>{label.name}</span>
+                        <span>{t(label.textKey)}</span>
                       </button>
                     ))}
                   </div>
@@ -1268,11 +1900,11 @@ function App() {
               </div>
             </div>
             <button type="submit" className="primary-button" disabled={!draftText.trim() || !effectiveDraftDueDate}>
-              Add Task
+              {t('addTask')}
             </button>
           </form>
           <p className="today-label">
-            Today ({selectedTimeZone}): <strong>{today}</strong>
+            {t('today')} ({selectedTimeZone}): <strong>{today}</strong>
           </p>
         </section>
 
@@ -1298,8 +1930,8 @@ function App() {
                   : ''
               const swipeText = activeSwipe === 'left'
                 ? task.isDone
-                  ? 'Delete'
-                  : 'Mark as Done'
+                  ? t('delete')
+                  : t('markAsDone')
                 : activeSwipe === 'right' && canSwipeRight(task)
                   ? swipeRightHintLabel(task)
                   : ''
@@ -1397,27 +2029,28 @@ function App() {
                       type="checkbox"
                       checked={task.isDone}
                       onChange={(event) => toggleTaskDone(task, event.target.checked)}
-                      aria-label={`Mark ${task.text} as done`}
+                      aria-label={t('markTaskDoneAria', { task: task.text })}
                     />
 
                     <input
                       className="task-date"
                       type="date"
                       value={task.dueDate}
+                      lang={activeLanguage.locale}
                       onChange={(event) => updateTaskDate(task.id, event.target.value)}
-                      aria-label={`Change date for ${task.text}`}
+                      aria-label={t('changeDateAria', { task: task.text })}
                     />
 
                     <button
                       type="button"
                       className="task-color"
-                      title={label.name}
+                      title={t(label.textKey)}
                       style={{ backgroundColor: task.color }}
-                      aria-label={`Label ${label.name}`}
+                      aria-label={t('labelAria', { label: t(label.textKey) })}
                       onTouchStart={(event) => {
                         const swatchRect = event.currentTarget.getBoundingClientRect()
                         longPressBubbleRef.current = window.setTimeout(() => {
-                          showSwatchHint(label.name, swatchRect)
+                          showSwatchHint(t(label.textKey), swatchRect)
                         }, 450)
                       }}
                       onTouchEnd={() => {
@@ -1488,8 +2121,8 @@ function App() {
                         >
                           {task.text}
                           {task.recurring !== 'none' ? (
-                            <span className="recurring-badge" aria-label="Recurring task">
-                              {' '}↻ (recurring)
+                            <span className="recurring-badge" aria-label={t('recurringTask')}>
+                              {' '}↻ {t('recurringBadge')}
                             </span>
                           ) : null}
                         </p>
@@ -1501,7 +2134,7 @@ function App() {
                         type="button"
                         className="icon-button"
                         onClick={(event) => toggleTaskMenu(task.id, event.currentTarget)}
-                        aria-label={`Open menu for ${task.text}`}
+                        aria-label={t('openTaskMenuAria', { task: task.text })}
                         ref={(element) => {
                           if (element) {
                             taskMenuButtonRefs.current.set(task.id, element)
@@ -1515,7 +2148,7 @@ function App() {
                       {menuTaskId === task.id ? (
                         <div className={`task-menu ${isTaskMenuOpenUp ? 'open-up' : ''}`}>
                           <button type="button" onClick={() => beginEditTask(task)}>
-                            Edit task
+                            {t('editTask')}
                           </button>
                           <button
                             type="button"
@@ -1527,11 +2160,11 @@ function App() {
                               })
                             }}
                           >
-                            Change frequency
+                            {t('changeFrequency')}
                           </button>
                           {frequencySelectorTaskId === task.id ? (
                             <div className={`task-frequency-submenu ${isFrequencyMenuOpenUp ? 'open-up' : ''}`}>
-                              {RECURRING_MENU_OPTIONS.map((option) => (
+                              {recurringMenuOptions.map((option) => (
                                 <button
                                   key={option.value}
                                   type="button"
@@ -1553,10 +2186,10 @@ function App() {
                               setFrequencySelectorTaskId(null)
                             }}
                           >
-                            Change label
+                            {t('changeLabel')}
                           </button>
                           <button type="button" onClick={() => deleteTask(task.id)}>
-                            Delete task
+                            {t('deleteTask')}
                           </button>
                         </div>
                       ) : null}
@@ -1570,7 +2203,7 @@ function App() {
                         {LABELS.map((item) => (
                           <button key={item.id} type="button" onClick={() => setTaskColor(task.id, item.color)}>
                             <span className="label-dot" style={{ backgroundColor: item.color }} />
-                            <span>{item.name}</span>
+                            <span>{t(item.textKey)}</span>
                           </button>
                         ))}
                       </div>
@@ -1633,7 +2266,7 @@ function App() {
           }
         >
           <label className="sr-only" htmlFor="task-edit-modal-input">
-            Edit task description
+            {t('editTaskDescription')}
           </label>
           <input
             id="task-edit-modal-input"
@@ -1652,10 +2285,10 @@ function App() {
           />
           <div className="task-edit-modal-actions">
             <button type="button" className="ghost-button" onClick={cancelEditTask}>
-              Cancel
+              {t('cancel')}
             </button>
             <button type="button" className="primary-button" onClick={() => saveEditTask(editingTaskId)}>
-              Save
+              {t('save')}
             </button>
           </div>
         </div>
