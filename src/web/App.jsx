@@ -779,18 +779,6 @@ const getSpeechLanguageCandidates = (preferredLocale) => {
   return Array.from(candidates)
 }
 
-const isChromeMobileBrowser = () => {
-  if (typeof navigator === 'undefined') {
-    return false
-  }
-
-  const userAgent = navigator.userAgent || ''
-  const isAndroid = /Android/i.test(userAgent)
-  const isChromium = /Chrome\//i.test(userAgent)
-  const isOtherChromiumBased = /EdgA|OPR|SamsungBrowser/i.test(userAgent)
-  return isAndroid && isChromium && !isOtherChromiumBased
-}
-
 function App() {
   const defaultTimeZone = getDefaultTimeZone()
   const defaultLanguage = getDefaultLanguage()
@@ -1074,12 +1062,9 @@ function App() {
 
     const recognition = new SpeechRecognition()
     const languageCandidates = getSpeechLanguageCandidates(activeLanguage.locale)
-    const isChromeMobile = isChromeMobileBrowser()
     let languageIndex = 0
     let retryAttempts = 0
-    let noSpeechRetryAttempts = 0
     let isRetryingLanguage = false
-    let hasSpeechResult = false
 
     recognition.continuous = false
     recognition.interimResults = false
@@ -1090,7 +1075,6 @@ function App() {
     }
 
     recognition.onresult = (event) => {
-      hasSpeechResult = true
       const transcript = Array.from(event.results)
         .slice(event.resultIndex)
         .map((result) => result[0]?.transcript || '')
@@ -1111,27 +1095,6 @@ function App() {
     }
 
     recognition.onerror = (event) => {
-      const shouldRetryNoSpeechOnChromeMobile = isChromeMobile
-        && event.error === 'no-speech'
-        && !hasSpeechResult
-        && noSpeechRetryAttempts < 1
-        && !isRetryingLanguage
-
-      if (shouldRetryNoSpeechOnChromeMobile) {
-        noSpeechRetryAttempts += 1
-        window.setTimeout(() => {
-          try {
-            recognition.start()
-          } catch (error) {
-            if (import.meta.env.DEV) {
-              console.warn('Speech recognition no-speech restart failed', error)
-            }
-            pushToast(translate('speechFailedToast'))
-          }
-        }, 180)
-        return
-      }
-
       const nextLanguageIndex = languageIndex + 1
       const hasNextLanguageCandidate = nextLanguageIndex < languageCandidates.length
       const shouldRetryWithFallbackLanguage = !isRetryingLanguage
