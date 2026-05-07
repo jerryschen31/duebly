@@ -97,7 +97,7 @@ const TRANSLATIONS = {
   },
   'en-GB': {
     languageName: 'British English',
-    changeLabel: 'Change color label',
+    changeLabel: 'Change label',
   },
   'zh-CN': {
     languageName: '简体中文',
@@ -731,7 +731,7 @@ const getSupportedLanguage = (languageCodeCandidate) => {
     return exact.code
   }
 
-  const candidatePrefix = normalizedCandidate.split('-')[0]?.toLowerCase()
+  const candidatePrefix = normalizedCandidate.split('-')[0].toLowerCase()
   const prefixMatch = LANGUAGE_OPTIONS.find((option) => option.code.split('-')[0].toLowerCase() === candidatePrefix)
   if (prefixMatch) {
     return prefixMatch.code
@@ -814,7 +814,13 @@ function App() {
   const text = useMemo(() => {
     return { ...TRANSLATIONS[DEFAULT_LANGUAGE_CODE], ...(TRANSLATIONS[selectedLanguage] || {}) }
   }, [selectedLanguage])
-  const translate = (key, replacements) => interpolateText(text[key] || TRANSLATIONS[DEFAULT_LANGUAGE_CODE][key] || '', replacements)
+  const translate = (key, replacements) => {
+    const translated = text[key] || TRANSLATIONS[DEFAULT_LANGUAGE_CODE][key]
+    if (!translated && import.meta.env.DEV) {
+      console.warn('Missing translation key', key)
+    }
+    return interpolateText(translated || key, replacements)
+  }
   const recurringMenuOptions = RECURRING_MENU_OPTIONS.map((value) => {
     if (value === 'none') {
       return { value, label: translate('doesNotRepeat') }
