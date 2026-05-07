@@ -5,6 +5,7 @@ const LEGACY_TIMEZONE_KEY = 'duebly.timezone.v1'
 
 const SETTINGS_KEYS = {
   timezone: 'timezone',
+  language: 'language',
   syncEnabled: 'sync-enabled',
   statusIndicator: 'status-indicator',
 }
@@ -251,6 +252,7 @@ const readSettings = async () => {
 
   return {
     timezone: typeof map[SETTINGS_KEYS.timezone] === 'string' ? map[SETTINGS_KEYS.timezone] : null,
+    language: typeof map[SETTINGS_KEYS.language] === 'string' ? map[SETTINGS_KEYS.language] : null,
     syncEnabled: Boolean(map[SETTINGS_KEYS.syncEnabled]),
     statusIndicator: normalizeStatusIndicator(map[SETTINGS_KEYS.statusIndicator]),
   }
@@ -259,6 +261,7 @@ const readSettings = async () => {
 const writeSettings = async (settings) => {
   await db.settings.bulkPut([
     { id: SETTINGS_KEYS.timezone, value: settings.timezone || null },
+    { id: SETTINGS_KEYS.language, value: settings.language || null },
     { id: SETTINGS_KEYS.syncEnabled, value: Boolean(settings.syncEnabled) },
     { id: SETTINGS_KEYS.statusIndicator, value: normalizeStatusIndicator(settings.statusIndicator) },
   ])
@@ -301,6 +304,7 @@ export const taskStorage = {
         tasks: [],
         settings: {
           timezone: defaultTimeZone,
+          language: null,
           syncEnabled: false,
           statusIndicator: null,
         },
