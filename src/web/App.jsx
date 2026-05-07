@@ -584,7 +584,7 @@ const MAX_TASK_DESCRIPTION_LENGTH = 200
 const SPEECH_LANGUAGE_FALLBACKS = {
   'en-US': ['en-US', 'en'],
   'en-GB': ['en-GB', 'en-US', 'en'],
-  'zh-CN': ['zh-CN', 'cmn-Hans-CN', 'cmn-Hans'],
+  'zh-CN': ['zh-CN', 'zh-Hans-CN', 'zh-Hans'],
   'ja-JP': ['ja-JP', 'ja'],
   'ko-KR': ['ko-KR', 'ko'],
   'fr-FR': ['fr-FR', 'fr'],
@@ -1063,6 +1063,7 @@ function App() {
     const recognition = new SpeechRecognition()
     const languageCandidates = getSpeechLanguageCandidates(activeLanguage.locale)
     let languageIndex = 0
+    let isRetryingLanguage = false
 
     recognition.continuous = false
     recognition.interimResults = false
@@ -1093,7 +1094,8 @@ function App() {
     }
 
     recognition.onerror = (event) => {
-      if (event.error === 'language-not-supported' && languageIndex < languageCandidates.length - 1) {
+      if (!isRetryingLanguage && event.error === 'language-not-supported' && languageIndex < languageCandidates.length - 1) {
+        isRetryingLanguage = true
         languageIndex += 1
         recognition.lang = languageCandidates[languageIndex]
         if (import.meta.env.DEV) {
@@ -1106,8 +1108,13 @@ function App() {
         window.setTimeout(() => {
           try {
             recognition.start()
-          } catch {
+          } catch (error) {
+            if (import.meta.env.DEV) {
+              console.warn('Speech recognition fallback start failed', error)
+            }
             pushToast(translate('speechFailedToast'))
+          } finally {
+            isRetryingLanguage = false
           }
         }, 0)
         return
