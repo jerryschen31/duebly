@@ -1297,6 +1297,8 @@ function App() {
                 id="new-task-date"
                 type="date"
                 value={effectiveDraftDueDate}
+                aria-label={isDraftMultiDay ? 'Start date' : 'Due date'}
+                title={isDraftMultiDay ? 'Start date' : 'Due date'}
                 onChange={(event) => {
                   setDraftDueDate(event.target.value)
                   setIsDraftDateAuto(false)
@@ -1309,7 +1311,8 @@ function App() {
               <button
                 type="button"
                 className={`icon-button range-trigger ${isDraftMultiDay ? 'active' : ''}`}
-                aria-label={isDraftMultiDay ? 'Set single-day task' : 'Set multi-day task'}
+                aria-label="Toggle multi-day task range"
+                title={isDraftMultiDay ? 'Use single date' : 'Use date range'}
                 onClick={() => {
                   setIsDraftMultiDay((prev) => {
                     const next = !prev
@@ -1519,7 +1522,7 @@ function App() {
                             type="button"
                             className="task-range-toggle"
                             onClick={() => clearTaskEndDate(task.id)}
-                            aria-label={`Set ${task.text} to single-day`}
+                            aria-label={`Convert ${task.text} to single-day task`}
                           >
                             ×
                           </button>
@@ -1529,7 +1532,7 @@ function App() {
                           type="button"
                           className="task-range-toggle"
                           onClick={() => updateTaskEndDate(task.id, addDaysToISODate(task.dueDate, 1))}
-                          aria-label={`Set ${task.text} to multi-day`}
+                          aria-label={`Add end date for ${task.text}`}
                         >
                           +
                         </button>
