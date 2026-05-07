@@ -21,6 +21,7 @@ const LANGUAGE_OPTIONS = [
 ]
 
 const DEFAULT_LANGUAGE_CODE = LANGUAGE_OPTIONS[0].code
+const MIC_HOLD_THRESHOLD_MS = 350
 
 const TRANSLATIONS = {
   'en-US': {
@@ -835,7 +836,7 @@ function App() {
   const [swatchHint, setSwatchHint] = useState(null)
   const [isListening, setIsListening] = useState(false)
   const isMobileViewport = viewportWidth <= 640
-  const isMobileSpeechHoldEnabled = isMobileBrowser()
+  const isMobileSpeechHoldEnabled = isMobileViewport && isMobileBrowser()
   const isSpeechSupported = Boolean(globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition)
 
   const toastTimeoutsRef = useRef(new Map())
@@ -1919,7 +1920,7 @@ function App() {
                     micLongPressTriggeredRef.current = true
                     micIgnoreNextClickRef.current = true
                     startSpeechToText()
-                  }, 350)
+                  }, MIC_HOLD_THRESHOLD_MS)
                 }}
                 onPointerUp={() => {
                   if (!isMobileSpeechHoldEnabled) {
