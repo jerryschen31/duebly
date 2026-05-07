@@ -548,7 +548,7 @@ function App() {
 
   const effectiveDraftDueDate = isDraftDateAuto ? today : draftDueDate
   const effectiveDraftEndDate = isDraftMultiDay
-    ? normalizeEndDate(effectiveDraftDueDate, draftEndDate || effectiveDraftDueDate)
+    ? normalizeEndDate(effectiveDraftDueDate, draftEndDate)
     : null
 
   const notDoneTasks = useMemo(() => {
@@ -1306,7 +1306,7 @@ function App() {
                   setIsDraftDateAuto(false)
                   const nextStartDate = parseISODate(event.target.value)
                   const nextEndDate = parseISODate(draftEndDate)
-                  if (isDraftMultiDay && nextStartDate && nextEndDate && nextEndDate <= nextStartDate) {
+                  if (isDraftMultiDay && nextStartDate && (!nextEndDate || nextEndDate <= nextStartDate)) {
                     setDraftEndDate(getMinimumEndDate(event.target.value))
                   }
                 }}
@@ -1331,7 +1331,7 @@ function App() {
                 <input
                   id="new-task-end-date"
                   type="date"
-                  value={draftEndDate || getMinimumEndDate(effectiveDraftDueDate)}
+                  value={draftEndDate || ''}
                   min={getMinimumEndDate(effectiveDraftDueDate)}
                   onChange={(event) => setDraftEndDate(event.target.value)}
                   aria-label="End date"
