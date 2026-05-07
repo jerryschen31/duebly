@@ -1063,6 +1063,7 @@ function App() {
     const recognition = new SpeechRecognition()
     const languageCandidates = getSpeechLanguageCandidates(activeLanguage.locale)
     let languageIndex = 0
+    let retryAttempts = 0
     let isRetryingLanguage = false
 
     recognition.continuous = false
@@ -1094,14 +1095,17 @@ function App() {
     }
 
     recognition.onerror = (event) => {
-      const hasNextLanguageCandidate = languageIndex < languageCandidates.length - 1
+      const nextLanguageIndex = languageIndex + 1
+      const hasNextLanguageCandidate = nextLanguageIndex < languageCandidates.length
       const shouldRetryWithFallbackLanguage = !isRetryingLanguage
         && event.error === 'language-not-supported'
         && hasNextLanguageCandidate
+        && retryAttempts < languageCandidates.length - 1
 
       if (shouldRetryWithFallbackLanguage) {
         isRetryingLanguage = true
-        languageIndex += 1
+        languageIndex = nextLanguageIndex
+        retryAttempts += 1
         recognition.lang = languageCandidates[languageIndex]
         if (import.meta.env.DEV) {
           console.warn('Speech language fallback', {
