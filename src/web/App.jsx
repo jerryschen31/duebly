@@ -543,6 +543,10 @@ const interpolateText = (value, replacements = {}) => {
   }, value)
 }
 
+const getTranslationsForLanguage = (languageCode) => {
+  return { ...TRANSLATIONS[DEFAULT_LANGUAGE_CODE], ...(TRANSLATIONS[languageCode] || {}) }
+}
+
 const LABELS = [
   { id: 'general', textKey: 'labelGeneral', color: '#374151' },
   { id: 'priority', textKey: 'labelPriority', color: '#ef4444' },
@@ -801,7 +805,7 @@ function App() {
   const speechRecognitionRef = useRef(null)
   const languageMenu = useMemo(() => {
     return LANGUAGE_OPTIONS.map((option) => {
-      const langText = { ...TRANSLATIONS[DEFAULT_LANGUAGE_CODE], ...(TRANSLATIONS[option.code] || {}) }
+      const langText = getTranslationsForLanguage(option.code)
       return {
         ...option,
         displayName: langText.languageName || option.code,
@@ -812,12 +816,12 @@ function App() {
     return languageMenu.find((option) => option.code === selectedLanguage) || languageMenu[0]
   }, [languageMenu, selectedLanguage])
   const text = useMemo(() => {
-    return { ...TRANSLATIONS[DEFAULT_LANGUAGE_CODE], ...(TRANSLATIONS[selectedLanguage] || {}) }
+    return getTranslationsForLanguage(selectedLanguage)
   }, [selectedLanguage])
   const translate = (key, replacements) => {
     const translated = text[key] || TRANSLATIONS[DEFAULT_LANGUAGE_CODE][key]
     if (!translated && import.meta.env.DEV) {
-      console.warn('Missing translation key', key)
+      console.warn(`Missing translation key '${key}' for language '${selectedLanguage}'`)
     }
     return interpolateText(translated || key, replacements)
   }
