@@ -141,6 +141,8 @@ const normalizeTask = (task) => {
   if (!dueDate) {
     return null
   }
+  const endDateCandidate = parseIsoDate(typeof task.endDate === 'string' ? task.endDate : '')
+  const endDate = endDateCandidate && endDateCandidate > dueDate ? endDateCandidate : null
 
   const recurring = RECURRING_VALUES.includes(task.recurring) ? task.recurring : 'none'
   const color = typeof task.color === 'string' && task.color ? task.color : '#374151'
@@ -155,6 +157,7 @@ const normalizeTask = (task) => {
     id: String(task.id),
     text: String(task.text),
     dueDate,
+    endDate,
     isDone: Boolean(task.isDone),
     color,
     createdAt,

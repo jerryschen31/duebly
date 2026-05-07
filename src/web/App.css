@@ -211,6 +211,11 @@
   min-width: 0;
 }
 
+.range-trigger.active {
+  border-color: #2563eb;
+  color: #2563eb;
+}
+
 .recurring-menu-wrap {
   position: relative;
 }
@@ -443,11 +448,31 @@
   min-width: 0;
 }
 
+.task-date-range {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
 .task-date,
 .task-edit-input {
   border: 1px solid #d1d5db;
   border-radius: 0.4rem;
   padding: 0.3rem 0.45rem;
+}
+
+.task-date {
+  min-width: 0;
+}
+
+.task-range-toggle {
+  border: 1px solid #d1d5db;
+  border-radius: 0.4rem;
+  background: #ffffff;
+  width: 1.75rem;
+  height: 1.75rem;
+  line-height: 1;
 }
 
 .task-edit-input {
@@ -469,6 +494,11 @@
 .recurring-badge {
   color: #4b5563;
   font-size: 0.83rem;
+}
+
+.date-range-badge {
+  color: #4b5563;
+  font-size: 0.8rem;
 }
 
 .task-menu-wrap,
