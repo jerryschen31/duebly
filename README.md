@@ -1,6 +1,6 @@
 # duebly
 
-Initial MVP implementation of the Duebly task app.
+Initial MVP implementation of the Duebly task app with single-day and multi-day task scheduling.
 
 ## Run locally
 

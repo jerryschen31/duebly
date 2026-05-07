@@ -96,9 +96,36 @@ const addDaysToISODate = (isoDate, daysToAdd) => {
   return date.toISOString().slice(0, 10)
 }
 
+const getMinimumEndDate = (startDate) => addDaysToISODate(startDate, 1)
+
 const parseISODate = (isoDate) => {
   const date = new Date(`${isoDate}T00:00:00Z`)
   return Number.isNaN(date.getTime()) ? null : date
+}
+
+const normalizeEndDate = (startDate, endDate) => {
+  if (typeof endDate !== 'string' || !endDate) {
+    return null
+  }
+
+  const start = parseISODate(startDate)
+  const end = parseISODate(endDate)
+  if (!start || !end || end <= start) {
+    return null
+  }
+
+  return endDate
+}
+
+const getRangeSpanInDays = (startDate, endDate) => {
+  const start = parseISODate(startDate)
+  const end = parseISODate(endDate)
+  if (!start || !end || end <= start) {
+    return 0
+  }
+
+  const MS_PER_DAY = 24 * 60 * 60 * 1000
+  return Math.round((end.getTime() - start.getTime()) / MS_PER_DAY)
 }
 
 const getNextWeekdayISODate = (isoDate) => {
@@ -207,6 +234,8 @@ function App() {
   })
   const [draftText, setDraftText] = useState('')
   const [draftDueDate, setDraftDueDate] = useState(() => toISODateInTimeZone(new Date(), defaultTimeZone))
+  const [draftEndDate, setDraftEndDate] = useState(null)
+  const [isDraftMultiDay, setIsDraftMultiDay] = useState(false)
   const [draftColor, setDraftColor] = useState(LABELS[0].color)
   const [isDraftDateAuto, setIsDraftDateAuto] = useState(true)
   const [isDraftLabelOpen, setIsDraftLabelOpen] = useState(false)
@@ -518,6 +547,9 @@ function App() {
   const tomorrow = useMemo(() => addDaysToISODate(today, 1), [today])
 
   const effectiveDraftDueDate = isDraftDateAuto ? today : draftDueDate
+  const effectiveDraftEndDate = isDraftMultiDay
+    ? normalizeEndDate(effectiveDraftDueDate, draftEndDate)
+    : null
 
   const notDoneTasks = useMemo(() => {
     return tasks
@@ -632,6 +664,7 @@ function App() {
       id: createId(),
       text,
       dueDate: effectiveDraftDueDate,
+      endDate: effectiveDraftEndDate,
       isDone: false,
       color: draftColor,
       createdAt: taskModel.getNow(),
@@ -646,6 +679,8 @@ function App() {
 
     setDraftText('')
     setDraftDueDate(today)
+    setDraftEndDate(null)
+    setIsDraftMultiDay(false)
     setDraftColor(LABELS[0].color)
     setDraftRecurring('none')
     setIsDraftDateAuto(true)
@@ -671,9 +706,12 @@ function App() {
     const { suppressRecurringToast = false } = options
     const updatedTask = updateTaskInState(task.id, (currentTask) => {
       if (isDone && currentTask.recurring !== 'none') {
+        const nextDueDate = getNextRecurringDate(currentTask.dueDate, currentTask.recurring)
+        const rangeSpan = getRangeSpanInDays(currentTask.dueDate, currentTask.endDate)
         return {
           ...currentTask,
-          dueDate: getNextRecurringDate(currentTask.dueDate, currentTask.recurring),
+          dueDate: nextDueDate,
+          endDate: rangeSpan > 0 ? addDaysToISODate(nextDueDate, rangeSpan) : null,
           isDone: false,
           completedAt: null,
           last_updated: taskModel.getNowIso(),
@@ -728,6 +766,31 @@ function App() {
     const updatedTask = updateTaskInState(taskId, (task) => ({
       ...task,
       dueDate: date,
+      endDate: normalizeEndDate(date, task.endDate),
+      last_updated: taskModel.getNowIso(),
+    }))
+
+    if (updatedTask) {
+      persistTask(updatedTask)
+    }
+  }
+
+  const updateTaskEndDate = (taskId, date) => {
+    const updatedTask = updateTaskInState(taskId, (task) => ({
+      ...task,
+      endDate: normalizeEndDate(task.dueDate, date),
+      last_updated: taskModel.getNowIso(),
+    }))
+
+    if (updatedTask) {
+      persistTask(updatedTask)
+    }
+  }
+
+  const clearTaskEndDate = (taskId) => {
+    const updatedTask = updateTaskInState(taskId, (task) => ({
+      ...task,
+      endDate: null,
       last_updated: taskModel.getNowIso(),
     }))
 
@@ -870,10 +933,12 @@ function App() {
         pushToast(getLaterToast(targetDate))
         return
       }
+      const rangeSpan = getRangeSpanInDays(task.dueDate, task.endDate)
 
       const updatedTask = updateTaskInState(task.id, (currentTask) => ({
         ...currentTask,
         dueDate: targetDate,
+        endDate: rangeSpan > 0 ? addDaysToISODate(targetDate, rangeSpan) : null,
         last_updated: taskModel.getNowIso(),
       }))
 
@@ -993,6 +1058,7 @@ function App() {
     const nowIso = taskModel.getNowIso()
     const nowMs = taskModel.getNow()
     const nextDueDate = getRecurringTargetDate(nextRecurring)
+    const selectedRangeSpan = getRangeSpanInDays(task.dueDate, task.endDate)
     const futureSeriesTasks = tasks.filter((candidate) => {
       if (candidate.id === task.id || candidate.isDone) {
         return false
@@ -1032,6 +1098,7 @@ function App() {
         id: createId(),
         text: updatedSelectedTask.text,
         dueDate: nextDueDate,
+        endDate: selectedRangeSpan > 0 ? addDaysToISODate(nextDueDate, selectedRangeSpan) : null,
         isDone: false,
         color: updatedSelectedTask.color,
         createdAt: nowMs,
@@ -1194,7 +1261,7 @@ function App() {
               />
             </div>
             <label className="sr-only" htmlFor="new-task-date">
-              Due date
+              {isDraftMultiDay ? 'Start date' : 'Due date'}
             </label>
             <div className="composer-meta-row">
               <div className="recurring-menu-wrap">
@@ -1232,12 +1299,51 @@ function App() {
                 id="new-task-date"
                 type="date"
                 value={effectiveDraftDueDate}
+                aria-label={isDraftMultiDay ? 'Start date' : 'Due date'}
+                title={isDraftMultiDay ? 'Start date' : 'Due date'}
                 onChange={(event) => {
+                  const currentStartDate = effectiveDraftDueDate
                   setDraftDueDate(event.target.value)
                   setIsDraftDateAuto(false)
+                  const nextStartDate = parseISODate(event.target.value)
+                  const nextEndDate = parseISODate(draftEndDate)
+                  if (isDraftMultiDay && nextStartDate) {
+                    const existingSpan = getRangeSpanInDays(currentStartDate, draftEndDate)
+                    if (existingSpan > 0) {
+                      setDraftEndDate(addDaysToISODate(event.target.value, existingSpan))
+                    } else if (!nextEndDate || nextEndDate <= nextStartDate) {
+                      setDraftEndDate(getMinimumEndDate(event.target.value))
+                    }
+                  }
                 }}
                 required
               />
+              <button
+                type="button"
+                className={`icon-button range-trigger ${isDraftMultiDay ? 'active' : ''}`}
+                aria-label="Toggle multi-day task range"
+                title={isDraftMultiDay ? 'Use single date' : 'Use date range'}
+                onClick={() => {
+                  setIsDraftMultiDay((prev) => {
+                    const next = !prev
+                    setDraftEndDate(next ? getMinimumEndDate(effectiveDraftDueDate) : null)
+                    return next
+                  })
+                }}
+              >
+                <span aria-hidden="true">⟷</span>
+                <span className="sr-only">Toggle date range</span>
+              </button>
+              {isDraftMultiDay ? (
+                <input
+                  id="new-task-end-date"
+                  type="date"
+                  value={draftEndDate || ''}
+                  min={getMinimumEndDate(effectiveDraftDueDate)}
+                  onChange={(event) => setDraftEndDate(event.target.value)}
+                  aria-label="End date"
+                />
+              ) : null}
               <div className="label-select-wrap">
                 <button
                   type="button"
@@ -1267,7 +1373,11 @@ function App() {
                 ) : null}
               </div>
             </div>
-            <button type="submit" className="primary-button" disabled={!draftText.trim() || !effectiveDraftDueDate}>
+            <button
+              type="submit"
+              className="primary-button"
+              disabled={!draftText.trim() || !effectiveDraftDueDate || (isDraftMultiDay && !effectiveDraftEndDate)}
+            >
               Add Task
             </button>
           </form>
@@ -1400,13 +1510,44 @@ function App() {
                       aria-label={`Mark ${task.text} as done`}
                     />
 
-                    <input
-                      className="task-date"
-                      type="date"
-                      value={task.dueDate}
-                      onChange={(event) => updateTaskDate(task.id, event.target.value)}
-                      aria-label={`Change date for ${task.text}`}
-                    />
+                    <div className="task-date-range">
+                      <input
+                        className="task-date"
+                        type="date"
+                        value={task.dueDate}
+                        onChange={(event) => updateTaskDate(task.id, event.target.value)}
+                        aria-label={`Change start date for ${task.text}`}
+                      />
+                      {task.endDate ? (
+                        <>
+                          <input
+                            className="task-date"
+                            type="date"
+                            value={task.endDate}
+                            min={getMinimumEndDate(task.dueDate)}
+                            onChange={(event) => updateTaskEndDate(task.id, event.target.value)}
+                            aria-label={`Change end date for ${task.text}`}
+                          />
+                          <button
+                            type="button"
+                            className="task-range-toggle"
+                            onClick={() => clearTaskEndDate(task.id)}
+                            aria-label={`Convert ${task.text} to single-day task`}
+                          >
+                            Single
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          className="task-range-toggle"
+                          onClick={() => updateTaskEndDate(task.id, getMinimumEndDate(task.dueDate))}
+                          aria-label={`Add end date for ${task.text}`}
+                        >
+                          Range
+                        </button>
+                      )}
+                    </div>
 
                     <button
                       type="button"
@@ -1490,6 +1631,11 @@ function App() {
                           {task.recurring !== 'none' ? (
                             <span className="recurring-badge" aria-label="Recurring task">
                               {' '}↻ (recurring)
+                            </span>
+                          ) : null}
+                          {task.endDate ? (
+                            <span className="date-range-badge" aria-label="Multi-day task">
+                              {' '}({task.dueDate} → {task.endDate})
                             </span>
                           ) : null}
                         </p>
