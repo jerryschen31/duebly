@@ -194,6 +194,7 @@ const TRANSLATIONS = {
     doesNotRepeat: '繰り返さない',
     repeatDaily: '毎日繰り返す',
     repeatWeekly: '毎週繰り返す',
+    repeatWeekdaysShort: '月-金',
     repeatWeekdays: '平日に繰り返す',
     addTask: 'タスクを追加',
     today: '今日',
@@ -265,6 +266,7 @@ const TRANSLATIONS = {
     doesNotRepeat: '반복 안 함',
     repeatDaily: '매일 반복',
     repeatWeekly: '매주 반복',
+    repeatWeekdaysShort: '월-금',
     repeatWeekdays: '평일 반복',
     addTask: '작업 추가',
     today: '오늘',
@@ -336,6 +338,7 @@ const TRANSLATIONS = {
     doesNotRepeat: 'Ne se répète pas',
     repeatDaily: 'Répéter chaque jour',
     repeatWeekly: 'Répéter chaque semaine',
+    repeatWeekdaysShort: 'lun-ven',
     repeatWeekdays: 'Répéter lun-ven',
     addTask: 'Ajouter la tâche',
     today: 'Aujourd’hui',
@@ -407,6 +410,7 @@ const TRANSLATIONS = {
     doesNotRepeat: 'No se repite',
     repeatDaily: 'Repetir a diario',
     repeatWeekly: 'Repetir semanalmente',
+    repeatWeekdaysShort: 'lun-vie',
     repeatWeekdays: 'Repetir lun-vie',
     addTask: 'Añadir tarea',
     today: 'Hoy',
@@ -478,6 +482,7 @@ const TRANSLATIONS = {
     doesNotRepeat: 'Non si ripete',
     repeatDaily: 'Ripeti ogni giorno',
     repeatWeekly: 'Ripeti ogni settimana',
+    repeatWeekdaysShort: 'lun-ven',
     repeatWeekdays: 'Ripeti lun-ven',
     addTask: 'Aggiungi attività',
     today: 'Oggi',
@@ -835,6 +840,12 @@ function App() {
     const spaceBelow = window.innerHeight - rect.bottom
     const canFitBelow = spaceBelow >= estimatedHeight
     return !canFitBelow
+  }
+
+  const cancelEditTask = () => {
+    setEditingTaskId(null)
+    setEditingText('')
+    setEditingModalAnchor(null)
   }
 
   useEffect(() => {
@@ -1394,12 +1405,6 @@ function App() {
       persistTask(updatedTask)
     }
 
-    setEditingTaskId(null)
-    setEditingText('')
-    setEditingModalAnchor(null)
-  }
-
-  function cancelEditTask() {
     setEditingTaskId(null)
     setEditingText('')
     setEditingModalAnchor(null)
