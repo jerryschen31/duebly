@@ -96,6 +96,8 @@ const addDaysToISODate = (isoDate, daysToAdd) => {
   return date.toISOString().slice(0, 10)
 }
 
+const getMinimumEndDate = (startDate) => addDaysToISODate(startDate, 1)
+
 const parseISODate = (isoDate) => {
   const date = new Date(`${isoDate}T00:00:00Z`)
   return Number.isNaN(date.getTime()) ? null : date
@@ -1302,8 +1304,10 @@ function App() {
                 onChange={(event) => {
                   setDraftDueDate(event.target.value)
                   setIsDraftDateAuto(false)
-                  if (isDraftMultiDay && draftEndDate && draftEndDate <= event.target.value) {
-                    setDraftEndDate(addDaysToISODate(event.target.value, 1))
+                  const nextStartDate = parseISODate(event.target.value)
+                  const nextEndDate = parseISODate(draftEndDate)
+                  if (isDraftMultiDay && nextStartDate && nextEndDate && nextEndDate <= nextStartDate) {
+                    setDraftEndDate(getMinimumEndDate(event.target.value))
                   }
                 }}
                 required
@@ -1316,7 +1320,7 @@ function App() {
                 onClick={() => {
                   setIsDraftMultiDay((prev) => {
                     const next = !prev
-                    setDraftEndDate(next ? addDaysToISODate(effectiveDraftDueDate, 1) : null)
+                    setDraftEndDate(next ? getMinimumEndDate(effectiveDraftDueDate) : null)
                     return next
                   })
                 }}
@@ -1327,8 +1331,8 @@ function App() {
                 <input
                   id="new-task-end-date"
                   type="date"
-                  value={draftEndDate || addDaysToISODate(effectiveDraftDueDate, 1)}
-                  min={addDaysToISODate(effectiveDraftDueDate, 1)}
+                  value={draftEndDate || getMinimumEndDate(effectiveDraftDueDate)}
+                  min={getMinimumEndDate(effectiveDraftDueDate)}
                   onChange={(event) => setDraftEndDate(event.target.value)}
                   aria-label="End date"
                   required
@@ -1514,7 +1518,7 @@ function App() {
                             className="task-date"
                             type="date"
                             value={task.endDate}
-                            min={addDaysToISODate(task.dueDate, 1)}
+                            min={getMinimumEndDate(task.dueDate)}
                             onChange={(event) => updateTaskEndDate(task.id, event.target.value)}
                             aria-label={`Change end date for ${task.text}`}
                           />
@@ -1531,7 +1535,7 @@ function App() {
                         <button
                           type="button"
                           className="task-range-toggle"
-                          onClick={() => updateTaskEndDate(task.id, addDaysToISODate(task.dueDate, 1))}
+                          onClick={() => updateTaskEndDate(task.id, getMinimumEndDate(task.dueDate))}
                           aria-label={`Add end date for ${task.text}`}
                         >
                           +
