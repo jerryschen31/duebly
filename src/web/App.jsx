@@ -76,6 +76,7 @@ const TRANSLATIONS = {
     speechUnsupportedToast: 'Speech-to-text is not supported in this browser',
     micDeniedToast: 'Microphone permission was denied',
     speechFailedToast: 'Speech-to-text failed, please try again',
+    holdToTalkToast: 'Press and hold, then talk',
     unableStartSpeechToast: 'Unable to start speech-to-text',
     progressAria: 'Not Done progress {completed} out of {total}',
     markTaskDoneAria: 'Mark {task} as done',
@@ -152,6 +153,7 @@ const TRANSLATIONS = {
     speechUnsupportedToast: '此浏览器不支持语音转文字',
     micDeniedToast: '麦克风权限被拒绝',
     speechFailedToast: '语音转文字失败，请重试',
+    holdToTalkToast: '按住并说话',
     unableStartSpeechToast: '无法启动语音转文字',
     progressAria: '待办进度 {completed}/{total}',
     markTaskDoneAria: '将 {task} 标记为已完成',
@@ -224,6 +226,7 @@ const TRANSLATIONS = {
     speechUnsupportedToast: 'このブラウザは音声入力に対応していません',
     micDeniedToast: 'マイクの権限が拒否されました',
     speechFailedToast: '音声入力に失敗しました。もう一度お試しください',
+    holdToTalkToast: '長押しして話してください',
     unableStartSpeechToast: '音声入力を開始できませんでした',
     progressAria: '未完了の進捗 {completed}/{total}',
     markTaskDoneAria: '{task} を完了にする',
@@ -296,6 +299,7 @@ const TRANSLATIONS = {
     speechUnsupportedToast: '이 브라우저는 음성 입력을 지원하지 않습니다',
     micDeniedToast: '마이크 권한이 거부되었습니다',
     speechFailedToast: '음성 입력에 실패했습니다. 다시 시도해 주세요',
+    holdToTalkToast: '길게 누른 채로 말하세요',
     unableStartSpeechToast: '음성 입력을 시작할 수 없습니다',
     progressAria: '미완료 진행률 {completed}/{total}',
     markTaskDoneAria: '{task} 완료로 표시',
@@ -368,6 +372,7 @@ const TRANSLATIONS = {
     speechUnsupportedToast: 'La dictée vocale n’est pas prise en charge sur ce navigateur',
     micDeniedToast: 'L’autorisation du microphone a été refusée',
     speechFailedToast: 'La dictée vocale a échoué, veuillez réessayer',
+    holdToTalkToast: 'Maintenez appuyé, puis parlez',
     unableStartSpeechToast: 'Impossible de démarrer la dictée vocale',
     progressAria: 'Progression À faire {completed} sur {total}',
     markTaskDoneAria: 'Marquer {task} comme terminée',
@@ -440,6 +445,7 @@ const TRANSLATIONS = {
     speechUnsupportedToast: 'Voz a texto no es compatible con este navegador',
     micDeniedToast: 'Se denegó el permiso del micrófono',
     speechFailedToast: 'Falló voz a texto, inténtalo de nuevo',
+    holdToTalkToast: 'Mantén pulsado y luego habla',
     unableStartSpeechToast: 'No se pudo iniciar voz a texto',
     progressAria: 'Progreso de Pendientes {completed} de {total}',
     markTaskDoneAria: 'Marcar {task} como hecha',
@@ -512,6 +518,7 @@ const TRANSLATIONS = {
     speechUnsupportedToast: 'Voce a testo non supportata in questo browser',
     micDeniedToast: 'Permesso microfono negato',
     speechFailedToast: 'Voce a testo non riuscita, riprova',
+    holdToTalkToast: 'Tieni premuto, poi parla',
     unableStartSpeechToast: 'Impossibile avviare voce a testo',
     progressAria: 'Progresso Da fare {completed} su {total}',
     markTaskDoneAria: 'Segna {task} come fatta',
@@ -779,6 +786,16 @@ const getSpeechLanguageCandidates = (preferredLocale) => {
   return Array.from(candidates)
 }
 
+const isMobileBrowser = () => {
+  if (typeof navigator === 'undefined') {
+    return false
+  }
+
+  const userAgent = navigator.userAgent || ''
+  const hasTouchInput = navigator.maxTouchPoints > 0
+  return hasTouchInput && /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent)
+}
+
 function App() {
   const defaultTimeZone = getDefaultTimeZone()
   const defaultLanguage = getDefaultLanguage()
@@ -818,12 +835,16 @@ function App() {
   const [swatchHint, setSwatchHint] = useState(null)
   const [isListening, setIsListening] = useState(false)
   const isMobileViewport = viewportWidth <= 640
+  const isMobileSpeechHoldEnabled = isMobileBrowser()
   const isSpeechSupported = Boolean(globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition)
 
   const toastTimeoutsRef = useRef(new Map())
   const longPressBubbleRef = useRef(null)
   const swatchHintTimeoutRef = useRef(null)
   const longPressTextRef = useRef(null)
+  const micLongPressTimeoutRef = useRef(null)
+  const micLongPressTriggeredRef = useRef(false)
+  const micIgnoreNextClickRef = useRef(false)
   const taskMenuButtonRefs = useRef(new Map())
   const editModalInputRef = useRef(null)
   const swipeCommitTimeoutsRef = useRef(new Map())
@@ -982,6 +1003,9 @@ function App() {
       })
       if (swatchHintTimeoutRef.current) {
         window.clearTimeout(swatchHintTimeoutRef.current)
+      }
+      if (micLongPressTimeoutRef.current) {
+        window.clearTimeout(micLongPressTimeoutRef.current)
       }
       swipeCommitTimeouts.forEach((timeoutId) => {
         window.clearTimeout(timeoutId)
@@ -1879,7 +1903,88 @@ function App() {
                 aria-label={isListening ? translate('stopSpeechToText') : translate('startSpeechToText')}
                 title={isSpeechSupported ? translate('speakTaskDescription') : translate('speechNotSupportedTitle')}
                 disabled={!isSpeechSupported}
+                onPointerDown={(event) => {
+                  if (!isMobileSpeechHoldEnabled) {
+                    return
+                  }
+
+                  event.preventDefault()
+                  micLongPressTriggeredRef.current = false
+                  micIgnoreNextClickRef.current = false
+                  if (micLongPressTimeoutRef.current) {
+                    window.clearTimeout(micLongPressTimeoutRef.current)
+                  }
+
+                  micLongPressTimeoutRef.current = window.setTimeout(() => {
+                    micLongPressTriggeredRef.current = true
+                    micIgnoreNextClickRef.current = true
+                    startSpeechToText()
+                  }, 350)
+                }}
+                onPointerUp={() => {
+                  if (!isMobileSpeechHoldEnabled) {
+                    return
+                  }
+
+                  if (micLongPressTimeoutRef.current) {
+                    window.clearTimeout(micLongPressTimeoutRef.current)
+                    micLongPressTimeoutRef.current = null
+                  }
+
+                  if (isListening || micLongPressTriggeredRef.current) {
+                    stopSpeechToText()
+                  }
+
+                  micLongPressTriggeredRef.current = false
+                }}
+                onPointerCancel={() => {
+                  if (!isMobileSpeechHoldEnabled) {
+                    return
+                  }
+
+                  if (micLongPressTimeoutRef.current) {
+                    window.clearTimeout(micLongPressTimeoutRef.current)
+                    micLongPressTimeoutRef.current = null
+                  }
+
+                  if (isListening) {
+                    stopSpeechToText()
+                  }
+
+                  micLongPressTriggeredRef.current = false
+                }}
+                onPointerLeave={() => {
+                  if (!isMobileSpeechHoldEnabled) {
+                    return
+                  }
+
+                  if (micLongPressTimeoutRef.current) {
+                    window.clearTimeout(micLongPressTimeoutRef.current)
+                    micLongPressTimeoutRef.current = null
+                  }
+
+                  if (isListening) {
+                    stopSpeechToText()
+                  }
+                }}
+                onContextMenu={(event) => {
+                  if (isMobileSpeechHoldEnabled) {
+                    event.preventDefault()
+                  }
+                }}
                 onClick={() => {
+                  if (isMobileSpeechHoldEnabled) {
+                    if (micIgnoreNextClickRef.current) {
+                      micIgnoreNextClickRef.current = false
+                      return
+                    }
+
+                    if (!micLongPressTriggeredRef.current) {
+                      pushToast(translate('holdToTalkToast'))
+                    }
+                    return
+                  }
+
                   if (isListening) {
                     stopSpeechToText()
                     return
