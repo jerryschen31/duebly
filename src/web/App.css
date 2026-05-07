@@ -470,8 +470,10 @@
   border: 1px solid #d1d5db;
   border-radius: 0.4rem;
   background: #ffffff;
-  width: 1.75rem;
+  min-width: 3.4rem;
   height: 1.75rem;
+  padding: 0 0.45rem;
+  font-size: 0.75rem;
   line-height: 1;
 }
 

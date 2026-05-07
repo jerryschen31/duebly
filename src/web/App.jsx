@@ -1302,12 +1302,18 @@ function App() {
                 aria-label={isDraftMultiDay ? 'Start date' : 'Due date'}
                 title={isDraftMultiDay ? 'Start date' : 'Due date'}
                 onChange={(event) => {
+                  const currentStartDate = effectiveDraftDueDate
                   setDraftDueDate(event.target.value)
                   setIsDraftDateAuto(false)
                   const nextStartDate = parseISODate(event.target.value)
                   const nextEndDate = parseISODate(draftEndDate)
-                  if (isDraftMultiDay && nextStartDate && (!nextEndDate || nextEndDate <= nextStartDate)) {
-                    setDraftEndDate(getMinimumEndDate(event.target.value))
+                  if (isDraftMultiDay && nextStartDate) {
+                    const existingSpan = getRangeSpanInDays(currentStartDate, draftEndDate)
+                    if (existingSpan > 0) {
+                      setDraftEndDate(addDaysToISODate(event.target.value, existingSpan))
+                    } else if (!nextEndDate || nextEndDate <= nextStartDate) {
+                      setDraftEndDate(getMinimumEndDate(event.target.value))
+                    }
                   }
                 }}
                 required
@@ -1325,7 +1331,8 @@ function App() {
                   })
                 }}
               >
-                ⟷
+                <span aria-hidden="true">⟷</span>
+                <span className="sr-only">Toggle date range</span>
               </button>
               {isDraftMultiDay ? (
                 <input
@@ -1335,7 +1342,6 @@ function App() {
                   min={getMinimumEndDate(effectiveDraftDueDate)}
                   onChange={(event) => setDraftEndDate(event.target.value)}
                   aria-label="End date"
-                  required
                 />
               ) : null}
               <div className="label-select-wrap">
@@ -1528,7 +1534,7 @@ function App() {
                             onClick={() => clearTaskEndDate(task.id)}
                             aria-label={`Convert ${task.text} to single-day task`}
                           >
-                            ×
+                            Single
                           </button>
                         </>
                       ) : (
@@ -1538,7 +1544,7 @@ function App() {
                           onClick={() => updateTaskEndDate(task.id, getMinimumEndDate(task.dueDate))}
                           aria-label={`Add end date for ${task.text}`}
                         >
-                          +
+                          Range
                         </button>
                       )}
                     </div>
