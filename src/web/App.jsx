@@ -106,7 +106,13 @@ const normalizeEndDate = (startDate, endDate) => {
     return null
   }
 
-  return endDate > startDate ? endDate : null
+  const start = parseISODate(startDate)
+  const end = parseISODate(endDate)
+  if (!start || !end || end <= start) {
+    return null
+  }
+
+  return endDate
 }
 
 const getRangeSpanInDays = (startDate, endDate) => {
@@ -1253,7 +1259,7 @@ function App() {
               />
             </div>
             <label className="sr-only" htmlFor="new-task-date">
-              Start date
+              {isDraftMultiDay ? 'Start date' : 'Due date'}
             </label>
             <div className="composer-meta-row">
               <div className="recurring-menu-wrap">
