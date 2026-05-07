@@ -77,6 +77,7 @@ const TRANSLATIONS = {
     micDeniedToast: 'Microphone permission was denied',
     speechFailedToast: 'Speech-to-text failed, please try again',
     unableStartSpeechToast: 'Unable to start speech-to-text',
+    mobileMicKeyboardBetterToast: 'Keyboard microphone works better',
     progressAria: 'Not Done progress {completed} out of {total}',
     markTaskDoneAria: 'Mark {task} as done',
     changeDateAria: 'Change date for {task}',
@@ -153,6 +154,7 @@ const TRANSLATIONS = {
     micDeniedToast: '麦克风权限被拒绝',
     speechFailedToast: '语音转文字失败，请重试',
     unableStartSpeechToast: '无法启动语音转文字',
+    mobileMicKeyboardBetterToast: '键盘麦克风效果更好',
     progressAria: '待办进度 {completed}/{total}',
     markTaskDoneAria: '将 {task} 标记为已完成',
     changeDateAria: '修改 {task} 的日期',
@@ -225,6 +227,7 @@ const TRANSLATIONS = {
     micDeniedToast: 'マイクの権限が拒否されました',
     speechFailedToast: '音声入力に失敗しました。もう一度お試しください',
     unableStartSpeechToast: '音声入力を開始できませんでした',
+    mobileMicKeyboardBetterToast: 'キーボードのマイクのほうがうまく動作します',
     progressAria: '未完了の進捗 {completed}/{total}',
     markTaskDoneAria: '{task} を完了にする',
     changeDateAria: '{task} の日付を変更',
@@ -297,6 +300,7 @@ const TRANSLATIONS = {
     micDeniedToast: '마이크 권한이 거부되었습니다',
     speechFailedToast: '음성 입력에 실패했습니다. 다시 시도해 주세요',
     unableStartSpeechToast: '음성 입력을 시작할 수 없습니다',
+    mobileMicKeyboardBetterToast: '키보드 마이크가 더 잘 작동합니다',
     progressAria: '미완료 진행률 {completed}/{total}',
     markTaskDoneAria: '{task} 완료로 표시',
     changeDateAria: '{task} 날짜 변경',
@@ -369,6 +373,7 @@ const TRANSLATIONS = {
     micDeniedToast: 'L’autorisation du microphone a été refusée',
     speechFailedToast: 'La dictée vocale a échoué, veuillez réessayer',
     unableStartSpeechToast: 'Impossible de démarrer la dictée vocale',
+    mobileMicKeyboardBetterToast: 'Le micro du clavier fonctionne mieux',
     progressAria: 'Progression À faire {completed} sur {total}',
     markTaskDoneAria: 'Marquer {task} comme terminée',
     changeDateAria: 'Changer la date de {task}',
@@ -441,6 +446,7 @@ const TRANSLATIONS = {
     micDeniedToast: 'Se denegó el permiso del micrófono',
     speechFailedToast: 'Falló voz a texto, inténtalo de nuevo',
     unableStartSpeechToast: 'No se pudo iniciar voz a texto',
+    mobileMicKeyboardBetterToast: 'El micrófono del teclado funciona mejor',
     progressAria: 'Progreso de Pendientes {completed} de {total}',
     markTaskDoneAria: 'Marcar {task} como hecha',
     changeDateAria: 'Cambiar fecha de {task}',
@@ -513,6 +519,7 @@ const TRANSLATIONS = {
     micDeniedToast: 'Permesso microfono negato',
     speechFailedToast: 'Voce a testo non riuscita, riprova',
     unableStartSpeechToast: 'Impossibile avviare voce a testo',
+    mobileMicKeyboardBetterToast: 'Il microfono della tastiera funziona meglio',
     progressAria: 'Progresso Da fare {completed} su {total}',
     markTaskDoneAria: 'Segna {task} come fatta',
     changeDateAria: 'Cambia data per {task}',
@@ -1882,6 +1889,11 @@ function App() {
                 onClick={() => {
                   if (isListening) {
                     stopSpeechToText()
+                    return
+                  }
+
+                  if (isMobileViewport) {
+                    pushToast(translate('mobileMicKeyboardBetterToast'))
                     return
                   }
 
