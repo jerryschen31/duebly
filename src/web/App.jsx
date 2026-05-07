@@ -97,7 +97,7 @@ const TRANSLATIONS = {
   },
   'en-GB': {
     languageName: 'British English',
-    changeLabel: 'Change colour label',
+    changeLabel: 'Change color label',
   },
   'zh-CN': {
     languageName: '简体中文',
@@ -814,21 +814,21 @@ function App() {
   const text = useMemo(() => {
     return { ...TRANSLATIONS[DEFAULT_LANGUAGE_CODE], ...(TRANSLATIONS[selectedLanguage] || {}) }
   }, [selectedLanguage])
-  const t = (key, replacements) => interpolateText(text[key] || TRANSLATIONS[DEFAULT_LANGUAGE_CODE][key] || '', replacements)
+  const translate = (key, replacements) => interpolateText(text[key] || TRANSLATIONS[DEFAULT_LANGUAGE_CODE][key] || '', replacements)
   const recurringMenuOptions = RECURRING_MENU_OPTIONS.map((value) => {
     if (value === 'none') {
-      return { value, label: t('doesNotRepeat') }
+      return { value, label: translate('doesNotRepeat') }
     }
 
     if (value === 'daily') {
-      return { value, label: t('repeatDaily') }
+      return { value, label: translate('repeatDaily') }
     }
 
     if (value === 'weekly') {
-      return { value, label: t('repeatWeekly') }
+      return { value, label: translate('repeatWeekly') }
     }
 
-    return { value, label: t('repeatWeekdays') }
+    return { value, label: translate('repeatWeekdays') }
   })
 
   const getShouldOpenUp = (anchorElement, estimatedHeight = 240) => {
@@ -1019,7 +1019,7 @@ function App() {
   const startSpeechToText = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
     if (!SpeechRecognition) {
-      pushToast(t('speechUnsupportedToast'))
+      pushToast(translate('speechUnsupportedToast'))
       return
     }
 
@@ -1057,9 +1057,9 @@ function App() {
 
     recognition.onerror = (event) => {
       if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-        pushToast(t('micDeniedToast'))
+        pushToast(translate('micDeniedToast'))
       } else if (event.error !== 'aborted') {
-        pushToast(t('speechFailedToast'))
+        pushToast(translate('speechFailedToast'))
       }
     }
 
@@ -1081,7 +1081,7 @@ function App() {
       recognition.onend = null
       speechRecognitionRef.current = null
       setIsListening(false)
-      pushToast(t('unableStartSpeechToast'))
+      pushToast(translate('unableStartSpeechToast'))
     }
   }
 
@@ -1269,7 +1269,7 @@ function App() {
   }
 
   const getLaterToast = (targetDate) => {
-    return targetDate === tomorrow ? t('movedToTomorrow') : t('movedToDate', { date: targetDate })
+    return targetDate === tomorrow ? translate('movedToTomorrow') : translate('movedToDate', { date: targetDate })
   }
 
   const toggleTaskDone = (task, isDone, options = {}) => {
@@ -1298,7 +1298,7 @@ function App() {
     }
 
     if (isDone && task.recurring !== 'none' && updatedTask && !suppressRecurringToast) {
-      pushToast(t('movedToNextOccurrence'))
+      pushToast(translate('movedToNextOccurrence'))
       setActiveTab(TAB_KEYS.notDone)
     }
   }
@@ -1441,10 +1441,10 @@ function App() {
     if (swipeDirection === 'left') {
       if (task.isDone) {
         deleteTask(task.id)
-        pushToast(t('taskDeleted'))
+        pushToast(translate('taskDeleted'))
       } else {
         toggleTaskDone(task, true, { suppressRecurringToast: true })
-        pushToast(t('movedToDone'))
+        pushToast(translate('movedToDone'))
       }
       return
     }
@@ -1478,7 +1478,7 @@ function App() {
 
       if (updatedTask) {
         persistTask(updatedTask)
-        pushToast(t('savedForTomorrow'))
+        pushToast(translate('savedForTomorrow'))
       }
     }
   }
@@ -1561,10 +1561,10 @@ function App() {
     }
 
     if (activeTab === TAB_KEYS.done) {
-      return t('undo')
+      return translate('undo')
     }
 
-    return t('saveForLater')
+    return translate('saveForLater')
   }
 
   const rowShellMotionProps = isMobileViewport
@@ -1667,20 +1667,20 @@ function App() {
 
   const renderEmptyMessage = () => {
     if (activeTab === TAB_KEYS.done) {
-      return t('emptyDone')
+      return translate('emptyDone')
     }
 
     if (activeTab === TAB_KEYS.planned) {
-      return t('emptyPlanned')
+      return translate('emptyPlanned')
     }
 
-    return t('emptyNotDone')
+    return translate('emptyNotDone')
   }
 
   if (!isReady) {
     return (
       <div className="app-shell loading-shell">
-        <p>{t('loading')}</p>
+        <p>{translate('loading')}</p>
       </div>
     )
   }
@@ -1694,13 +1694,13 @@ function App() {
               type="button"
               className="icon-button"
               onClick={() => setIsTimezoneMenuOpen((prev) => !prev)}
-              aria-label={t('openMenu')}
+              aria-label={translate('openMenu')}
             >
               ☰
             </button>
             {isTimezoneMenuOpen ? (
               <div className="menu-popover">
-                <label htmlFor="timezone-select">{t('setTimeZone')}</label>
+                <label htmlFor="timezone-select">{translate('setTimeZone')}</label>
                 <select
                   id="timezone-select"
                   value={selectedTimeZone}
@@ -1723,7 +1723,7 @@ function App() {
           <ProgressRing
             completed={notDoneStatusStats.completed}
             total={notDoneStatusStats.total}
-            ariaLabel={t('progressAria', {
+            ariaLabel={translate('progressAria', {
               completed: notDoneStatusStats.completed,
               total: notDoneStatusStats.total,
             })}
@@ -1735,14 +1735,14 @@ function App() {
               type="button"
               className="icon-button"
               onClick={() => setIsLanguageMenuOpen((prev) => !prev)}
-              aria-label={t('openLanguageMenu')}
-              title={t('chooseLanguage')}
+              aria-label={translate('openLanguageMenu')}
+              title={translate('chooseLanguage')}
             >
               {activeLanguage.flag}
             </button>
             {isLanguageMenuOpen ? (
               <div className="menu-popover language-popover">
-                <label htmlFor="language-select">{t('chooseLanguage')}</label>
+                <label htmlFor="language-select">{translate('chooseLanguage')}</label>
                 <select
                   id="language-select"
                   value={selectedLanguage}
@@ -1763,47 +1763,47 @@ function App() {
           <button
             type="button"
             className="ghost-button"
-            onClick={() => window.alert(t('loginMvpAlert'))}
+            onClick={() => window.alert(translate('loginMvpAlert'))}
           >
-            {t('login')}
+            {translate('login')}
           </button>
         </div>
       </header>
 
-      <nav className="tab-bar" aria-label={t('taskListTabs')}>
+      <nav className="tab-bar" aria-label={translate('taskListTabs')}>
         <button
           type="button"
           className={`tab-button ${activeTab === TAB_KEYS.notDone ? 'active' : ''}`}
           onClick={() => switchTab(TAB_KEYS.notDone)}
         >
-          {t('notDoneTab')} ({tabCounts[TAB_KEYS.notDone]})
+          {translate('notDoneTab')} ({tabCounts[TAB_KEYS.notDone]})
         </button>
         <button
           type="button"
           className={`tab-button ${activeTab === TAB_KEYS.done ? 'active' : ''}`}
           onClick={() => switchTab(TAB_KEYS.done)}
         >
-          {t('doneTab')} ({tabCounts[TAB_KEYS.done]})
+          {translate('doneTab')} ({tabCounts[TAB_KEYS.done]})
         </button>
         <button
           type="button"
           className={`tab-button ${activeTab === TAB_KEYS.planned ? 'active' : ''}`}
           onClick={() => switchTab(TAB_KEYS.planned)}
         >
-          {t('plannedTab')} ({tabCounts[TAB_KEYS.planned]})
+          {translate('plannedTab')} ({tabCounts[TAB_KEYS.planned]})
         </button>
       </nav>
 
       <main className="content">
         <section className="composer-card">
-          <h1>{t('addTaskTitle')}</h1>
+          <h1>{translate('addTaskTitle')}</h1>
           <form className="composer" onSubmit={addTask}>
             <div className="composer-text-row">
               <button
                 type="button"
                 className={`icon-button mic-trigger ${isListening ? 'listening' : ''}`}
-                aria-label={isListening ? t('stopSpeechToText') : t('startSpeechToText')}
-                title={isSpeechSupported ? t('speakTaskDescription') : t('speechNotSupportedTitle')}
+                aria-label={isListening ? translate('stopSpeechToText') : translate('startSpeechToText')}
+                title={isSpeechSupported ? translate('speakTaskDescription') : translate('speechNotSupportedTitle')}
                 disabled={!isSpeechSupported}
                 onClick={() => {
                   if (isListening) {
@@ -1817,12 +1817,12 @@ function App() {
                 {isListening ? '🎙️' : '🎤'}
               </button>
               <label className="sr-only" htmlFor="new-task-text">
-                {t('taskDescription')}
+                {translate('taskDescription')}
               </label>
               <input
                 id="new-task-text"
                 type="text"
-                placeholder={t('taskDescription')}
+                placeholder={translate('taskDescription')}
                 value={draftText}
                 onChange={(event) => setDraftText(event.target.value)}
                 maxLength={MAX_TASK_DESCRIPTION_LENGTH}
@@ -1830,14 +1830,14 @@ function App() {
               />
             </div>
             <label className="sr-only" htmlFor="new-task-date">
-              {t('dueDate')}
+              {translate('dueDate')}
             </label>
             <div className="composer-meta-row">
               <div className="recurring-menu-wrap">
                 <button
                   type="button"
                   className={`icon-button recurring-trigger ${draftRecurring !== 'none' ? 'active' : ''}`}
-                  aria-label={t('setRecurringRule')}
+                  aria-label={translate('setRecurringRule')}
                   onClick={() => setIsDraftRecurringMenuOpen((prev) => !prev)}
                 >
                   ☰
@@ -1868,7 +1868,6 @@ function App() {
                 id="new-task-date"
                 type="date"
                 value={effectiveDraftDueDate}
-                lang={activeLanguage.locale}
                 onChange={(event) => {
                   setDraftDueDate(event.target.value)
                   setIsDraftDateAuto(false)
@@ -1882,7 +1881,7 @@ function App() {
                   onClick={() => setIsDraftLabelOpen((prev) => !prev)}
                 >
                   <span className="label-dot" style={{ backgroundColor: draftColor }} />
-                  <span>{t(getLabelByColor(draftColor).textKey)}</span>
+                  <span>{translate(getLabelByColor(draftColor).textKey)}</span>
                 </button>
                 {isDraftLabelOpen ? (
                   <div className="label-dropdown">
@@ -1897,7 +1896,7 @@ function App() {
                         }}
                       >
                         <span className="label-dot" style={{ backgroundColor: label.color }} />
-                        <span>{t(label.textKey)}</span>
+                        <span>{translate(label.textKey)}</span>
                       </button>
                     ))}
                   </div>
@@ -1905,11 +1904,11 @@ function App() {
               </div>
             </div>
             <button type="submit" className="primary-button" disabled={!draftText.trim() || !effectiveDraftDueDate}>
-              {t('addTask')}
+              {translate('addTask')}
             </button>
           </form>
           <p className="today-label">
-            {t('today')} ({selectedTimeZone}): <strong>{today}</strong>
+            {translate('today')} ({selectedTimeZone}): <strong>{today}</strong>
           </p>
         </section>
 
@@ -1935,8 +1934,8 @@ function App() {
                   : ''
               const swipeText = activeSwipe === 'left'
                 ? task.isDone
-                  ? t('delete')
-                  : t('markAsDone')
+                  ? translate('delete')
+                  : translate('markAsDone')
                 : activeSwipe === 'right' && canSwipeRight(task)
                   ? swipeRightHintLabel(task)
                   : ''
@@ -2034,28 +2033,27 @@ function App() {
                       type="checkbox"
                       checked={task.isDone}
                       onChange={(event) => toggleTaskDone(task, event.target.checked)}
-                      aria-label={t('markTaskDoneAria', { task: task.text })}
+                      aria-label={translate('markTaskDoneAria', { task: task.text })}
                     />
 
                     <input
                       className="task-date"
                       type="date"
                       value={task.dueDate}
-                      lang={activeLanguage.locale}
                       onChange={(event) => updateTaskDate(task.id, event.target.value)}
-                      aria-label={t('changeDateAria', { task: task.text })}
+                      aria-label={translate('changeDateAria', { task: task.text })}
                     />
 
                     <button
                       type="button"
                       className="task-color"
-                      title={t(label.textKey)}
+                      title={translate(label.textKey)}
                       style={{ backgroundColor: task.color }}
-                      aria-label={t('labelAria', { label: t(label.textKey) })}
+                      aria-label={translate('labelAria', { label: translate(label.textKey) })}
                       onTouchStart={(event) => {
                         const swatchRect = event.currentTarget.getBoundingClientRect()
                         longPressBubbleRef.current = window.setTimeout(() => {
-                          showSwatchHint(t(label.textKey), swatchRect)
+                          showSwatchHint(translate(label.textKey), swatchRect)
                         }, 450)
                       }}
                       onTouchEnd={() => {
@@ -2126,8 +2124,8 @@ function App() {
                         >
                           {task.text}
                           {task.recurring !== 'none' ? (
-                            <span className="recurring-badge" aria-label={t('recurringTask')}>
-                              {' '}↻ {t('recurringBadge')}
+                            <span className="recurring-badge" aria-label={translate('recurringTask')}>
+                              {' '}↻ {translate('recurringBadge')}
                             </span>
                           ) : null}
                         </p>
@@ -2139,7 +2137,7 @@ function App() {
                         type="button"
                         className="icon-button"
                         onClick={(event) => toggleTaskMenu(task.id, event.currentTarget)}
-                        aria-label={t('openTaskMenuAria', { task: task.text })}
+                        aria-label={translate('openTaskMenuAria', { task: task.text })}
                         ref={(element) => {
                           if (element) {
                             taskMenuButtonRefs.current.set(task.id, element)
@@ -2153,7 +2151,7 @@ function App() {
                       {menuTaskId === task.id ? (
                         <div className={`task-menu ${isTaskMenuOpenUp ? 'open-up' : ''}`}>
                           <button type="button" onClick={() => beginEditTask(task)}>
-                            {t('editTask')}
+                            {translate('editTask')}
                           </button>
                           <button
                             type="button"
@@ -2165,7 +2163,7 @@ function App() {
                               })
                             }}
                           >
-                            {t('changeFrequency')}
+                            {translate('changeFrequency')}
                           </button>
                           {frequencySelectorTaskId === task.id ? (
                             <div className={`task-frequency-submenu ${isFrequencyMenuOpenUp ? 'open-up' : ''}`}>
@@ -2191,10 +2189,10 @@ function App() {
                               setFrequencySelectorTaskId(null)
                             }}
                           >
-                            {t('changeLabel')}
+                            {translate('changeLabel')}
                           </button>
                           <button type="button" onClick={() => deleteTask(task.id)}>
-                            {t('deleteTask')}
+                            {translate('deleteTask')}
                           </button>
                         </div>
                       ) : null}
@@ -2208,7 +2206,7 @@ function App() {
                         {LABELS.map((item) => (
                           <button key={item.id} type="button" onClick={() => setTaskColor(task.id, item.color)}>
                             <span className="label-dot" style={{ backgroundColor: item.color }} />
-                            <span>{t(item.textKey)}</span>
+                            <span>{translate(item.textKey)}</span>
                           </button>
                         ))}
                       </div>
@@ -2271,7 +2269,7 @@ function App() {
           }
         >
           <label className="sr-only" htmlFor="task-edit-modal-input">
-            {t('editTaskDescription')}
+            {translate('editTaskDescription')}
           </label>
           <input
             id="task-edit-modal-input"
@@ -2290,10 +2288,10 @@ function App() {
           />
           <div className="task-edit-modal-actions">
             <button type="button" className="ghost-button" onClick={cancelEditTask}>
-              {t('cancel')}
+              {translate('cancel')}
             </button>
             <button type="button" className="primary-button" onClick={() => saveEditTask(editingTaskId)}>
-              {t('save')}
+              {translate('save')}
             </button>
           </div>
         </div>
