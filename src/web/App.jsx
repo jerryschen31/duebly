@@ -638,7 +638,7 @@ const getISODateFromTimestampInTimeZone = (timestamp, timeZone) => {
   return toISODateInTimeZone(new Date(timestamp), timeZone)
 }
 
-const getDueDatePart = (dueDate) => String(dueDate || '').slice(0, 10)
+const getDatePartFromDueDateTime = (dueDate) => String(dueDate || '').slice(0, 10)
 
 const getDueTimePart = (dueDate) => {
   const match = String(dueDate || '').match(/T(\d{2}:\d{2}:\d{2})$/)
@@ -660,7 +660,7 @@ const replaceDueDatePart = (dueDate, datePart) => {
 const getCurrentYearFromDatePart = (datePart) => datePart.slice(0, 4)
 
 const formatDateLabel = (dueDate, locale, today) => {
-  const datePart = getDueDatePart(dueDate)
+  const datePart = getDatePartFromDueDateTime(dueDate)
   const formatter = new Intl.DateTimeFormat(locale, {
     timeZone: 'UTC',
     month: 'short',
@@ -696,8 +696,8 @@ const formatDateTimeLabel = (dueDate, locale, today) => {
 }
 
 const compareTasksByDueDate = (a, b, dateDirection = 'asc') => {
-  const aDate = getDueDatePart(a.dueDate)
-  const bDate = getDueDatePart(b.dueDate)
+  const aDate = getDatePartFromDueDateTime(a.dueDate)
+  const bDate = getDatePartFromDueDateTime(b.dueDate)
   if (aDate !== bDate) {
     return dateDirection === 'desc' ? bDate.localeCompare(aDate) : aDate.localeCompare(bDate)
   }
@@ -762,7 +762,7 @@ const buildTimeOptions = () => {
 }
 
 const addDaysToISODate = (isoDate, daysToAdd) => {
-  const date = new Date(`${getDueDatePart(isoDate)}T00:00:00Z`)
+  const date = new Date(`${getDatePartFromDueDateTime(isoDate)}T00:00:00Z`)
   if (Number.isNaN(date.getTime())) {
     return isoDate
   }
@@ -772,7 +772,7 @@ const addDaysToISODate = (isoDate, daysToAdd) => {
 }
 
 const parseISODate = (isoDate) => {
-  const date = new Date(`${getDueDatePart(isoDate)}T00:00:00Z`)
+  const date = new Date(`${getDatePartFromDueDateTime(isoDate)}T00:00:00Z`)
   return Number.isNaN(date.getTime()) ? null : date
 }
 
@@ -1355,7 +1355,7 @@ function App() {
 
   const notDoneTasks = useMemo(() => {
     return tasks
-      .filter((task) => !task.isDone && getDueDatePart(task.dueDate) <= today)
+      .filter((task) => !task.isDone && getDatePartFromDueDateTime(task.dueDate) <= today)
       .sort((a, b) => compareTasksByDueDate(a, b, 'desc'))
   }, [tasks, today])
 
@@ -1368,7 +1368,7 @@ function App() {
   const plannedTasks = useMemo(() => {
     const recurringSeriesSeen = new Set()
     return tasks
-      .filter((task) => !task.isDone && getDueDatePart(task.dueDate) > today)
+      .filter((task) => !task.isDone && getDatePartFromDueDateTime(task.dueDate) > today)
       .sort((a, b) => compareTasksByDueDate(a, b, 'asc'))
       .filter((task) => {
         if (task.recurring === 'none') {
@@ -1405,7 +1405,7 @@ function App() {
 
   const notDoneStatusStats = useMemo(() => {
     const completedTodayInScope = tasks.filter((task) => {
-      if (!task.isDone || getDueDatePart(task.dueDate) > today) {
+      if (!task.isDone || getDatePartFromDueDateTime(task.dueDate) > today) {
         return false
       }
 
@@ -1466,7 +1466,7 @@ function App() {
       id: `${target}-${task?.id || 'new'}-${taskModel.getNow()}`,
       target,
       taskId: task?.id || null,
-      date: getDueDatePart(dueDate),
+      date: getDatePartFromDueDateTime(dueDate),
       timeText: hasExplicitDueTime(dueDate) ? formatDueTime(dueDate) : '',
       position: getDateTimePickerPosition(triggerElement),
     })
@@ -1569,7 +1569,7 @@ function App() {
     setIsDraftLabelOpen(false)
     setIsDraftRecurringMenuOpen(false)
 
-    if (getDueDatePart(newTask.dueDate) > today) {
+    if (getDatePartFromDueDateTime(newTask.dueDate) > today) {
       setActiveTab(TAB_KEYS.planned)
     } else {
       setActiveTab(TAB_KEYS.notDone)
@@ -1577,7 +1577,7 @@ function App() {
   }
 
   const getLaterToast = (targetDate) => {
-    const targetDatePart = getDueDatePart(targetDate)
+    const targetDatePart = getDatePartFromDueDateTime(targetDate)
     return targetDatePart === tomorrow ? translate('movedToTomorrow') : translate('movedToDate', { date: targetDatePart })
   }
 
@@ -1735,7 +1735,7 @@ function App() {
   const hasRecurringDuplicateAtDate = (task, targetDate) => {
     const taskSeriesId = getSeriesId(task)
     return tasks.some((candidate) => {
-      if (candidate.id === task.id || candidate.isDone || getDueDatePart(candidate.dueDate) !== getDueDatePart(targetDate)) {
+      if (candidate.id === task.id || candidate.isDone || getDatePartFromDueDateTime(candidate.dueDate) !== getDatePartFromDueDateTime(targetDate)) {
         return false
       }
 
@@ -1906,7 +1906,7 @@ function App() {
       if (candidate.id === task.id || candidate.isDone) {
         return false
       }
-      if (getDueDatePart(candidate.dueDate) <= today) {
+      if (getDatePartFromDueDateTime(candidate.dueDate) <= today) {
         return false
       }
       return getSeriesId(candidate) === seriesId
@@ -1936,7 +1936,7 @@ function App() {
     })
 
     const save = [updatedSelectedTask]
-    if (nextRecurring !== 'none' && getDueDatePart(updatedSelectedTask.dueDate) <= today) {
+    if (nextRecurring !== 'none' && getDatePartFromDueDateTime(updatedSelectedTask.dueDate) <= today) {
       const nextOccurrence = {
         id: createId(),
         text: updatedSelectedTask.text,
@@ -2340,6 +2340,7 @@ function App() {
                 menuTaskId === task.id || frequencySelectorTaskId === task.id || labelSelectorTaskId === task.id
                   ? 'task-row-shell menu-open'
                   : 'task-row-shell'
+              const hasTaskTime = hasExplicitDueTime(task.dueDate)
 
               return (
                 <motion.div
@@ -2474,8 +2475,8 @@ function App() {
                       }}
                     />
 
-                    <span className={`task-time ${hasExplicitDueTime(task.dueDate) ? '' : 'empty'}`}>
-                      {hasExplicitDueTime(task.dueDate) ? `(${formatDueTime(task.dueDate)})` : ''}
+                    <span className={`task-time ${hasTaskTime ? '' : 'empty'}`}>
+                      {hasTaskTime ? `(${formatDueTime(task.dueDate)})` : ''}
                     </span>
 
                     <div className="task-main">

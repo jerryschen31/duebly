@@ -88,7 +88,7 @@ const parseIsoDate = (value) => {
 }
 
 const getCurrentISODate = () => new Date().toISOString().slice(0, 10)
-const getDueDatePart = (dueDate) => String(dueDate).slice(0, 10)
+const getDatePartFromDueDateTime = (dueDate) => String(dueDate).slice(0, 10)
 
 const addDaysToISODate = (isoDate, daysToAdd) => {
   const date = new Date(`${isoDate}T00:00:00Z`)
@@ -114,7 +114,7 @@ const splitByRetention = (tasks) => {
   const removedTasks = []
 
   for (const task of tasks) {
-    if (getDueDatePart(task.dueDate) < cutoffDate) {
+    if (getDatePartFromDueDateTime(task.dueDate) < cutoffDate) {
       removedTasks.push(task)
       continue
     }
