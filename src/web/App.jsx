@@ -727,7 +727,9 @@ const normalizeTimeInput = (time) => {
   }
 
   const isPm = periodRaw.toLowerCase() === 'p'
-  const hour24 = isPm ? (hour12 % 12) + 12 : hour12 % 12
+  const hour24 = isPm
+    ? (hour12 === 12 ? 12 : hour12 + 12)
+    : (hour12 === 12 ? 0 : hour12)
   return `${String(hour24).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`
 }
 
@@ -2273,8 +2275,8 @@ function App() {
                         }}
                       />
                       <datalist id="time-suggestions-draft">
-                        {timeSuggestions.map((option, index) => (
-                          <option key={`draft-${index}-${option}`} value={option} />
+                        {timeSuggestions.map((option) => (
+                          <option key={`draft-${option}`} value={option} />
                         ))}
                       </datalist>
                     </div>
@@ -2509,8 +2511,8 @@ function App() {
                               }}
                             />
                             <datalist id={`time-suggestions-task-${task.id}`}>
-                              {timeSuggestions.map((option, index) => (
-                                <option key={`task-${task.id}-${index}-${option}`} value={option} />
+                              {timeSuggestions.map((option) => (
+                                <option key={`task-${task.id}-${option}`} value={option} />
                               ))}
                             </datalist>
                           </div>
