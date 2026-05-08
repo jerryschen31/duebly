@@ -720,8 +720,7 @@ const buildDueDate = (date, time, includeTime) => {
   }
 
   const normalizedTime = normalizeTimeInput(time) || `${DEFAULT_DRAFT_TIME}:00`
-  const withSeconds = normalizedTime.length === 5 ? `${normalizedTime}:00` : normalizedTime
-  return `${date}T${withSeconds}`
+  return `${date}T${normalizedTime}`
 }
 
 const getDueDateDatePart = (dueDate) => parseDueDate(dueDate).date
@@ -2352,7 +2351,7 @@ function App() {
                               onChange={(event) => {
                                 const nextHasTime = event.target.checked
                                 const timeToUse = nextHasTime
-                                  ? (taskDueParts.isTimed ? taskDueParts.time : DEFAULT_DRAFT_TIME)
+                                  ? `${DEFAULT_DRAFT_TIME}:00`
                                   : ALL_DAY_TIME
                                 updateTaskSchedule(task.id, taskDueParts.date, timeToUse, nextHasTime)
                               }}
