@@ -679,6 +679,37 @@ const parseDueDate = (dueDate) => {
   return { date: '', time: ALL_DAY_TIME, isTimed: false }
 }
 
+const normalizeTimeInput = (time) => {
+  if (typeof time !== 'string') {
+    return null
+  }
+
+  const match = time.trim().match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/)
+  if (!match) {
+    return null
+  }
+
+  const [, hoursRaw, minutesRaw, secondsRaw] = match
+  const hours = Number(hoursRaw)
+  const minutes = Number(minutesRaw)
+  const seconds = Number(secondsRaw || '00')
+  if (
+    !Number.isInteger(hours)
+    || !Number.isInteger(minutes)
+    || !Number.isInteger(seconds)
+    || hours < 0
+    || hours > 23
+    || minutes < 0
+    || minutes > 59
+    || seconds < 0
+    || seconds > 59
+  ) {
+    return null
+  }
+
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+}
+
 const buildDueDate = (date, time, includeTime) => {
   if (!date) {
     return ''
@@ -688,9 +719,7 @@ const buildDueDate = (date, time, includeTime) => {
     return `${date}T${ALL_DAY_TIME}`
   }
 
-  const normalizedTime = typeof time === 'string' && /^\d{2}:\d{2}(:\d{2})?$/.test(time)
-    ? time
-    : `${DEFAULT_DRAFT_TIME}:00`
+  const normalizedTime = normalizeTimeInput(time) || `${DEFAULT_DRAFT_TIME}:00`
   const withSeconds = normalizedTime.length === 5 ? `${normalizedTime}:00` : normalizedTime
   return `${date}T${withSeconds}`
 }
@@ -2324,7 +2353,7 @@ function App() {
                                 const nextHasTime = event.target.checked
                                 const timeToUse = nextHasTime
                                   ? (taskDueParts.isTimed ? taskDueParts.time : DEFAULT_DRAFT_TIME)
-                                  : taskDueParts.time
+                                  : ALL_DAY_TIME
                                 updateTaskSchedule(task.id, taskDueParts.date, timeToUse, nextHasTime)
                               }}
                             />
