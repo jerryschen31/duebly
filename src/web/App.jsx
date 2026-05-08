@@ -43,6 +43,8 @@ const TRANSLATIONS = {
     taskDescription: 'Task description',
     dueDate: 'Due date',
     setTime: 'Set time (optional)',
+    startTime: 'Start time (opt.)',
+    endTime: 'End time (opt.)',
     clearTime: 'Clear time',
     timeAmAbbrev: 'a',
     timePmAbbrev: 'p',
@@ -104,6 +106,8 @@ const TRANSLATIONS = {
   'en-GB': {
     languageName: 'British English',
     setTime: 'Set time (optional)',
+    startTime: 'Start time (opt.)',
+    endTime: 'End time (opt.)',
     clearTime: 'Clear time',
     timeAmAbbrev: 'a',
     timePmAbbrev: 'p',
@@ -129,6 +133,8 @@ const TRANSLATIONS = {
     taskDescription: '任务描述',
     dueDate: '截止日期',
     setTime: '设置时间（可选）',
+    startTime: '开始时间（可选）',
+    endTime: '结束时间（可选）',
     clearTime: '清除时间',
     timeAmAbbrev: 'a',
     timePmAbbrev: 'p',
@@ -207,6 +213,8 @@ const TRANSLATIONS = {
     taskDescription: 'タスク内容',
     dueDate: '期限日',
     setTime: '時刻を設定（任意）',
+    startTime: '開始時刻（任意）',
+    endTime: '終了時刻（任意）',
     clearTime: '時刻をクリア',
     timeAmAbbrev: 'a',
     timePmAbbrev: 'p',
@@ -285,6 +293,8 @@ const TRANSLATIONS = {
     taskDescription: '작업 설명',
     dueDate: '마감일',
     setTime: '시간 설정(선택 사항)',
+    startTime: '시작 시간(선택)',
+    endTime: '종료 시간(선택)',
     clearTime: '시간 지우기',
     timeAmAbbrev: 'a',
     timePmAbbrev: 'p',
@@ -363,6 +373,8 @@ const TRANSLATIONS = {
     taskDescription: 'Description de la tâche',
     dueDate: 'Date d’échéance',
     setTime: 'Définir l’heure (facultatif)',
+    startTime: 'Heure de début (opt.)',
+    endTime: 'Heure de fin (opt.)',
     clearTime: 'Effacer l’heure',
     timeAmAbbrev: 'a',
     timePmAbbrev: 'p',
@@ -441,6 +453,8 @@ const TRANSLATIONS = {
     taskDescription: 'Descripción de la tarea',
     dueDate: 'Fecha límite',
     setTime: 'Configurar hora (opcional)',
+    startTime: 'Hora de inicio (opt.)',
+    endTime: 'Hora de fin (opt.)',
     clearTime: 'Borrar hora',
     timeAmAbbrev: 'a',
     timePmAbbrev: 'p',
@@ -519,6 +533,8 @@ const TRANSLATIONS = {
     taskDescription: 'Descrizione attività',
     dueDate: 'Data di scadenza',
     setTime: 'Imposta ora (facoltativo)',
+    startTime: 'Ora di inizio (opt.)',
+    endTime: 'Ora di fine (opt.)',
     clearTime: 'Cancella ora',
     timeAmAbbrev: 'a',
     timePmAbbrev: 'p',
@@ -754,13 +770,35 @@ const formatTaskTimeCompact = (dueDate, amSuffix = 'a', pmSuffix = 'p') => {
   return `${hours % 12 || 12}:${minutes}${hours >= 12 ? pmSuffix : amSuffix}`
 }
 
-const formatDateTimeLabel = (dueDate, locale, today) => {
+const formatTaskTimeRangeCompact = (dueDate, dueEndTime, amSuffix = 'a', pmSuffix = 'p') => {
+  const startLabel = formatTaskTimeCompact(dueDate, amSuffix, pmSuffix)
+  if (!startLabel) {
+    if (!dueEndTime) {
+      return ''
+    }
+
+    return formatTaskTimeCompact(
+      makeDueDateTime(getDatePartFromDueDateTime(dueDate), dueEndTime),
+      amSuffix,
+      pmSuffix,
+    )
+  }
+
+  if (!dueEndTime) {
+    return startLabel
+  }
+
+  const endLabel = formatTaskTimeCompact(makeDueDateTime(getDatePartFromDueDateTime(dueDate), dueEndTime), amSuffix, pmSuffix)
+  return endLabel ? `${startLabel}-${endLabel}` : startLabel
+}
+
+const formatDateTimeLabel = (dueDate, dueEndTime, locale, today, amSuffix = 'a', pmSuffix = 'p') => {
   const dateLabel = formatDateLabel(dueDate, locale, today)
   if (!hasExplicitDueTime(dueDate)) {
     return dateLabel
   }
 
-  return `${dateLabel} • ${formatDueTime(dueDate, true)}`
+  return `${dateLabel} • ${formatTaskTimeRangeCompact(dueDate, dueEndTime, amSuffix, pmSuffix)}`
 }
 
 const compareTasksByDueDate = (a, b, dateDirection = 'asc') => {
@@ -773,7 +811,14 @@ const compareTasksByDueDate = (a, b, dateDirection = 'asc') => {
   const aTime = isAllDayDueDate(a.dueDate) ? ALL_DAY_TASKS_SORT_LAST : getDueTimePart(a.dueDate)
   const bTime = isAllDayDueDate(b.dueDate) ? ALL_DAY_TASKS_SORT_LAST : getDueTimePart(b.dueDate)
   const timeCompare = aTime.localeCompare(bTime)
-  return timeCompare || b.createdAt - a.createdAt
+  if (timeCompare) {
+    return timeCompare
+  }
+
+  const aEndTime = typeof a.dueEndTime === 'string' && a.dueEndTime ? a.dueEndTime : ALL_DAY_TASKS_SORT_LAST
+  const bEndTime = typeof b.dueEndTime === 'string' && b.dueEndTime ? b.dueEndTime : ALL_DAY_TASKS_SORT_LAST
+  const endTimeCompare = aEndTime.localeCompare(bEndTime)
+  return endTimeCompare || b.createdAt - a.createdAt
 }
 
 const parseTimeInput = (value) => {
@@ -969,6 +1014,7 @@ function App() {
   })
   const [draftText, setDraftText] = useState('')
   const [draftDueDate, setDraftDueDate] = useState(() => makeDueDateTime(toISODateInTimeZone(new Date(), defaultTimeZone)))
+  const [draftDueEndTime, setDraftDueEndTime] = useState(null)
   const [draftColor, setDraftColor] = useState(LABELS[0].color)
   const [isDraftDateAuto, setIsDraftDateAuto] = useState(true)
   const [isDraftLabelOpen, setIsDraftLabelOpen] = useState(false)
@@ -986,7 +1032,7 @@ function App() {
   const [swatchHint, setSwatchHint] = useState(null)
   const [isListening, setIsListening] = useState(false)
   const [dateTimePicker, setDateTimePicker] = useState(null)
-  const [timeMenuOpen, setTimeMenuOpen] = useState(false)
+  const [activeTimeMenu, setActiveTimeMenu] = useState(null)
   const isMobileViewport = viewportWidth <= 640
   const isSpeechSupported = Boolean(globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition)
 
@@ -1039,7 +1085,10 @@ function App() {
     return { value, label: translate('repeatWeekdays') }
   })
   const timeOptions = useMemo(() => dateTimePicker ? buildTimeOptions() : [], [dateTimePicker])
-  const parsedPickerTime = dateTimePicker ? parseTimeInput(dateTimePicker.timeText) : null
+  const parsedPickerStartTime = dateTimePicker ? parseTimeInput(dateTimePicker.startTimeText) : null
+  const parsedPickerEndTime = dateTimePicker && dateTimePicker.endTimeText.trim()
+    ? parseTimeInput(dateTimePicker.endTimeText)
+    : null
 
   const getShouldOpenUp = (anchorElement, estimatedHeight = 240) => {
     if (!anchorElement) {
@@ -1129,7 +1178,7 @@ function App() {
 
       if (!target.closest('.date-time-picker') && !target.closest('.date-time-trigger')) {
         setDateTimePicker(null)
-        setTimeMenuOpen(false)
+        setActiveTimeMenu(null)
       }
 
       if (!target.closest('.task-label-selector-wrap')) {
@@ -1469,7 +1518,7 @@ function App() {
 
   const getDateTimePickerPosition = (triggerElement) => {
     const viewportPadding = 8
-    const pickerWidth = Math.min(320, viewportWidth - viewportPadding * 2)
+    const pickerWidth = Math.min(360, viewportWidth - viewportPadding * 2)
     const rect = triggerElement.getBoundingClientRect()
     const preferredHeight = Math.min(330, window.innerHeight - viewportPadding * 2)
     const canOpenUp = rect.top > viewportPadding + MIN_DATE_TIME_PICKER_HEIGHT
@@ -1495,25 +1544,55 @@ function App() {
 
   const openDateTimePicker = ({ target, task = null, triggerElement }) => {
     const dueDate = target === 'draft' ? effectiveDraftDueDate : task.dueDate
+    const dueEndTime = target === 'draft' ? draftDueEndTime : task.dueEndTime
     setDateTimePicker({
       id: `${target}-${task?.id || 'new'}-${taskModel.getNow()}`,
       target,
       taskId: task?.id || null,
       date: getDatePartFromDueDateTime(dueDate),
-      timeText: hasExplicitDueTime(dueDate) ? formatDueTime(dueDate) : '',
+      startTimeText: hasExplicitDueTime(dueDate) ? formatDueTime(dueDate) : '',
+      endTimeText: dueEndTime ? formatTimePart(dueEndTime) : '',
       position: getDateTimePickerPosition(triggerElement),
     })
-    setTimeMenuOpen(false)
+    setActiveTimeMenu(null)
   }
 
-  const applyDueDateTime = ({ target, taskId, dueDate }) => {
+  const applyDueDateTime = ({ target, taskId, dueDate, dueEndTime }) => {
     if (target === 'draft') {
       setDraftDueDate(dueDate)
+      setDraftDueEndTime(dueEndTime || null)
       setIsDraftDateAuto(false)
       return
     }
 
-    updateTaskDate(taskId, dueDate)
+    updateTaskDate(taskId, dueDate, dueEndTime)
+  }
+
+  const getParsedPickerTimes = (startText, endText) => {
+    const trimmedStart = startText.trim()
+    const trimmedEnd = endText.trim()
+    const parsedStart = parseTimeInput(startText)
+    const parsedEnd = trimmedEnd ? parseTimeInput(endText) : null
+
+    if (!parsedStart) {
+      return null
+    }
+
+    if (trimmedEnd && !parsedEnd) {
+      return null
+    }
+
+    if (!trimmedStart && parsedEnd) {
+      return {
+        startTime: parsedEnd,
+        endTime: null,
+      }
+    }
+
+    return {
+      startTime: parsedStart,
+      endTime: parsedEnd,
+    }
   }
 
   const updatePickerDate = (date) => {
@@ -1521,7 +1600,16 @@ function App() {
       return
     }
 
-    const dueDate = makeDueDateTime(date, parseTimeInput(dateTimePicker.timeText) || taskModel.allDayTime)
+    const parsedTimes = getParsedPickerTimes(dateTimePicker.startTimeText, dateTimePicker.endTimeText)
+    if (!parsedTimes) {
+      setDateTimePicker((current) => current && {
+        ...current,
+        date,
+      })
+      return
+    }
+
+    const dueDate = makeDueDateTime(date, parsedTimes.startTime)
     setDateTimePicker((current) => current && {
       ...current,
       date,
@@ -1530,27 +1618,38 @@ function App() {
       target: dateTimePicker.target,
       taskId: dateTimePicker.taskId,
       dueDate,
+      dueEndTime: parsedTimes.endTime,
     })
   }
 
-  const commitPickerTime = (timeText) => {
+  const commitPickerTimes = (startText, endText) => {
     if (!dateTimePicker) {
       return
     }
 
-    const parsedTime = parseTimeInput(timeText)
-    if (!parsedTime) {
-      setDateTimePicker((current) => current && { ...current, timeText })
+    const parsedTimes = getParsedPickerTimes(startText, endText)
+    if (!parsedTimes) {
+      setDateTimePicker((current) => current && {
+        ...current,
+        startTimeText: startText,
+        endTimeText: endText,
+      })
       return
     }
 
-    const displayText = parsedTime === taskModel.allDayTime ? '' : formatTimePart(parsedTime)
-    const dueDate = makeDueDateTime(dateTimePicker.date, parsedTime)
-    setDateTimePicker((current) => current && { ...current, timeText: displayText })
+    const displayStartText = parsedTimes.startTime === taskModel.allDayTime ? '' : formatTimePart(parsedTimes.startTime)
+    const displayEndText = parsedTimes.endTime ? formatTimePart(parsedTimes.endTime) : ''
+    const dueDate = makeDueDateTime(dateTimePicker.date, parsedTimes.startTime)
+    setDateTimePicker((current) => current && {
+      ...current,
+      startTimeText: displayStartText,
+      endTimeText: displayEndText,
+    })
     applyDueDateTime({
       target: dateTimePicker.target,
       taskId: dateTimePicker.taskId,
       dueDate,
+      dueEndTime: parsedTimes.endTime,
     })
   }
 
@@ -1580,6 +1679,7 @@ function App() {
       id: createId(),
       text,
       dueDate: effectiveDraftDueDate,
+      dueEndTime: draftDueEndTime,
       isDone: false,
       color: draftColor,
       createdAt: taskModel.getNow(),
@@ -1594,6 +1694,7 @@ function App() {
 
     setDraftText('')
     setDraftDueDate(makeDueDateTime(today))
+    setDraftDueEndTime(null)
     setDraftColor(LABELS[0].color)
     setDraftRecurring('none')
     setIsDraftDateAuto(true)
@@ -1714,7 +1815,7 @@ function App() {
     setFrequencySelectorTaskId(null)
   }
 
-  const updateTaskDate = (taskId, date) => {
+  const updateTaskDate = (taskId, date, dueEndTime = null) => {
     if (!date) {
       return
     }
@@ -1722,6 +1823,7 @@ function App() {
     const updatedTask = updateTaskInState(taskId, (task) => ({
       ...task,
       dueDate: date,
+      dueEndTime,
       last_updated: taskModel.getNowIso(),
     }))
 
@@ -2014,6 +2116,7 @@ function App() {
         id: createId(),
         text: updatedSelectedTask.text,
         dueDate: nextDueDate,
+        dueEndTime: updatedSelectedTask.dueEndTime || null,
         isDone: false,
         color: updatedSelectedTask.color,
         createdAt: nowMs,
@@ -2167,60 +2270,123 @@ function App() {
             }}
             aria-label={translate('dueDate')}
           />
-          <div className="time-picker-field">
-            <input
-              type="text"
-              value={dateTimePicker.timeText}
-              placeholder={translate('setTime')}
-              onFocus={() => setTimeMenuOpen(true)}
-              onClick={() => setTimeMenuOpen(true)}
-              onChange={(event) => {
-                const nextText = event.target.value
-                setDateTimePicker((current) => current && { ...current, timeText: nextText })
-                if (!nextText.trim()) {
-                  commitPickerTime('')
-                }
-              }}
-              onBlur={() => commitPickerTime(dateTimePicker.timeText)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.preventDefault()
-                  commitPickerTime(dateTimePicker.timeText)
-                  setTimeMenuOpen(false)
-                }
-                if (event.key === 'Escape') {
-                  setDateTimePicker(null)
-                  setTimeMenuOpen(false)
-                }
-              }}
-              role="combobox"
-              aria-expanded={timeMenuOpen}
-              aria-label={translate('setTime')}
-            />
-            {dateTimePicker.timeText ? (
-              <button type="button" className="clear-time-button" onClick={() => commitPickerTime('')}>
-                {translate('clearTime')}
-              </button>
-            ) : null}
-            {timeMenuOpen ? (
-              <div className="time-options" role="listbox">
-                {timeOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    role="option"
-                    aria-selected={parsedPickerTime === option.value}
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => {
-                      commitPickerTime(option.label)
-                      setTimeMenuOpen(false)
-                    }}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            ) : null}
+          <div className="time-picker-grid">
+            <div className="time-picker-field">
+              <input
+                type="text"
+                value={dateTimePicker.startTimeText}
+                placeholder={translate('startTime')}
+                onFocus={() => setActiveTimeMenu('start')}
+                onClick={() => setActiveTimeMenu('start')}
+                onChange={(event) => {
+                  const nextText = event.target.value
+                  setDateTimePicker((current) => current && { ...current, startTimeText: nextText })
+                  if (!nextText.trim()) {
+                    commitPickerTimes('', dateTimePicker.endTimeText)
+                  }
+                }}
+                onBlur={() => commitPickerTimes(dateTimePicker.startTimeText, dateTimePicker.endTimeText)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    commitPickerTimes(dateTimePicker.startTimeText, dateTimePicker.endTimeText)
+                    setActiveTimeMenu(null)
+                  }
+                  if (event.key === 'Escape') {
+                    setDateTimePicker(null)
+                    setActiveTimeMenu(null)
+                  }
+                }}
+                role="combobox"
+                aria-expanded={activeTimeMenu === 'start'}
+                aria-label={translate('startTime')}
+              />
+              {dateTimePicker.startTimeText ? (
+                <button
+                  type="button"
+                  className="clear-time-button"
+                  onClick={() => commitPickerTimes('', dateTimePicker.endTimeText)}
+                >
+                  {translate('clearTime')}
+                </button>
+              ) : null}
+              {activeTimeMenu === 'start' ? (
+                <div className="time-options" role="listbox">
+                  {timeOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      role="option"
+                      aria-selected={parsedPickerStartTime === option.value}
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => {
+                        commitPickerTimes(option.label, dateTimePicker.endTimeText)
+                        setActiveTimeMenu(null)
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="time-picker-field">
+              <input
+                type="text"
+                value={dateTimePicker.endTimeText}
+                placeholder={translate('endTime')}
+                onFocus={() => setActiveTimeMenu('end')}
+                onClick={() => setActiveTimeMenu('end')}
+                onChange={(event) => {
+                  const nextText = event.target.value
+                  setDateTimePicker((current) => current && { ...current, endTimeText: nextText })
+                }}
+                onBlur={() => commitPickerTimes(dateTimePicker.startTimeText, dateTimePicker.endTimeText)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    commitPickerTimes(dateTimePicker.startTimeText, dateTimePicker.endTimeText)
+                    setActiveTimeMenu(null)
+                  }
+                  if (event.key === 'Escape') {
+                    setDateTimePicker(null)
+                    setActiveTimeMenu(null)
+                  }
+                }}
+                role="combobox"
+                aria-expanded={activeTimeMenu === 'end'}
+                aria-label={translate('endTime')}
+              />
+              {dateTimePicker.endTimeText ? (
+                <button
+                  type="button"
+                  className="clear-time-button"
+                  onClick={() => commitPickerTimes(dateTimePicker.startTimeText, '')}
+                >
+                  {translate('clearTime')}
+                </button>
+              ) : null}
+              {activeTimeMenu === 'end' ? (
+                <div className="time-options" role="listbox">
+                  {timeOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      role="option"
+                      aria-selected={parsedPickerEndTime === option.value}
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => {
+                        commitPickerTimes(dateTimePicker.startTimeText, option.label)
+                        setActiveTimeMenu(null)
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
       ) : null}
@@ -2337,7 +2503,14 @@ function App() {
                   })
                 }}
               >
-                {formatDateTimeLabel(effectiveDraftDueDate, activeLanguage.locale, today)}
+                {formatDateTimeLabel(
+                  effectiveDraftDueDate,
+                  draftDueEndTime,
+                  activeLanguage.locale,
+                  today,
+                  translate('timeAmAbbrev'),
+                  translate('timePmAbbrev'),
+                )}
               </button>
               <div className="label-select-wrap">
                 <button
@@ -2408,7 +2581,7 @@ function App() {
                 menuTaskId === task.id || frequencySelectorTaskId === task.id || labelSelectorTaskId === task.id
                   ? 'task-row-shell menu-open'
                   : 'task-row-shell'
-              const hasTaskTime = hasExplicitDueTime(task.dueDate)
+              const hasTaskTime = hasExplicitDueTime(task.dueDate) || Boolean(task.dueEndTime)
 
               return (
                 <motion.div
@@ -2538,7 +2711,12 @@ function App() {
 
                     {hasTaskTime ? (
                       <span className="task-time">
-                        {formatTaskTimeCompact(task.dueDate, translate('timeAmAbbrev'), translate('timePmAbbrev'))}
+                        {formatTaskTimeRangeCompact(
+                          task.dueDate,
+                          task.dueEndTime,
+                          translate('timeAmAbbrev'),
+                          translate('timePmAbbrev'),
+                        )}
                       </span>
                     ) : null}
 

@@ -41,6 +41,10 @@ db.version(1).stores({
   tasks: '&id, dueDate, isDone, createdAt, completedAt, recurring, last_updated',
   settings: '&id',
 })
+db.version(2).stores({
+  tasks: '&id, dueDate, dueEndTime, isDone, createdAt, completedAt, recurring, last_updated',
+  settings: '&id',
+})
 
 const getNow = () => Date.now()
 const getNowIso = () => new Date().toISOString()
@@ -85,6 +89,28 @@ const parseIsoDate = (value) => {
   }
 
   return `${datePart}T${hours}:${minutes}:${seconds}`
+}
+
+const parseClockTime = (value) => {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const trimmed = value.trim()
+  const match = trimmed.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/)
+  if (!match) {
+    return null
+  }
+
+  const [, hours, minutes, seconds = '00'] = match
+  const hourNumber = Number(hours)
+  const minuteNumber = Number(minutes)
+  const secondNumber = Number(seconds)
+  if (hourNumber > 23 || minuteNumber > 59 || secondNumber > 59) {
+    return null
+  }
+
+  return `${hours}:${minutes}:${seconds}`
 }
 
 const getCurrentISODate = () => new Date().toISOString().slice(0, 10)
@@ -154,6 +180,7 @@ const normalizeTask = (task) => {
     id: String(task.id),
     text: String(task.text),
     dueDate,
+    dueEndTime: parseClockTime(typeof task.dueEndTime === 'string' ? task.dueEndTime : '') || null,
     isDone: Boolean(task.isDone),
     color,
     createdAt,
