@@ -592,7 +592,7 @@ const TOAST_DURATION_MS = 1800
 const MAX_TASK_DESCRIPTION_LENGTH = 200
 const TIME_OPTION_INTERVAL_MINUTES = 30
 const TIME_OPTIONS_COUNT = (24 * 60) / TIME_OPTION_INTERVAL_MINUTES
-const ALL_DAY_SORT_TIME = '99:99:99'
+const ALL_DAY_TASKS_SORT_LAST = '99:99:99'
 const SPEECH_LANGUAGE_FALLBACKS = {
   'en-US': ['en-US', 'en'],
   'en-GB': ['en-GB', 'en-US', 'en'],
@@ -675,7 +675,7 @@ const formatDateLabel = (dueDate, locale, today) => {
 const formatTimePart = (timePart, compact = false) => {
   const [hoursRaw, minutes] = timePart.split(':')
   const hours = Number(hoursRaw)
-  if (!Number.isFinite(hours)) {
+  if (!Number.isFinite(hours) || hours < 0 || hours > 23 || !/^\d{2}$/.test(minutes || '')) {
     return ''
   }
 
@@ -704,8 +704,8 @@ const compareTasksByDueDate = (a, b, dateDirection = 'asc') => {
     return dateDirection === 'desc' ? bDate.localeCompare(aDate) : aDate.localeCompare(bDate)
   }
 
-  const aTime = isAllDayDueDate(a.dueDate) ? ALL_DAY_SORT_TIME : getDueTimePart(a.dueDate)
-  const bTime = isAllDayDueDate(b.dueDate) ? ALL_DAY_SORT_TIME : getDueTimePart(b.dueDate)
+  const aTime = isAllDayDueDate(a.dueDate) ? ALL_DAY_TASKS_SORT_LAST : getDueTimePart(a.dueDate)
+  const bTime = isAllDayDueDate(b.dueDate) ? ALL_DAY_TASKS_SORT_LAST : getDueTimePart(b.dueDate)
   const timeCompare = aTime.localeCompare(bTime)
   return timeCompare || b.createdAt - a.createdAt
 }
@@ -1008,7 +1008,7 @@ function App() {
 
     return { value, label: translate('repeatWeekdays') }
   })
-  const timeOptions = dateTimePicker ? buildTimeOptions() : []
+  const timeOptions = useMemo(() => dateTimePicker ? buildTimeOptions() : [], [dateTimePicker])
 
   const getShouldOpenUp = (anchorElement, estimatedHeight = 240) => {
     if (!anchorElement) {
@@ -2477,9 +2477,9 @@ function App() {
                       }}
                     />
 
-                    <span className={`task-time ${hasTaskTime ? '' : 'empty'}`}>
-                      {hasTaskTime ? `(${formatDueTime(task.dueDate)})` : ''}
-                    </span>
+                    {hasTaskTime ? (
+                      <span className="task-time">({formatDueTime(task.dueDate)})</span>
+                    ) : null}
 
                     <div className="task-main">
                       {editingTaskId === task.id && !isMobileViewport ? (

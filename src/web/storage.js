@@ -12,6 +12,7 @@ const SETTINGS_KEYS = {
 
 const RECURRING_VALUES = ['none', 'daily', 'weekly', 'weekdays']
 const TASK_RETENTION_DAYS = 60
+// Issue #13 specifies 11:59:59 as the date-only task sentinel.
 const ALL_DAY_SENTINEL_TIME = '11:59:59'
 
 const parseBooleanFlag = (value, defaultValue) => {
