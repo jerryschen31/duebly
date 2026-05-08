@@ -805,7 +805,12 @@ const formatDateLabel = (isoDate, locale, todayIsoDate) => {
 }
 
 const formatTimeLabel = (timeValue, locale) => {
-  const [hoursRaw, minutesRaw] = timeValue.split(':')
+  const normalizedTime = normalizeTimeInput(timeValue)
+  if (!normalizedTime) {
+    return ''
+  }
+
+  const [hoursRaw, minutesRaw] = normalizedTime.split(':')
   const hours = Number(hoursRaw)
   const minutes = Number(minutesRaw)
   const timeDate = new Date(Date.UTC(1970, 0, 1, hours, minutes))
@@ -2201,7 +2206,7 @@ function App() {
               const taskDueParts = parseDueDate(task.dueDate)
               const taskDateLabel = formatDateLabel(taskDueParts.date, activeLanguage.locale, today)
               const taskTimeLabel = taskDueParts.isTimed
-                ? formatTimeLabel(taskDueParts.time.slice(0, 5), activeLanguage.locale)
+                ? formatTimeLabel(taskDueParts.time, activeLanguage.locale)
                 : null
               const commitDirection = swipeCommitByTaskId[task.id] || null
               const swipeIntent = swipeIntentByTaskId[task.id] || null
