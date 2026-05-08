@@ -12,6 +12,7 @@ const SETTINGS_KEYS = {
 
 const RECURRING_VALUES = ['none', 'daily', 'weekly', 'weekdays']
 const TASK_RETENTION_DAYS = 60
+const ALL_DAY_TIME = '11:59:59'
 
 const parseBooleanFlag = (value, defaultValue) => {
   if (typeof value !== 'string') {
@@ -66,14 +67,28 @@ const parseIsoDate = (value) => {
   }
 
   const trimmed = value.trim()
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return `${trimmed}T${ALL_DAY_TIME}`
+  }
+
+  const dateTimeMatch = trimmed.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/)
+  if (!dateTimeMatch) {
     return null
   }
 
-  return trimmed
+  const [, datePart, hours, minutes, seconds = '00'] = dateTimeMatch
+  const hourNumber = Number(hours)
+  const minuteNumber = Number(minutes)
+  const secondNumber = Number(seconds)
+  if (hourNumber > 23 || minuteNumber > 59 || secondNumber > 59) {
+    return null
+  }
+
+  return `${datePart}T${hours}:${minutes}:${seconds}`
 }
 
 const getCurrentISODate = () => new Date().toISOString().slice(0, 10)
+const getDueDatePart = (dueDate) => String(dueDate).slice(0, 10)
 
 const addDaysToISODate = (isoDate, daysToAdd) => {
   const date = new Date(`${isoDate}T00:00:00Z`)
@@ -99,7 +114,7 @@ const splitByRetention = (tasks) => {
   const removedTasks = []
 
   for (const task of tasks) {
-    if (task.dueDate < cutoffDate) {
+    if (getDueDatePart(task.dueDate) < cutoffDate) {
       removedTasks.push(task)
       continue
     }
@@ -114,7 +129,7 @@ const normalizeStatusIndicator = (value) => {
     return null
   }
 
-  const date = parseIsoDate(typeof value.date === 'string' ? value.date : '')
+  const date = parseIsoDate(typeof value.date === 'string' ? value.date : '')?.slice(0, 10)
   if (!date) {
     return null
   }
@@ -358,5 +373,6 @@ export const taskModel = {
   normalizeTask,
   getNowIso,
   getNow,
+  allDayTime: ALL_DAY_TIME,
   recurringValues: RECURRING_VALUES,
 }
