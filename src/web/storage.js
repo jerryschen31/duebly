@@ -12,7 +12,7 @@ const SETTINGS_KEYS = {
 
 const RECURRING_VALUES = ['none', 'daily', 'weekly', 'weekdays']
 const TASK_RETENTION_DAYS = 60
-const ALL_DAY_TIME = '11:59:59'
+const ALL_DAY_SENTINEL_TIME = '11:59:59'
 
 const parseBooleanFlag = (value, defaultValue) => {
   if (typeof value !== 'string') {
@@ -68,7 +68,7 @@ const parseIsoDate = (value) => {
 
   const trimmed = value.trim()
   if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-    return `${trimmed}T${ALL_DAY_TIME}`
+    return `${trimmed}T${ALL_DAY_SENTINEL_TIME}`
   }
 
   const dateTimeMatch = trimmed.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/)
@@ -129,7 +129,7 @@ const normalizeStatusIndicator = (value) => {
     return null
   }
 
-  const date = parseIsoDate(typeof value.date === 'string' ? value.date : '')?.slice(0, 10)
+  const date = getDatePartFromDueDateTime(parseIsoDate(typeof value.date === 'string' ? value.date : '') || '')
   if (!date) {
     return null
   }
@@ -373,6 +373,6 @@ export const taskModel = {
   normalizeTask,
   getNowIso,
   getNow,
-  allDayTime: ALL_DAY_TIME,
+  allDayTime: ALL_DAY_SENTINEL_TIME,
   recurringValues: RECURRING_VALUES,
 }

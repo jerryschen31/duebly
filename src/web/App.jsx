@@ -591,6 +591,8 @@ const SWIPE_COMMIT_DELAY_MS = 170
 const TOAST_DURATION_MS = 1800
 const MAX_TASK_DESCRIPTION_LENGTH = 200
 const TIME_OPTION_INTERVAL_MINUTES = 30
+const TIME_OPTIONS_COUNT = (24 * 60) / TIME_OPTION_INTERVAL_MINUTES
+const ALL_DAY_SORT_TIME = '99:99:99'
 const SPEECH_LANGUAGE_FALLBACKS = {
   'en-US': ['en-US', 'en'],
   'en-GB': ['en-GB', 'en-US', 'en'],
@@ -702,8 +704,8 @@ const compareTasksByDueDate = (a, b, dateDirection = 'asc') => {
     return dateDirection === 'desc' ? bDate.localeCompare(aDate) : aDate.localeCompare(bDate)
   }
 
-  const aTime = isAllDayDueDate(a.dueDate) ? '99:99:99' : getDueTimePart(a.dueDate)
-  const bTime = isAllDayDueDate(b.dueDate) ? '99:99:99' : getDueTimePart(b.dueDate)
+  const aTime = isAllDayDueDate(a.dueDate) ? ALL_DAY_SORT_TIME : getDueTimePart(a.dueDate)
+  const bTime = isAllDayDueDate(b.dueDate) ? ALL_DAY_SORT_TIME : getDueTimePart(b.dueDate)
   const timeCompare = aTime.localeCompare(bTime)
   return timeCompare || b.createdAt - a.createdAt
 }
@@ -751,7 +753,7 @@ const getNextHalfHourDate = () => {
 
 const buildTimeOptions = () => {
   const optionDate = getNextHalfHourDate()
-  return Array.from({ length: 48 }, () => {
+  return Array.from({ length: TIME_OPTIONS_COUNT }, () => {
     const hours = optionDate.getHours()
     const minutes = optionDate.getMinutes()
     const value = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`
@@ -1489,10 +1491,10 @@ function App() {
     }
 
     const dueDate = makeDueDateTime(date, parseTimeInput(dateTimePicker.timeText) || taskModel.allDayTime)
-    setDateTimePicker((current) => current ? {
+    setDateTimePicker((current) => current && {
       ...current,
       date,
-    } : current)
+    })
     applyDueDateTime({
       target: dateTimePicker.target,
       taskId: dateTimePicker.taskId,
@@ -1507,13 +1509,13 @@ function App() {
 
     const parsedTime = parseTimeInput(timeText)
     if (!parsedTime) {
-      setDateTimePicker((current) => current ? { ...current, timeText } : current)
+      setDateTimePicker((current) => current && { ...current, timeText })
       return
     }
 
     const displayText = parsedTime === taskModel.allDayTime ? '' : formatTimePart(parsedTime)
     const dueDate = makeDueDateTime(dateTimePicker.date, parsedTime)
-    setDateTimePicker((current) => current ? { ...current, timeText: displayText } : current)
+    setDateTimePicker((current) => current && { ...current, timeText: displayText })
     applyDueDateTime({
       target: dateTimePicker.target,
       taskId: dateTimePicker.taskId,
@@ -2108,7 +2110,7 @@ function App() {
               onClick={() => setTimeMenuOpen(true)}
               onChange={(event) => {
                 const nextText = event.target.value
-                setDateTimePicker((current) => current ? { ...current, timeText: nextText } : current)
+                setDateTimePicker((current) => current && { ...current, timeText: nextText })
                 if (!nextText.trim()) {
                   commitPickerTime('')
                 }
