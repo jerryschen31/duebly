@@ -1451,6 +1451,18 @@ function App() {
     )
   }, [isReady, selectedLanguage, selectedTimeZone])
 
+  useEffect(() => {
+    if (!isReady) {
+      return
+    }
+
+    taskStorage.replaceAllTasks(tasks, mirrorLegacyRef.current).catch((error) => {
+      if (import.meta.env.DEV) {
+        console.warn('Failed to persist task snapshot', error)
+      }
+    })
+  }, [isReady, tasks])
+
   const persistTask = (task) => {
     taskStorage.saveTask(task, mirrorLegacyRef.current)
   }
@@ -1602,17 +1614,61 @@ function App() {
 
   const toggleTaskDone = (task, isDone, options = {}) => {
     const { suppressDoneToast = false, suppressRecurringToast = false } = options
-    const updatedTask = updateTaskInState(task.id, (currentTask) => {
-      if (isDone && currentTask.recurring !== 'none') {
-        return {
+
+    if (isDone && task.recurring !== 'none') {
+      const nowIso = taskModel.getNowIso()
+
+      setTasks((prev) => {
+        const currentTask = prev.find((candidate) => candidate.id === task.id)
+        if (!currentTask) {
+          return prev
+        }
+
+        const seriesId = getSeriesId(currentTask)
+        let nextDueDate = getNextRecurringDate(currentTask.dueDate, currentTask.recurring)
+        let guard = 0
+
+        // Ensure repeated "mark as done" actions always move forward even if duplicate future
+        // occurrences from the same series already exist at intermediate dates.
+        while (
+          guard < 370
+          && prev.some(
+            (candidate) => (
+              candidate.id !== currentTask.id
+              && !candidate.isDone
+              && getSeriesId(candidate) === seriesId
+              && candidate.dueDate === nextDueDate
+            ),
+          )
+        ) {
+          nextDueDate = getNextRecurringDate(nextDueDate, currentTask.recurring)
+          guard += 1
+        }
+
+        const nextTask = {
           ...currentTask,
-          dueDate: getNextRecurringDate(currentTask.dueDate, currentTask.recurring),
+          dueDate: nextDueDate,
           isDone: false,
           completedAt: null,
-          last_updated: taskModel.getNowIso(),
+          last_updated: nowIso,
         }
+
+        return prev.map((candidate) => (candidate.id === currentTask.id ? nextTask : candidate))
+      })
+
+      if (!suppressDoneToast && (activeTab === TAB_KEYS.notDone || activeTab === TAB_KEYS.planned)) {
+        pushToast(translate('taskMarkedDone'))
       }
 
+      if (!suppressRecurringToast) {
+        pushToast(translate('movedToNextOccurrence'))
+        setActiveTab(TAB_KEYS.notDone)
+      }
+
+      return
+    }
+
+    const updatedTask = updateTaskInState(task.id, (currentTask) => {
       return {
         ...currentTask,
         isDone,
@@ -1634,10 +1690,6 @@ function App() {
       pushToast(translate('taskMarkedDone'))
     }
 
-    if (isDone && task.recurring !== 'none' && updatedTask && !suppressRecurringToast) {
-      pushToast(translate('movedToNextOccurrence'))
-      setActiveTab(TAB_KEYS.notDone)
-    }
   }
 
   const deleteTask = (taskId) => {
@@ -1781,8 +1833,7 @@ function App() {
         deleteTask(task.id)
         pushToast(translate('taskDeleted'))
       } else {
-        toggleTaskDone(task, true, { suppressDoneToast: true, suppressRecurringToast: true })
-        pushToast(translate('movedToDone'))
+        toggleTaskDone(task, true)
       }
       return
     }
