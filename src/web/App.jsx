@@ -898,42 +898,6 @@ const syncService = {
   pushMergedTasks: async () => {},
 }
 
-const ProgressRing = ({ completed, total, ariaLabel }) => {
-  const size = 36
-  const strokeWidth = 4
-  const radius = (size - strokeWidth) / 2
-  const circumference = 2 * Math.PI * radius
-  const percentage = total === 0 ? 0 : Math.round((completed / total) * 100)
-  const offset = circumference - (percentage / 100) * circumference
-
-  return (
-    <div className="progress-ring" aria-label={ariaLabel}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img">
-        <circle
-          className="ring-track"
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          strokeWidth={strokeWidth}
-          fill="none"
-        />
-        <circle
-          className="ring-progress"
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          strokeWidth={strokeWidth}
-          fill="none"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        />
-      </svg>
-      <span>{completed}/{total}</span>
-    </div>
-  )
-}
-
 const getSupportedLanguage = (languageCodeCandidate) => {
   if (typeof languageCodeCandidate !== 'string') {
     return DEFAULT_LANGUAGE_CODE
@@ -1472,22 +1436,6 @@ function App() {
     [TAB_KEYS.planned]: plannedTasks.length,
   }
 
-  const notDoneStatusStats = useMemo(() => {
-    const completedTodayInScope = tasks.filter((task) => {
-      if (!task.isDone || getDatePartFromDueDateTime(task.dueDate) > today) {
-        return false
-      }
-
-      return getISODateFromTimestampInTimeZone(task.completedAt, selectedTimeZone) === today
-    }).length
-
-    return {
-      date: today,
-      completed: completedTodayInScope,
-      total: notDoneTasks.length + completedTodayInScope,
-    }
-  }, [tasks, today, selectedTimeZone, notDoneTasks.length])
-
   useEffect(() => {
     if (!isReady) {
       return
@@ -1498,11 +1446,10 @@ function App() {
         timezone: selectedTimeZone,
         language: selectedLanguage,
         syncEnabled: false,
-        statusIndicator: notDoneStatusStats,
       },
       mirrorLegacyRef.current,
     )
-  }, [isReady, selectedLanguage, selectedTimeZone, notDoneStatusStats])
+  }, [isReady, selectedLanguage, selectedTimeZone])
 
   const persistTask = (task) => {
     taskStorage.saveTask(task, mirrorLegacyRef.current)
@@ -2113,14 +2060,6 @@ function App() {
           <button type="button" className="brand-button" onClick={() => switchTab(TAB_KEYS.notDone)}>
             Duebly
           </button>
-          <ProgressRing
-            completed={notDoneStatusStats.completed}
-            total={notDoneStatusStats.total}
-            ariaLabel={translate('progressAria', {
-              completed: notDoneStatusStats.completed,
-              total: notDoneStatusStats.total,
-            })}
-          />
         </div>
         <div className="top-right">
           <div className="language-menu-wrap">

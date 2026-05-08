@@ -7,7 +7,6 @@ const SETTINGS_KEYS = {
   timezone: 'timezone',
   language: 'language',
   syncEnabled: 'sync-enabled',
-  statusIndicator: 'status-indicator',
 }
 
 const RECURRING_VALUES = ['none', 'daily', 'weekly', 'weekdays']
@@ -126,26 +125,6 @@ const splitByRetention = (tasks) => {
   }
 
   return { keptTasks, removedTasks }
-}
-
-const normalizeStatusIndicator = (value) => {
-  if (!value || typeof value !== 'object') {
-    return null
-  }
-
-  const date = getDatePartFromDueDateTime(parseIsoDate(typeof value.date === 'string' ? value.date : '') || '')
-  if (!date) {
-    return null
-  }
-
-  const completed = Number.isFinite(value.completed) ? Math.max(0, Math.trunc(value.completed)) : 0
-  const total = Number.isFinite(value.total) ? Math.max(0, Math.trunc(value.total)) : 0
-
-  return {
-    date,
-    completed,
-    total,
-  }
 }
 
 const normalizeTask = (task) => {
@@ -273,7 +252,6 @@ const readSettings = async () => {
     timezone: typeof map[SETTINGS_KEYS.timezone] === 'string' ? map[SETTINGS_KEYS.timezone] : null,
     language: typeof map[SETTINGS_KEYS.language] === 'string' ? map[SETTINGS_KEYS.language] : null,
     syncEnabled: Boolean(map[SETTINGS_KEYS.syncEnabled]),
-    statusIndicator: normalizeStatusIndicator(map[SETTINGS_KEYS.statusIndicator]),
   }
 }
 
@@ -282,7 +260,6 @@ const writeSettings = async (settings) => {
     { id: SETTINGS_KEYS.timezone, value: settings.timezone || null },
     { id: SETTINGS_KEYS.language, value: settings.language || null },
     { id: SETTINGS_KEYS.syncEnabled, value: Boolean(settings.syncEnabled) },
-    { id: SETTINGS_KEYS.statusIndicator, value: normalizeStatusIndicator(settings.statusIndicator) },
   ])
 }
 
@@ -325,7 +302,6 @@ export const taskStorage = {
           timezone: defaultTimeZone,
           language: null,
           syncEnabled: false,
-          statusIndicator: null,
         },
         fallbackActive: false,
       }

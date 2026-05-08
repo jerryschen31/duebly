@@ -114,30 +114,6 @@
   height: 2rem;
 }
 
-.progress-ring {
-  position: relative;
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
-  font-size: 0.67rem;
-  color: #374151;
-}
-
-.progress-ring svg {
-  position: absolute;
-  inset: 0;
-}
-
-.ring-track {
-  stroke: #d1d5db;
-}
-
-.ring-progress {
-  stroke: #2563eb;
-  transition: stroke-dashoffset 180ms ease;
-}
-
 .tab-bar {
   position: sticky;
   top: var(--top-nav-height);
