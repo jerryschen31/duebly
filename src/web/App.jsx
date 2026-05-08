@@ -42,7 +42,7 @@ const TRANSLATIONS = {
     speechNotSupportedTitle: 'Speech-to-text not supported',
     taskDescription: 'Task description',
     dueDate: 'Due date',
-    setTime: 'Set time',
+    setTime: 'Set time (optional)',
     clearTime: 'Clear time',
     setRecurringRule: 'Set recurring rule',
     doesNotRepeat: 'Does not repeat',
@@ -60,6 +60,7 @@ const TRANSLATIONS = {
     movedToDate: 'Moved to {date}',
     movedToNextOccurrence: 'Moved to next occurrence',
     taskDeleted: 'Task Deleted',
+    taskMarkedDone: 'Task marked as done',
     movedToDone: 'Moved to Done',
     savedForTomorrow: 'Saved for tomorrow',
     saveForLater: 'Save for Later',
@@ -100,6 +101,8 @@ const TRANSLATIONS = {
   },
   'en-GB': {
     languageName: 'British English',
+    setTime: 'Set time (optional)',
+    clearTime: 'Clear time',
     changeLabel: 'Change label',
   },
   'zh-CN': {
@@ -121,6 +124,8 @@ const TRANSLATIONS = {
     speechNotSupportedTitle: '浏览器不支持语音转文字',
     taskDescription: '任务描述',
     dueDate: '截止日期',
+    setTime: '设置时间（可选）',
+    clearTime: '清除时间',
     setRecurringRule: '设置重复规则',
     doesNotRepeat: '不重复',
     repeatDaily: '每天重复',
@@ -137,6 +142,7 @@ const TRANSLATIONS = {
     movedToDate: '已移动到 {date}',
     movedToNextOccurrence: '已移动到下一次',
     taskDeleted: '任务已删除',
+    taskMarkedDone: '任务已标记为完成',
     movedToDone: '已移至已完成',
     savedForTomorrow: '已保存到明天',
     saveForLater: '稍后处理',
@@ -194,6 +200,8 @@ const TRANSLATIONS = {
     speechNotSupportedTitle: 'このブラウザは音声入力に対応していません',
     taskDescription: 'タスク内容',
     dueDate: '期限日',
+    setTime: '時刻を設定（任意）',
+    clearTime: '時刻をクリア',
     setRecurringRule: '繰り返し設定',
     doesNotRepeat: '繰り返さない',
     repeatDaily: '毎日繰り返す',
@@ -210,6 +218,7 @@ const TRANSLATIONS = {
     movedToDate: '{date} に移動しました',
     movedToNextOccurrence: '次の予定に移動しました',
     taskDeleted: 'タスクを削除しました',
+    taskMarkedDone: 'タスクを完了にしました',
     movedToDone: '完了に移動しました',
     savedForTomorrow: '明日用に保存しました',
     saveForLater: 'あとで対応',
@@ -267,6 +276,8 @@ const TRANSLATIONS = {
     speechNotSupportedTitle: '이 브라우저는 음성 입력을 지원하지 않습니다',
     taskDescription: '작업 설명',
     dueDate: '마감일',
+    setTime: '시간 설정(선택 사항)',
+    clearTime: '시간 지우기',
     setRecurringRule: '반복 규칙 설정',
     doesNotRepeat: '반복 안 함',
     repeatDaily: '매일 반복',
@@ -283,6 +294,7 @@ const TRANSLATIONS = {
     movedToDate: '{date}(으)로 이동됨',
     movedToNextOccurrence: '다음 일정으로 이동됨',
     taskDeleted: '작업이 삭제됨',
+    taskMarkedDone: '작업을 완료로 표시했습니다',
     movedToDone: '완료됨으로 이동됨',
     savedForTomorrow: '내일로 저장됨',
     saveForLater: '나중에 처리',
@@ -340,6 +352,8 @@ const TRANSLATIONS = {
     speechNotSupportedTitle: 'La dictée vocale n’est pas prise en charge',
     taskDescription: 'Description de la tâche',
     dueDate: 'Date d’échéance',
+    setTime: 'Définir l’heure (facultatif)',
+    clearTime: 'Effacer l’heure',
     setRecurringRule: 'Définir la récurrence',
     doesNotRepeat: 'Ne se répète pas',
     repeatDaily: 'Répéter chaque jour',
@@ -356,6 +370,7 @@ const TRANSLATIONS = {
     movedToDate: 'Déplacée au {date}',
     movedToNextOccurrence: 'Déplacée à la prochaine occurrence',
     taskDeleted: 'Tâche supprimée',
+    taskMarkedDone: 'Tâche marquée comme terminée',
     movedToDone: 'Déplacée vers Terminées',
     savedForTomorrow: 'Enregistrée pour demain',
     saveForLater: 'Garder pour plus tard',
@@ -413,6 +428,8 @@ const TRANSLATIONS = {
     speechNotSupportedTitle: 'Voz a texto no compatible',
     taskDescription: 'Descripción de la tarea',
     dueDate: 'Fecha límite',
+    setTime: 'Configurar hora (opcional)',
+    clearTime: 'Borrar hora',
     setRecurringRule: 'Configurar repetición',
     doesNotRepeat: 'No se repite',
     repeatDaily: 'Repetir a diario',
@@ -429,6 +446,7 @@ const TRANSLATIONS = {
     movedToDate: 'Movido a {date}',
     movedToNextOccurrence: 'Movido a la próxima ocurrencia',
     taskDeleted: 'Tarea eliminada',
+    taskMarkedDone: 'Tarea marcada como hecha',
     movedToDone: 'Movido a Hechas',
     savedForTomorrow: 'Guardado para mañana',
     saveForLater: 'Guardar para después',
@@ -486,6 +504,8 @@ const TRANSLATIONS = {
     speechNotSupportedTitle: 'Voce a testo non supportata',
     taskDescription: 'Descrizione attività',
     dueDate: 'Data di scadenza',
+    setTime: 'Imposta ora (facoltativo)',
+    clearTime: 'Cancella ora',
     setRecurringRule: 'Imposta ricorrenza',
     doesNotRepeat: 'Non si ripete',
     repeatDaily: 'Ripeti ogni giorno',
@@ -502,6 +522,7 @@ const TRANSLATIONS = {
     movedToDate: 'Spostata al {date}',
     movedToNextOccurrence: 'Spostata alla prossima occorrenza',
     taskDeleted: 'Attività eliminata',
+    taskMarkedDone: 'Attività segnata come fatta',
     movedToDone: 'Spostata in Fatte',
     savedForTomorrow: 'Salvata per domani',
     saveForLater: 'Salva per dopo',
@@ -694,6 +715,10 @@ const formatTimePart = (timePart, compact = false) => {
 
 const formatDueTime = (dueDate, compact = false) => {
   return formatTimePart(getDueTimePart(dueDate), compact)
+}
+
+const formatTaskRowTime = (dueDate) => {
+  return formatDueTime(dueDate, true).replace(/am$/, 'a').replace(/pm$/, 'p')
 }
 
 const formatDateTimeLabel = (dueDate, locale, today) => {
@@ -1453,21 +1478,24 @@ function App() {
   const getDateTimePickerPosition = (triggerElement) => {
     const viewportPadding = 8
     const pickerWidth = Math.min(320, viewportWidth - viewportPadding * 2)
-    const estimatedHeight = 330
     const rect = triggerElement.getBoundingClientRect()
-    const openUp = getShouldOpenUp(triggerElement, estimatedHeight)
+    const openUp = rect.top > window.innerHeight / 2
+    const availableHeight = openUp
+      ? rect.top - viewportPadding * 2
+      : window.innerHeight - rect.bottom - viewportPadding * 2
+    const maxHeight = Math.max(132, availableHeight)
     const left = Math.max(
       viewportPadding,
       Math.min(rect.left, viewportWidth - pickerWidth - viewportPadding),
     )
-    const top = openUp
-      ? Math.max(viewportPadding, rect.top - estimatedHeight - 8)
-      : Math.min(window.innerHeight - estimatedHeight - viewportPadding, rect.bottom + 8)
 
     return {
       left,
-      top: Math.max(viewportPadding, top),
+      top: openUp ? rect.top - 8 : rect.bottom + 8,
       width: pickerWidth,
+      transform: openUp ? 'translateY(-100%)' : 'none',
+      maxHeight,
+      timeOptionsMaxHeight: Math.max(96, maxHeight - 104),
     }
   }
 
@@ -1593,7 +1621,7 @@ function App() {
   }
 
   const toggleTaskDone = (task, isDone, options = {}) => {
-    const { suppressRecurringToast = false } = options
+    const { suppressDoneToast = false, suppressRecurringToast = false } = options
     const updatedTask = updateTaskInState(task.id, (currentTask) => {
       if (isDone && currentTask.recurring !== 'none') {
         return {
@@ -1615,6 +1643,15 @@ function App() {
 
     if (updatedTask) {
       persistTask(updatedTask)
+    }
+
+    if (
+      isDone
+      && updatedTask
+      && !suppressDoneToast
+      && (activeTab === TAB_KEYS.notDone || activeTab === TAB_KEYS.planned)
+    ) {
+      pushToast(translate('taskMarkedDone'))
     }
 
     if (isDone && task.recurring !== 'none' && updatedTask && !suppressRecurringToast) {
@@ -1764,7 +1801,7 @@ function App() {
         deleteTask(task.id)
         pushToast(translate('taskDeleted'))
       } else {
-        toggleTaskDone(task, true, { suppressRecurringToast: true })
+        toggleTaskDone(task, true, { suppressDoneToast: true, suppressRecurringToast: true })
         pushToast(translate('movedToDone'))
       }
       return
@@ -2100,6 +2137,9 @@ function App() {
             left: `${dateTimePicker.position.left}px`,
             top: `${dateTimePicker.position.top}px`,
             width: `${dateTimePicker.position.width}px`,
+            transform: dateTimePicker.position.transform,
+            maxHeight: `${dateTimePicker.position.maxHeight}px`,
+            '--time-options-max-height': `${dateTimePicker.position.timeOptionsMaxHeight}px`,
           }}
         >
           <input
@@ -2487,7 +2527,7 @@ function App() {
                     />
 
                     {hasTaskTime ? (
-                      <span className="task-time">({formatDueTime(task.dueDate)})</span>
+                      <span className="task-time">{formatTaskRowTime(task.dueDate)}</span>
                     ) : null}
 
                     <div className="task-main">

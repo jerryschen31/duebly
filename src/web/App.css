@@ -241,6 +241,7 @@
   border-radius: 0.65rem;
   background: #ffffff;
   box-shadow: 0 16px 32px rgba(0, 0, 0, 0.18);
+  overflow-y: auto;
 }
 
 .date-time-picker input[type='date'],
@@ -269,7 +270,7 @@
 
 .time-options {
   display: grid;
-  max-height: min(42dvh, 14rem);
+  max-height: min(var(--time-options-max-height, 14rem), 14rem);
   overflow-y: auto;
   border: 1px solid #d1d5db;
   border-radius: 0.5rem;
@@ -421,7 +422,10 @@
 .label-dot,
 .task-color {
   width: 1rem;
+  min-width: 1rem;
   height: 1rem;
+  padding: 0;
+  aspect-ratio: 1;
   border-radius: 999px;
   border: 2px solid rgba(17, 24, 39, 0.2);
   flex-shrink: 0;
