@@ -719,6 +719,7 @@ const formatTimePart = (timePart, compact = false) => {
     || hours > 23
     || !/^\d{2}$/.test(minutes || '')
     || !Number.isFinite(minuteNumber)
+    || minuteNumber < 0
     || minuteNumber > 59
   ) {
     return ''
@@ -1509,7 +1510,8 @@ function App() {
     const viewportPadding = 8
     const pickerWidth = Math.min(320, viewportWidth - viewportPadding * 2)
     const rect = triggerElement.getBoundingClientRect()
-    const openUp = rect.top > window.innerHeight / 2
+    const preferredHeight = Math.min(330, window.innerHeight - viewportPadding * 2)
+    const openUp = getShouldOpenUp(triggerElement, preferredHeight) && rect.top > viewportPadding + 132
     const availableHeight = openUp
       ? rect.top - viewportPadding * 2
       : window.innerHeight - rect.bottom - viewportPadding * 2
