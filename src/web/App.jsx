@@ -42,6 +42,10 @@ const TRANSLATIONS = {
     speechNotSupportedTitle: 'Speech-to-text not supported',
     taskDescription: 'Task description',
     dueDate: 'Due date',
+    setTime: 'Set time (optional)',
+    clearTime: 'Clear time',
+    timeAmAbbrev: 'a',
+    timePmAbbrev: 'p',
     setRecurringRule: 'Set recurring rule',
     doesNotRepeat: 'Does not repeat',
     repeatDaily: 'Repeat daily',
@@ -58,6 +62,7 @@ const TRANSLATIONS = {
     movedToDate: 'Moved to {date}',
     movedToNextOccurrence: 'Moved to next occurrence',
     taskDeleted: 'Task Deleted',
+    taskMarkedDone: 'Task marked as done',
     movedToDone: 'Moved to Done',
     savedForTomorrow: 'Saved for tomorrow',
     saveForLater: 'Save for Later',
@@ -98,6 +103,10 @@ const TRANSLATIONS = {
   },
   'en-GB': {
     languageName: 'British English',
+    setTime: 'Set time (optional)',
+    clearTime: 'Clear time',
+    timeAmAbbrev: 'a',
+    timePmAbbrev: 'p',
     changeLabel: 'Change label',
   },
   'zh-CN': {
@@ -119,6 +128,10 @@ const TRANSLATIONS = {
     speechNotSupportedTitle: '浏览器不支持语音转文字',
     taskDescription: '任务描述',
     dueDate: '截止日期',
+    setTime: '设置时间（可选）',
+    clearTime: '清除时间',
+    timeAmAbbrev: 'a',
+    timePmAbbrev: 'p',
     setRecurringRule: '设置重复规则',
     doesNotRepeat: '不重复',
     repeatDaily: '每天重复',
@@ -135,6 +148,7 @@ const TRANSLATIONS = {
     movedToDate: '已移动到 {date}',
     movedToNextOccurrence: '已移动到下一次',
     taskDeleted: '任务已删除',
+    taskMarkedDone: '任务已标记为完成',
     movedToDone: '已移至已完成',
     savedForTomorrow: '已保存到明天',
     saveForLater: '稍后处理',
@@ -192,6 +206,10 @@ const TRANSLATIONS = {
     speechNotSupportedTitle: 'このブラウザは音声入力に対応していません',
     taskDescription: 'タスク内容',
     dueDate: '期限日',
+    setTime: '時刻を設定（任意）',
+    clearTime: '時刻をクリア',
+    timeAmAbbrev: 'a',
+    timePmAbbrev: 'p',
     setRecurringRule: '繰り返し設定',
     doesNotRepeat: '繰り返さない',
     repeatDaily: '毎日繰り返す',
@@ -208,6 +226,7 @@ const TRANSLATIONS = {
     movedToDate: '{date} に移動しました',
     movedToNextOccurrence: '次の予定に移動しました',
     taskDeleted: 'タスクを削除しました',
+    taskMarkedDone: 'タスクを完了にしました',
     movedToDone: '完了に移動しました',
     savedForTomorrow: '明日用に保存しました',
     saveForLater: 'あとで対応',
@@ -265,6 +284,10 @@ const TRANSLATIONS = {
     speechNotSupportedTitle: '이 브라우저는 음성 입력을 지원하지 않습니다',
     taskDescription: '작업 설명',
     dueDate: '마감일',
+    setTime: '시간 설정(선택 사항)',
+    clearTime: '시간 지우기',
+    timeAmAbbrev: 'a',
+    timePmAbbrev: 'p',
     setRecurringRule: '반복 규칙 설정',
     doesNotRepeat: '반복 안 함',
     repeatDaily: '매일 반복',
@@ -281,6 +304,7 @@ const TRANSLATIONS = {
     movedToDate: '{date}(으)로 이동됨',
     movedToNextOccurrence: '다음 일정으로 이동됨',
     taskDeleted: '작업이 삭제됨',
+    taskMarkedDone: '작업을 완료로 표시했습니다',
     movedToDone: '완료됨으로 이동됨',
     savedForTomorrow: '내일로 저장됨',
     saveForLater: '나중에 처리',
@@ -338,6 +362,10 @@ const TRANSLATIONS = {
     speechNotSupportedTitle: 'La dictée vocale n’est pas prise en charge',
     taskDescription: 'Description de la tâche',
     dueDate: 'Date d’échéance',
+    setTime: 'Définir l’heure (facultatif)',
+    clearTime: 'Effacer l’heure',
+    timeAmAbbrev: 'a',
+    timePmAbbrev: 'p',
     setRecurringRule: 'Définir la récurrence',
     doesNotRepeat: 'Ne se répète pas',
     repeatDaily: 'Répéter chaque jour',
@@ -354,6 +382,7 @@ const TRANSLATIONS = {
     movedToDate: 'Déplacée au {date}',
     movedToNextOccurrence: 'Déplacée à la prochaine occurrence',
     taskDeleted: 'Tâche supprimée',
+    taskMarkedDone: 'Tâche marquée comme terminée',
     movedToDone: 'Déplacée vers Terminées',
     savedForTomorrow: 'Enregistrée pour demain',
     saveForLater: 'Garder pour plus tard',
@@ -411,6 +440,10 @@ const TRANSLATIONS = {
     speechNotSupportedTitle: 'Voz a texto no compatible',
     taskDescription: 'Descripción de la tarea',
     dueDate: 'Fecha límite',
+    setTime: 'Configurar hora (opcional)',
+    clearTime: 'Borrar hora',
+    timeAmAbbrev: 'a',
+    timePmAbbrev: 'p',
     setRecurringRule: 'Configurar repetición',
     doesNotRepeat: 'No se repite',
     repeatDaily: 'Repetir a diario',
@@ -427,6 +460,7 @@ const TRANSLATIONS = {
     movedToDate: 'Movido a {date}',
     movedToNextOccurrence: 'Movido a la próxima ocurrencia',
     taskDeleted: 'Tarea eliminada',
+    taskMarkedDone: 'Tarea marcada como hecha',
     movedToDone: 'Movido a Hechas',
     savedForTomorrow: 'Guardado para mañana',
     saveForLater: 'Guardar para después',
@@ -484,6 +518,10 @@ const TRANSLATIONS = {
     speechNotSupportedTitle: 'Voce a testo non supportata',
     taskDescription: 'Descrizione attività',
     dueDate: 'Data di scadenza',
+    setTime: 'Imposta ora (facoltativo)',
+    clearTime: 'Cancella ora',
+    timeAmAbbrev: 'a',
+    timePmAbbrev: 'p',
     setRecurringRule: 'Imposta ricorrenza',
     doesNotRepeat: 'Non si ripete',
     repeatDaily: 'Ripeti ogni giorno',
@@ -500,6 +538,7 @@ const TRANSLATIONS = {
     movedToDate: 'Spostata al {date}',
     movedToNextOccurrence: 'Spostata alla prossima occorrenza',
     taskDeleted: 'Attività eliminata',
+    taskMarkedDone: 'Attività segnata come fatta',
     movedToDone: 'Spostata in Fatte',
     savedForTomorrow: 'Salvata per domani',
     saveForLater: 'Salva per dopo',
@@ -588,6 +627,10 @@ const SWIPE_THRESHOLD = 70
 const SWIPE_COMMIT_DELAY_MS = 170
 const TOAST_DURATION_MS = 1800
 const MAX_TASK_DESCRIPTION_LENGTH = 200
+const TIME_OPTION_INTERVAL_MINUTES = 30
+const TIME_OPTIONS_COUNT = (24 * 60) / TIME_OPTION_INTERVAL_MINUTES
+const ALL_DAY_TASKS_SORT_LAST = '99:99:99'
+const MIN_DATE_TIME_PICKER_HEIGHT = 132
 const SPEECH_LANGUAGE_FALLBACKS = {
   'en-US': ['en-US', 'en'],
   'en-GB': ['en-GB', 'en-US', 'en'],
@@ -635,8 +678,159 @@ const getISODateFromTimestampInTimeZone = (timestamp, timeZone) => {
   return toISODateInTimeZone(new Date(timestamp), timeZone)
 }
 
+const getDatePartFromDueDateTime = (dueDate) => String(dueDate || '').slice(0, 10)
+
+const getDueTimePart = (dueDate) => {
+  const match = String(dueDate || '').match(/T(\d{2}:\d{2}:\d{2})$/)
+  return match ? match[1] : taskModel.allDayTime
+}
+
+const makeDueDateTime = (datePart, timePart = taskModel.allDayTime) => {
+  return `${datePart}T${timePart || taskModel.allDayTime}`
+}
+
+const isAllDayDueDate = (dueDate) => getDueTimePart(dueDate) === taskModel.allDayTime
+
+const hasExplicitDueTime = (dueDate) => !isAllDayDueDate(dueDate)
+
+const replaceDueDatePart = (dueDate, datePart) => {
+  return makeDueDateTime(datePart, getDueTimePart(dueDate))
+}
+
+const getCurrentYearFromDatePart = (datePart) => datePart.slice(0, 4)
+
+const formatDateLabel = (dueDate, locale, today) => {
+  const datePart = getDatePartFromDueDateTime(dueDate)
+  const formatter = new Intl.DateTimeFormat(locale, {
+    timeZone: 'UTC',
+    month: 'short',
+    day: 'numeric',
+    ...(getCurrentYearFromDatePart(datePart) === getCurrentYearFromDatePart(today) ? {} : { year: 'numeric' }),
+  })
+  return formatter.format(new Date(`${datePart}T00:00:00Z`))
+}
+
+const getValidClockTimeParts = (timePart) => {
+  const [hoursRaw, minutes] = timePart.split(':')
+  const hours = Number(hoursRaw)
+  const minuteNumber = Number(minutes)
+  if (
+    !Number.isFinite(hours)
+    || hours < 0
+    || hours > 23
+    || !/^\d{2}$/.test(minutes || '')
+    || !Number.isFinite(minuteNumber)
+    || minuteNumber > 59
+  ) {
+    return null
+  }
+
+  return { hours, minutes }
+}
+
+const formatTimePart = (timePart, compact = false) => {
+  const clockTime = getValidClockTimeParts(timePart)
+  if (!clockTime) {
+    return ''
+  }
+
+  const { hours, minutes } = clockTime
+  const period = hours >= 12 ? 'pm' : 'am'
+  const hour12 = hours % 12 || 12
+  return `${hour12}:${minutes}${compact ? '' : ' '}${period}`
+}
+
+const formatDueTime = (dueDate, compact = false) => {
+  return formatTimePart(getDueTimePart(dueDate), compact)
+}
+
+const formatTaskTimeCompact = (dueDate, amSuffix = 'a', pmSuffix = 'p') => {
+  const clockTime = getValidClockTimeParts(getDueTimePart(dueDate))
+  if (!clockTime) {
+    return ''
+  }
+
+  const { hours, minutes } = clockTime
+  return `${hours % 12 || 12}:${minutes}${hours >= 12 ? pmSuffix : amSuffix}`
+}
+
+const formatDateTimeLabel = (dueDate, locale, today) => {
+  const dateLabel = formatDateLabel(dueDate, locale, today)
+  if (!hasExplicitDueTime(dueDate)) {
+    return dateLabel
+  }
+
+  return `${dateLabel} • ${formatDueTime(dueDate, true)}`
+}
+
+const compareTasksByDueDate = (a, b, dateDirection = 'asc') => {
+  const aDate = getDatePartFromDueDateTime(a.dueDate)
+  const bDate = getDatePartFromDueDateTime(b.dueDate)
+  if (aDate !== bDate) {
+    return dateDirection === 'desc' ? bDate.localeCompare(aDate) : aDate.localeCompare(bDate)
+  }
+
+  const aTime = isAllDayDueDate(a.dueDate) ? ALL_DAY_TASKS_SORT_LAST : getDueTimePart(a.dueDate)
+  const bTime = isAllDayDueDate(b.dueDate) ? ALL_DAY_TASKS_SORT_LAST : getDueTimePart(b.dueDate)
+  const timeCompare = aTime.localeCompare(bTime)
+  return timeCompare || b.createdAt - a.createdAt
+}
+
+const parseTimeInput = (value) => {
+  const normalized = value.trim().toLowerCase().replace(/\s+/g, '')
+  if (!normalized) {
+    return taskModel.allDayTime
+  }
+
+  const match = normalized.match(/^(\d{1,2})(?::(\d{2}))?(am|pm)?$/)
+  if (!match) {
+    return null
+  }
+
+  let hours = Number(match[1])
+  const minutes = match[2] ? Number(match[2]) : 0
+  const meridiem = match[3]
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes) || minutes > 59) {
+    return null
+  }
+
+  if (meridiem) {
+    if (hours < 1 || hours > 12) {
+      return null
+    }
+    hours = hours % 12
+    if (meridiem === 'pm') {
+      hours += 12
+    }
+  } else if (hours > 23) {
+    return null
+  }
+
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`
+}
+
+const getNextHalfHourDate = () => {
+  const date = new Date()
+  const minutes = date.getMinutes()
+  const minutesToAdd = TIME_OPTION_INTERVAL_MINUTES - (minutes % TIME_OPTION_INTERVAL_MINUTES)
+  date.setMinutes(minutes + minutesToAdd, 0, 0)
+  return date
+}
+
+const buildTimeOptions = () => {
+  const optionDate = getNextHalfHourDate()
+  return Array.from({ length: TIME_OPTIONS_COUNT }, () => {
+    const hours = optionDate.getHours()
+    const minutes = optionDate.getMinutes()
+    const value = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`
+    const label = formatTimePart(value)
+    optionDate.setMinutes(optionDate.getMinutes() + TIME_OPTION_INTERVAL_MINUTES)
+    return { value, label }
+  })
+}
+
 const addDaysToISODate = (isoDate, daysToAdd) => {
-  const date = new Date(`${isoDate}T00:00:00Z`)
+  const date = new Date(`${getDatePartFromDueDateTime(isoDate)}T00:00:00Z`)
   if (Number.isNaN(date.getTime())) {
     return isoDate
   }
@@ -646,7 +840,7 @@ const addDaysToISODate = (isoDate, daysToAdd) => {
 }
 
 const parseISODate = (isoDate) => {
-  const date = new Date(`${isoDate}T00:00:00Z`)
+  const date = new Date(`${getDatePartFromDueDateTime(isoDate)}T00:00:00Z`)
   return Number.isNaN(date.getTime()) ? null : date
 }
 
@@ -668,16 +862,19 @@ const getNextWeekdayISODate = (isoDate) => {
 }
 
 const getNextRecurringDate = (isoDate, recurringRule) => {
+  const currentTime = getDueTimePart(isoDate)
+  const withCurrentTime = (datePart) => makeDueDateTime(datePart, currentTime)
+
   if (recurringRule === 'daily') {
-    return addDaysToISODate(isoDate, 1)
+    return withCurrentTime(addDaysToISODate(isoDate, 1))
   }
 
   if (recurringRule === 'weekly') {
-    return addDaysToISODate(isoDate, 7)
+    return withCurrentTime(addDaysToISODate(isoDate, 7))
   }
 
   if (recurringRule === 'weekdays') {
-    return getNextWeekdayISODate(isoDate)
+    return withCurrentTime(getNextWeekdayISODate(isoDate))
   }
 
   return isoDate
@@ -807,7 +1004,7 @@ function App() {
     return window.innerWidth
   })
   const [draftText, setDraftText] = useState('')
-  const [draftDueDate, setDraftDueDate] = useState(() => toISODateInTimeZone(new Date(), defaultTimeZone))
+  const [draftDueDate, setDraftDueDate] = useState(() => makeDueDateTime(toISODateInTimeZone(new Date(), defaultTimeZone)))
   const [draftColor, setDraftColor] = useState(LABELS[0].color)
   const [isDraftDateAuto, setIsDraftDateAuto] = useState(true)
   const [isDraftLabelOpen, setIsDraftLabelOpen] = useState(false)
@@ -824,6 +1021,8 @@ function App() {
   const [toasts, setToasts] = useState([])
   const [swatchHint, setSwatchHint] = useState(null)
   const [isListening, setIsListening] = useState(false)
+  const [dateTimePicker, setDateTimePicker] = useState(null)
+  const [timeMenuOpen, setTimeMenuOpen] = useState(false)
   const isMobileViewport = viewportWidth <= 640
   const isSpeechSupported = Boolean(globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition)
 
@@ -875,6 +1074,8 @@ function App() {
 
     return { value, label: translate('repeatWeekdays') }
   })
+  const timeOptions = useMemo(() => dateTimePicker ? buildTimeOptions() : [], [dateTimePicker])
+  const parsedPickerTime = dateTimePicker ? parseTimeInput(dateTimePicker.timeText) : null
 
   const getShouldOpenUp = (anchorElement, estimatedHeight = 240) => {
     if (!anchorElement) {
@@ -960,6 +1161,11 @@ function App() {
 
       if (!target.closest('.recurring-menu-wrap')) {
         setIsDraftRecurringMenuOpen(false)
+      }
+
+      if (!target.closest('.date-time-picker') && !target.closest('.date-time-trigger')) {
+        setDateTimePicker(null)
+        setTimeMenuOpen(false)
       }
 
       if (!target.closest('.task-label-selector-wrap')) {
@@ -1214,12 +1420,12 @@ function App() {
   }, [nowTick, selectedTimeZone])
   const tomorrow = useMemo(() => addDaysToISODate(today, 1), [today])
 
-  const effectiveDraftDueDate = isDraftDateAuto ? today : draftDueDate
+  const effectiveDraftDueDate = isDraftDateAuto ? makeDueDateTime(today) : draftDueDate
 
   const notDoneTasks = useMemo(() => {
     return tasks
-      .filter((task) => !task.isDone && task.dueDate <= today)
-      .sort((a, b) => b.dueDate.localeCompare(a.dueDate) || b.createdAt - a.createdAt)
+      .filter((task) => !task.isDone && getDatePartFromDueDateTime(task.dueDate) <= today)
+      .sort((a, b) => compareTasksByDueDate(a, b, 'desc'))
   }, [tasks, today])
 
   const doneTasks = useMemo(() => {
@@ -1231,8 +1437,8 @@ function App() {
   const plannedTasks = useMemo(() => {
     const recurringSeriesSeen = new Set()
     return tasks
-      .filter((task) => !task.isDone && task.dueDate > today)
-      .sort((a, b) => a.dueDate.localeCompare(b.dueDate) || a.createdAt - b.createdAt)
+      .filter((task) => !task.isDone && getDatePartFromDueDateTime(task.dueDate) > today)
+      .sort((a, b) => compareTasksByDueDate(a, b, 'asc'))
       .filter((task) => {
         if (task.recurring === 'none') {
           return true
@@ -1268,7 +1474,7 @@ function App() {
 
   const notDoneStatusStats = useMemo(() => {
     const completedTodayInScope = tasks.filter((task) => {
-      if (!task.isDone || task.dueDate > today) {
+      if (!task.isDone || getDatePartFromDueDateTime(task.dueDate) > today) {
         return false
       }
 
@@ -1300,6 +1506,93 @@ function App() {
 
   const persistTask = (task) => {
     taskStorage.saveTask(task, mirrorLegacyRef.current)
+  }
+
+  const getDateTimePickerPosition = (triggerElement) => {
+    const viewportPadding = 8
+    const pickerWidth = Math.min(320, viewportWidth - viewportPadding * 2)
+    const rect = triggerElement.getBoundingClientRect()
+    const preferredHeight = Math.min(330, window.innerHeight - viewportPadding * 2)
+    const canOpenUp = rect.top > viewportPadding + MIN_DATE_TIME_PICKER_HEIGHT
+    const openUp = getShouldOpenUp(triggerElement, preferredHeight) && canOpenUp
+    const availableHeight = openUp
+      ? rect.top - viewportPadding * 2
+      : window.innerHeight - rect.bottom - viewportPadding * 2
+    const maxHeight = Math.max(MIN_DATE_TIME_PICKER_HEIGHT, availableHeight)
+    const left = Math.max(
+      viewportPadding,
+      Math.min(rect.left, viewportWidth - pickerWidth - viewportPadding),
+    )
+
+    return {
+      left,
+      top: openUp ? rect.top - 8 : rect.bottom + 8,
+      width: pickerWidth,
+      transform: openUp ? 'translateY(-100%)' : '',
+      maxHeight,
+      timeOptionsMaxHeight: Math.max(96, maxHeight - 104),
+    }
+  }
+
+  const openDateTimePicker = ({ target, task = null, triggerElement }) => {
+    const dueDate = target === 'draft' ? effectiveDraftDueDate : task.dueDate
+    setDateTimePicker({
+      id: `${target}-${task?.id || 'new'}-${taskModel.getNow()}`,
+      target,
+      taskId: task?.id || null,
+      date: getDatePartFromDueDateTime(dueDate),
+      timeText: hasExplicitDueTime(dueDate) ? formatDueTime(dueDate) : '',
+      position: getDateTimePickerPosition(triggerElement),
+    })
+    setTimeMenuOpen(false)
+  }
+
+  const applyDueDateTime = ({ target, taskId, dueDate }) => {
+    if (target === 'draft') {
+      setDraftDueDate(dueDate)
+      setIsDraftDateAuto(false)
+      return
+    }
+
+    updateTaskDate(taskId, dueDate)
+  }
+
+  const updatePickerDate = (date) => {
+    if (!dateTimePicker || !date) {
+      return
+    }
+
+    const dueDate = makeDueDateTime(date, parseTimeInput(dateTimePicker.timeText) || taskModel.allDayTime)
+    setDateTimePicker((current) => current && {
+      ...current,
+      date,
+    })
+    applyDueDateTime({
+      target: dateTimePicker.target,
+      taskId: dateTimePicker.taskId,
+      dueDate,
+    })
+  }
+
+  const commitPickerTime = (timeText) => {
+    if (!dateTimePicker) {
+      return
+    }
+
+    const parsedTime = parseTimeInput(timeText)
+    if (!parsedTime) {
+      setDateTimePicker((current) => current && { ...current, timeText })
+      return
+    }
+
+    const displayText = parsedTime === taskModel.allDayTime ? '' : formatTimePart(parsedTime)
+    const dueDate = makeDueDateTime(dateTimePicker.date, parsedTime)
+    setDateTimePicker((current) => current && { ...current, timeText: displayText })
+    applyDueDateTime({
+      target: dateTimePicker.target,
+      taskId: dateTimePicker.taskId,
+      dueDate,
+    })
   }
 
   const updateTaskInState = (taskId, updater) => {
@@ -1343,30 +1636,27 @@ function App() {
     persistTask(newTask)
 
     setDraftText('')
-    setDraftDueDate(today)
+    setDraftDueDate(makeDueDateTime(today))
     setDraftColor(LABELS[0].color)
     setDraftRecurring('none')
     setIsDraftDateAuto(true)
     setIsDraftLabelOpen(false)
     setIsDraftRecurringMenuOpen(false)
 
-    if (newTask.dueDate > today) {
+    if (getDatePartFromDueDateTime(newTask.dueDate) > today) {
       setActiveTab(TAB_KEYS.planned)
     } else {
       setActiveTab(TAB_KEYS.notDone)
     }
   }
 
-  const getRecurringTargetDate = (recurringRule) => {
-    return getNextRecurringDate(today, recurringRule)
-  }
-
   const getLaterToast = (targetDate) => {
-    return targetDate === tomorrow ? translate('movedToTomorrow') : translate('movedToDate', { date: targetDate })
+    const targetDatePart = getDatePartFromDueDateTime(targetDate)
+    return targetDatePart === tomorrow ? translate('movedToTomorrow') : translate('movedToDate', { date: targetDatePart })
   }
 
   const toggleTaskDone = (task, isDone, options = {}) => {
-    const { suppressRecurringToast = false } = options
+    const { suppressDoneToast = false, suppressRecurringToast = false } = options
     const updatedTask = updateTaskInState(task.id, (currentTask) => {
       if (isDone && currentTask.recurring !== 'none') {
         return {
@@ -1388,6 +1678,15 @@ function App() {
 
     if (updatedTask) {
       persistTask(updatedTask)
+    }
+
+    if (
+      isDone
+      && updatedTask
+      && !suppressDoneToast
+      && (activeTab === TAB_KEYS.notDone || activeTab === TAB_KEYS.planned)
+    ) {
+      pushToast(translate('taskMarkedDone'))
     }
 
     if (isDone && task.recurring !== 'none' && updatedTask && !suppressRecurringToast) {
@@ -1507,18 +1806,19 @@ function App() {
     return (activeTab === TAB_KEYS.notDone && !task.isDone) || (activeTab === TAB_KEYS.done && task.isDone)
   }
 
-  const getSwipeTargetDate = (recurringRule) => {
+  const getSwipeTargetDate = (task) => {
+    const recurringRule = task.recurring
     if (recurringRule === 'none') {
-      return tomorrow
+      return replaceDueDatePart(task.dueDate, tomorrow)
     }
 
-    return getRecurringTargetDate(recurringRule)
+    return getNextRecurringDate(task.dueDate, recurringRule)
   }
 
   const hasRecurringDuplicateAtDate = (task, targetDate) => {
     const taskSeriesId = getSeriesId(task)
     return tasks.some((candidate) => {
-      if (candidate.id === task.id || candidate.isDone || candidate.dueDate !== targetDate) {
+      if (candidate.id === task.id || candidate.isDone || getDatePartFromDueDateTime(candidate.dueDate) !== getDatePartFromDueDateTime(targetDate)) {
         return false
       }
 
@@ -1536,7 +1836,7 @@ function App() {
         deleteTask(task.id)
         pushToast(translate('taskDeleted'))
       } else {
-        toggleTaskDone(task, true, { suppressRecurringToast: true })
+        toggleTaskDone(task, true, { suppressDoneToast: true, suppressRecurringToast: true })
         pushToast(translate('movedToDone'))
       }
       return
@@ -1557,7 +1857,7 @@ function App() {
         return
       }
 
-      const targetDate = getSwipeTargetDate(task.recurring)
+      const targetDate = getSwipeTargetDate(task)
       if (task.recurring !== 'none' && hasRecurringDuplicateAtDate(task, targetDate)) {
         pushToast(getLaterToast(targetDate))
         return
@@ -1684,12 +1984,12 @@ function App() {
     const seriesId = getSeriesId(task)
     const nowIso = taskModel.getNowIso()
     const nowMs = taskModel.getNow()
-    const nextDueDate = getRecurringTargetDate(nextRecurring)
+    const nextDueDate = getNextRecurringDate(task.dueDate, nextRecurring)
     const futureSeriesTasks = tasks.filter((candidate) => {
       if (candidate.id === task.id || candidate.isDone) {
         return false
       }
-      if (candidate.dueDate <= today) {
+      if (getDatePartFromDueDateTime(candidate.dueDate) <= today) {
         return false
       }
       return getSeriesId(candidate) === seriesId
@@ -1719,7 +2019,7 @@ function App() {
     })
 
     const save = [updatedSelectedTask]
-    if (nextRecurring !== 'none' && updatedSelectedTask.dueDate <= today) {
+    if (nextRecurring !== 'none' && getDatePartFromDueDateTime(updatedSelectedTask.dueDate) <= today) {
       const nextOccurrence = {
         id: createId(),
         text: updatedSelectedTask.text,
@@ -1863,6 +2163,86 @@ function App() {
         </div>
       </header>
 
+      {dateTimePicker ? (
+        <div
+          className="date-time-picker"
+          role="dialog"
+          aria-label={translate('dueDate')}
+          style={{
+            left: `${dateTimePicker.position.left}px`,
+            top: `${dateTimePicker.position.top}px`,
+            width: `${dateTimePicker.position.width}px`,
+            transform: dateTimePicker.position.transform,
+            maxHeight: `${dateTimePicker.position.maxHeight}px`,
+            '--time-options-max-height': `${dateTimePicker.position.timeOptionsMaxHeight}px`,
+          }}
+        >
+          <input
+            type="date"
+            value={dateTimePicker.date}
+            onChange={(event) => {
+              updatePickerDate(event.target.value)
+            }}
+            aria-label={translate('dueDate')}
+          />
+          <div className="time-picker-field">
+            <input
+              type="text"
+              value={dateTimePicker.timeText}
+              placeholder={translate('setTime')}
+              onFocus={() => setTimeMenuOpen(true)}
+              onClick={() => setTimeMenuOpen(true)}
+              onChange={(event) => {
+                const nextText = event.target.value
+                setDateTimePicker((current) => current && { ...current, timeText: nextText })
+                if (!nextText.trim()) {
+                  commitPickerTime('')
+                }
+              }}
+              onBlur={() => commitPickerTime(dateTimePicker.timeText)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault()
+                  commitPickerTime(dateTimePicker.timeText)
+                  setTimeMenuOpen(false)
+                }
+                if (event.key === 'Escape') {
+                  setDateTimePicker(null)
+                  setTimeMenuOpen(false)
+                }
+              }}
+              role="combobox"
+              aria-expanded={timeMenuOpen}
+              aria-label={translate('setTime')}
+            />
+            {dateTimePicker.timeText ? (
+              <button type="button" className="clear-time-button" onClick={() => commitPickerTime('')}>
+                {translate('clearTime')}
+              </button>
+            ) : null}
+            {timeMenuOpen ? (
+              <div className="time-options" role="listbox">
+                {timeOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    role="option"
+                    aria-selected={parsedPickerTime === option.value}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => {
+                      commitPickerTime(option.label)
+                      setTimeMenuOpen(false)
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
       <nav className="tab-bar" aria-label={translate('taskListTabs')}>
         <button
           type="button"
@@ -1964,16 +2344,19 @@ function App() {
                   </div>
                 ) : null}
               </div>
-              <input
+              <button
                 id="new-task-date"
-                type="date"
-                value={effectiveDraftDueDate}
-                onChange={(event) => {
-                  setDraftDueDate(event.target.value)
-                  setIsDraftDateAuto(false)
+                type="button"
+                className="date-time-trigger composer-date-trigger"
+                onClick={(event) => {
+                  openDateTimePicker({
+                    target: 'draft',
+                    triggerElement: event.currentTarget,
+                  })
                 }}
-                required
-              />
+              >
+                {formatDateTimeLabel(effectiveDraftDueDate, activeLanguage.locale, today)}
+              </button>
               <div className="label-select-wrap">
                 <button
                   type="button"
@@ -2043,6 +2426,7 @@ function App() {
                 menuTaskId === task.id || frequencySelectorTaskId === task.id || labelSelectorTaskId === task.id
                   ? 'task-row-shell menu-open'
                   : 'task-row-shell'
+              const hasTaskTime = hasExplicitDueTime(task.dueDate)
 
               return (
                 <motion.div
@@ -2136,13 +2520,20 @@ function App() {
                       aria-label={translate('markTaskDoneAria', { task: task.text })}
                     />
 
-                    <input
-                      className="task-date"
-                      type="date"
-                      value={task.dueDate}
-                      onChange={(event) => updateTaskDate(task.id, event.target.value)}
+                    <button
+                      className="task-date date-time-trigger"
+                      type="button"
+                      onClick={(event) => {
+                        openDateTimePicker({
+                          target: 'task',
+                          task,
+                          triggerElement: event.currentTarget,
+                        })
+                      }}
                       aria-label={translate('changeDateAria', { task: task.text })}
-                    />
+                    >
+                      {formatDateLabel(task.dueDate, activeLanguage.locale, today)}
+                    </button>
 
                     <button
                       type="button"
@@ -2169,6 +2560,12 @@ function App() {
                         }
                       }}
                     />
+
+                    {hasTaskTime ? (
+                      <span className="task-time">
+                        {formatTaskTimeCompact(task.dueDate, translate('timeAmAbbrev'), translate('timePmAbbrev'))}
+                      </span>
+                    ) : null}
 
                     <div className="task-main">
                       {editingTaskId === task.id && !isMobileViewport ? (

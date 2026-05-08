@@ -41,6 +41,8 @@
 .primary-button,
 .task-menu button,
 .task-color,
+.date-time-trigger,
+.date-time-picker button,
 .label-trigger,
 .label-option,
 .task-label-selector button {
@@ -184,7 +186,7 @@
 }
 
 .composer input[type='text'],
-.composer input[type='date'] {
+.composer-date-trigger {
   width: 100%;
   border: 1px solid #d1d5db;
   border-radius: 0.5rem;
@@ -216,8 +218,73 @@
   gap: 0.35rem;
 }
 
-.composer-meta-row input[type='date'] {
+.composer-date-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+  background: #ffffff;
+  color: #111827;
+}
+
+.composer-meta-row .composer-date-trigger {
   min-width: 0;
+}
+
+.date-time-picker {
+  position: fixed;
+  z-index: 280;
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.7rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.65rem;
+  background: #ffffff;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.18);
+  overflow-y: auto;
+}
+
+.date-time-picker input[type='date'],
+.date-time-picker input[type='text'] {
+  width: 100%;
+  min-width: 0;
+  height: 2.35rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 0.55rem 0.65rem;
+  font: inherit;
+}
+
+.time-picker-field {
+  position: relative;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.clear-time-button {
+  justify-self: start;
+  padding: 0.2rem 0;
+  color: #4b5563;
+  font-size: 0.86rem;
+}
+
+.time-options {
+  display: grid;
+  max-height: var(--time-options-max-height, 14rem);
+  overflow-y: auto;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  background: #ffffff;
+}
+
+.time-options button {
+  padding: 0.55rem 0.65rem;
+  text-align: left;
+}
+
+.time-options button:hover,
+.time-options button[aria-selected='true'] {
+  background: #f3f4f6;
 }
 
 .recurring-menu-wrap {
@@ -355,7 +422,10 @@
 .label-dot,
 .task-color {
   width: 1rem;
+  min-width: 1rem;
   height: 1rem;
+  padding: 0;
+  aspect-ratio: 1;
   border-radius: 999px;
   border: 2px solid rgba(17, 24, 39, 0.2);
   flex-shrink: 0;
@@ -439,7 +509,7 @@
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: auto auto auto 1fr auto;
+  grid-template-columns: auto auto auto auto 1fr auto;
   align-items: center;
   gap: 0.5rem;
   border: 1px solid #e5e7eb;
@@ -449,6 +519,7 @@
 }
 
 .task-main {
+  grid-column: 5;
   min-width: 0;
 }
 
@@ -457,6 +528,17 @@
   border: 1px solid #d1d5db;
   border-radius: 0.4rem;
   padding: 0.3rem 0.45rem;
+}
+
+.task-date {
+  background: #ffffff;
+  color: #111827;
+}
+
+.task-time {
+  color: #6b7280;
+  font-size: 0.9rem;
+  white-space: nowrap;
 }
 
 .task-edit-input {
@@ -483,6 +565,10 @@
 .task-menu-wrap,
 .task-label-selector-wrap {
   position: relative;
+}
+
+.task-menu-wrap {
+  grid-column: 6;
 }
 
 .task-menu,
@@ -650,7 +736,7 @@
   }
 
   .task-row {
-    grid-template-columns: auto auto auto 1fr;
+    grid-template-columns: auto auto auto auto 1fr;
   }
 
   .task-menu-wrap {
