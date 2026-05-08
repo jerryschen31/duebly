@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import './App.css'
 import { taskModel, taskStorage } from './storage'
 
@@ -36,6 +37,8 @@ const TRANSLATIONS = {
     doneTab: 'Done',
     plannedTab: 'Planned',
     addTaskTitle: 'Add Task',
+    expandAddTask: 'Expand Add Task',
+    collapseAddTask: 'Collapse Add Task',
     startSpeechToText: 'Start speech to text',
     stopSpeechToText: 'Stop speech to text',
     speakTaskDescription: 'Speak task description',
@@ -63,6 +66,7 @@ const TRANSLATIONS = {
     movedToTomorrow: 'Moved to tomorrow',
     movedToDate: 'Moved to {date}',
     movedToNextOccurrence: 'Moved to next occurrence',
+    taskAdded: 'Task added',
     taskDeleted: 'Task Deleted',
     taskMarkedDone: 'Task marked as done',
     movedToDone: 'Moved to Done',
@@ -1033,6 +1037,13 @@ function App() {
   const [isListening, setIsListening] = useState(false)
   const [dateTimePicker, setDateTimePicker] = useState(null)
   const [activeTimeMenu, setActiveTimeMenu] = useState(null)
+  const [isComposerExpanded, setIsComposerExpanded] = useState(() => {
+    if (typeof window === 'undefined') {
+      return true
+    }
+
+    return window.innerWidth > 640
+  })
   const isMobileViewport = viewportWidth <= 640
   const isSpeechSupported = Boolean(globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition)
 
@@ -1148,6 +1159,12 @@ function App() {
   }, [])
 
   useEffect(() => {
+    if (!isMobileViewport) {
+      setIsComposerExpanded(true)
+    }
+  }, [isMobileViewport])
+
+  useEffect(() => {
     const onPointerDown = (event) => {
       const target = event.target
       if (!(target instanceof HTMLElement)) {
@@ -1255,6 +1272,18 @@ function App() {
     input.focus()
     const end = input.value.length
     input.setSelectionRange(end, end)
+  }
+
+  const toggleComposerExpanded = () => {
+    if (!isComposerExpanded) {
+      flushSync(() => {
+        setIsComposerExpanded(true)
+      })
+      focusDraftTextInputToEnd()
+      return
+    }
+
+    setIsComposerExpanded(false)
   }
 
   const showSwatchHint = (message, anchorRect) => {
@@ -1700,8 +1729,11 @@ function App() {
     setIsDraftDateAuto(true)
     setIsDraftLabelOpen(false)
     setIsDraftRecurringMenuOpen(false)
+    pushToast(translate('taskAdded'))
 
-    if (getDatePartFromDueDateTime(newTask.dueDate) > today) {
+    if (activeTab === TAB_KEYS.planned) {
+      setActiveTab(TAB_KEYS.planned)
+    } else if (getDatePartFromDueDateTime(newTask.dueDate) > today) {
       setActiveTab(TAB_KEYS.planned)
     } else {
       setActiveTab(TAB_KEYS.notDone)
@@ -1763,7 +1795,7 @@ function App() {
 
       if (!suppressRecurringToast) {
         pushToast(translate('movedToNextOccurrence'))
-        setActiveTab(TAB_KEYS.notDone)
+        setActiveTab((prev) => (prev === TAB_KEYS.planned ? TAB_KEYS.planned : TAB_KEYS.notDone))
       }
 
       return
@@ -2416,9 +2448,25 @@ function App() {
       </nav>
 
       <main className="content">
-        <section className="composer-card">
-          <h1>{translate('addTaskTitle')}</h1>
-          <form className="composer" onSubmit={addTask}>
+        <section className={`composer-card ${isMobileViewport && !isComposerExpanded ? 'composer-card-collapsed' : ''}`}>
+          <div className="composer-header">
+            <h1>{translate('addTaskTitle')}</h1>
+            {isMobileViewport ? (
+              <button
+                type="button"
+                className={`icon-button composer-toggle-button ${isComposerExpanded ? 'expanded' : 'collapsed'}`}
+                onClick={toggleComposerExpanded}
+                aria-label={isComposerExpanded ? translate('collapseAddTask') : translate('expandAddTask')}
+                title={isComposerExpanded ? translate('collapseAddTask') : translate('expandAddTask')}
+              >
+                {isComposerExpanded ? '▲' : '+'}
+              </button>
+            ) : null}
+          </div>
+
+          {!isMobileViewport || isComposerExpanded ? (
+            <>
+              <form className="composer" onSubmit={addTask}>
             <div className="composer-text-row">
               <button
                 type="button"
@@ -2541,13 +2589,15 @@ function App() {
                 ) : null}
               </div>
             </div>
-            <button type="submit" className="primary-button" disabled={!draftText.trim() || !effectiveDraftDueDate}>
-              {translate('addTask')}
-            </button>
-          </form>
-          <p className="today-label">
-            {translate('today')} ({selectedTimeZone}): <strong>{today}</strong>
-          </p>
+                <button type="submit" className="primary-button" disabled={!draftText.trim() || !effectiveDraftDueDate}>
+                  {translate('addTask')}
+                </button>
+              </form>
+              <p className="today-label">
+                {translate('today')} ({selectedTimeZone}): <strong>{today}</strong>
+              </p>
+            </>
+          ) : null}
         </section>
 
         <section className="task-list" aria-live="polite">

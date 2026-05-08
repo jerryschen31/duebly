@@ -156,6 +156,21 @@
   margin: 0 0 0.65rem;
 }
 
+.composer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.composer-toggle-button {
+  width: 1.88rem;
+  height: 1.88rem;
+  flex: 0 0 auto;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
 .composer {
   display: grid;
   gap: 0.6rem;
@@ -329,6 +344,11 @@
   color: white;
   padding: 0.6rem;
   font-weight: 600;
+}
+
+.composer .primary-button {
+  padding-top: 0.54rem;
+  padding-bottom: 0.54rem;
 }
 
 .primary-button:disabled {
@@ -717,6 +737,23 @@
 @media (max-width: 640px) {
   .app-shell {
     --top-nav-height: 3.2rem;
+  }
+
+  .composer-card-collapsed {
+    padding: 0.6rem 0.75rem;
+  }
+
+  .composer-card-collapsed .composer-header h1 {
+    margin: 0;
+  }
+
+  .composer-card:not(.composer-card-collapsed) .composer-toggle-button.expanded {
+    margin-top: -0.09rem;
+    margin-bottom: 0.34rem;
+  }
+
+  .composer-card:not(.composer-card-collapsed) .composer-text-row {
+    margin-top: 0.16rem;
   }
 
   .task-row {
