@@ -679,12 +679,12 @@ const parseDueDate = (dueDate) => {
   return { date: '', time: ALL_DAY_TIME, isTimed: false }
 }
 
-const buildDueDate = (date, time, hasTime) => {
+const buildDueDate = (date, time, includeTime) => {
   if (!date) {
     return ''
   }
 
-  if (!hasTime) {
+  if (!includeTime) {
     return `${date}T${ALL_DAY_TIME}`
   }
 
@@ -2322,8 +2322,8 @@ function App() {
                               checked={taskDueParts.isTimed}
                               onChange={(event) => {
                                 const nextHasTime = event.target.checked
-                                const nextTime = nextHasTime && !taskDueParts.isTimed ? DEFAULT_DRAFT_TIME : taskDueParts.time
-                                updateTaskSchedule(task.id, taskDueParts.date, nextTime, nextHasTime)
+                                const timeToUse = nextHasTime && !taskDueParts.isTimed ? DEFAULT_DRAFT_TIME : taskDueParts.time
+                                updateTaskSchedule(task.id, taskDueParts.date, timeToUse, nextHasTime)
                               }}
                             />
                             <span>{translate('setTime')}</span>
