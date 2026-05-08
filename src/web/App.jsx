@@ -2546,7 +2546,7 @@ function App() {
                       }}
                     />
 
-                    {taskTimeLabel ? <span className="task-time">{taskTimeLabel}</span> : null}
+                    {taskTimeLabel && <span className="task-time">{taskTimeLabel}</span>}
 
                     <div className="task-main">
                       {editingTaskId === task.id && !isMobileViewport ? (
