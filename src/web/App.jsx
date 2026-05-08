@@ -42,6 +42,8 @@ const TRANSLATIONS = {
     speechNotSupportedTitle: 'Speech-to-text not supported',
     taskDescription: 'Task description',
     dueDate: 'Due date',
+    setTime: 'Set time',
+    time: 'Time',
     setRecurringRule: 'Set recurring rule',
     doesNotRepeat: 'Does not repeat',
     repeatDaily: 'Repeat daily',
@@ -588,6 +590,8 @@ const SWIPE_THRESHOLD = 70
 const SWIPE_COMMIT_DELAY_MS = 170
 const TOAST_DURATION_MS = 1800
 const MAX_TASK_DESCRIPTION_LENGTH = 200
+const ALL_DAY_TIME = '23:59:59'
+const DEFAULT_DRAFT_TIME = '09:00'
 const SPEECH_LANGUAGE_FALLBACKS = {
   'en-US': ['en-US', 'en'],
   'en-GB': ['en-GB', 'en-US', 'en'],
@@ -650,6 +654,52 @@ const parseISODate = (isoDate) => {
   return Number.isNaN(date.getTime()) ? null : date
 }
 
+const parseDueDate = (dueDate) => {
+  if (typeof dueDate !== 'string') {
+    return { date: '', time: ALL_DAY_TIME, isTimed: false }
+  }
+
+  const trimmed = dueDate.trim()
+  const dateTimeMatch = trimmed.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})(?::(\d{2}))?$/)
+  if (dateTimeMatch) {
+    const [, datePart, timePart, secondsPart] = dateTimeMatch
+    const time = `${timePart}:${secondsPart || '00'}`
+    return {
+      date: datePart,
+      time,
+      isTimed: time !== ALL_DAY_TIME,
+    }
+  }
+
+  const dateOnlyMatch = trimmed.match(/^\d{4}-\d{2}-\d{2}$/)
+  if (dateOnlyMatch) {
+    return { date: trimmed, time: ALL_DAY_TIME, isTimed: false }
+  }
+
+  return { date: '', time: ALL_DAY_TIME, isTimed: false }
+}
+
+const buildDueDate = (date, time, hasTime) => {
+  if (!date) {
+    return ''
+  }
+
+  if (!hasTime) {
+    return `${date}T${ALL_DAY_TIME}`
+  }
+
+  const normalizedTime = typeof time === 'string' && /^\d{2}:\d{2}(:\d{2})?$/.test(time)
+    ? time
+    : `${DEFAULT_DRAFT_TIME}:00`
+  const withSeconds = normalizedTime.length === 5 ? `${normalizedTime}:00` : normalizedTime
+  return `${date}T${withSeconds}`
+}
+
+const getDueDateDatePart = (dueDate) => parseDueDate(dueDate).date
+const getDueDateTimePart = (dueDate) => parseDueDate(dueDate).time
+const isDueDateTimed = (dueDate) => parseDueDate(dueDate).isTimed
+const getDueDateTimeForInput = (dueDate) => getDueDateTimePart(dueDate).slice(0, 5)
+
 const getNextWeekdayISODate = (isoDate) => {
   const date = parseISODate(isoDate)
   if (!date) {
@@ -667,20 +717,75 @@ const getNextWeekdayISODate = (isoDate) => {
   return isoDate
 }
 
-const getNextRecurringDate = (isoDate, recurringRule) => {
+const getNextRecurringDate = (dueDate, recurringRule) => {
+  const datePart = getDueDateDatePart(dueDate)
+  if (!datePart) {
+    return dueDate
+  }
+
+  const isTimed = isDueDateTimed(dueDate)
+  const timePart = getDueDateTimePart(dueDate)
+
   if (recurringRule === 'daily') {
-    return addDaysToISODate(isoDate, 1)
+    const nextDate = addDaysToISODate(datePart, 1)
+    return buildDueDate(nextDate, timePart, isTimed)
   }
 
   if (recurringRule === 'weekly') {
-    return addDaysToISODate(isoDate, 7)
+    const nextDate = addDaysToISODate(datePart, 7)
+    return buildDueDate(nextDate, timePart, isTimed)
   }
 
   if (recurringRule === 'weekdays') {
-    return getNextWeekdayISODate(isoDate)
+    const nextDate = getNextWeekdayISODate(datePart)
+    return buildDueDate(nextDate, timePart, isTimed)
   }
 
-  return isoDate
+  return dueDate
+}
+
+const compareTasksByDateThenTime = (taskA, taskB, dayDirection = 'asc') => {
+  const dateA = getDueDateDatePart(taskA.dueDate)
+  const dateB = getDueDateDatePart(taskB.dueDate)
+  const dayCompare = dateA.localeCompare(dateB)
+  if (dayCompare !== 0) {
+    return dayDirection === 'asc' ? dayCompare : -dayCompare
+  }
+
+  const timeCompare = getDueDateTimePart(taskA.dueDate).localeCompare(getDueDateTimePart(taskB.dueDate))
+  if (timeCompare !== 0) {
+    return timeCompare
+  }
+
+  return taskA.createdAt - taskB.createdAt
+}
+
+const formatDateLabel = (isoDate, locale, todayIsoDate) => {
+  const [yearRaw, monthRaw, dayRaw] = isoDate.split('-')
+  const year = Number(yearRaw)
+  const month = Number(monthRaw)
+  const day = Number(dayRaw)
+  const todayYear = Number(todayIsoDate.slice(0, 4))
+  const includeYear = year !== todayYear
+  const dateObject = new Date(Date.UTC(year, month - 1, day))
+  return new Intl.DateTimeFormat(locale, {
+    timeZone: 'UTC',
+    month: 'short',
+    day: 'numeric',
+    ...(includeYear ? { year: 'numeric' } : {}),
+  }).format(dateObject)
+}
+
+const formatTimeLabel = (timeValue, locale) => {
+  const [hoursRaw, minutesRaw] = timeValue.split(':')
+  const hours = Number(hoursRaw)
+  const minutes = Number(minutesRaw)
+  const timeDate = new Date(Date.UTC(1970, 0, 1, hours, minutes))
+  return new Intl.DateTimeFormat(locale, {
+    timeZone: 'UTC',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(timeDate)
 }
 
 const getSeriesId = (task) => task.originalTaskId || task.id
@@ -808,6 +913,9 @@ function App() {
   })
   const [draftText, setDraftText] = useState('')
   const [draftDueDate, setDraftDueDate] = useState(() => toISODateInTimeZone(new Date(), defaultTimeZone))
+  const [draftDueTime, setDraftDueTime] = useState(DEFAULT_DRAFT_TIME)
+  const [isDraftTimeEnabled, setIsDraftTimeEnabled] = useState(false)
+  const [isDraftDatePickerOpen, setIsDraftDatePickerOpen] = useState(false)
   const [draftColor, setDraftColor] = useState(LABELS[0].color)
   const [isDraftDateAuto, setIsDraftDateAuto] = useState(true)
   const [isDraftLabelOpen, setIsDraftLabelOpen] = useState(false)
@@ -824,6 +932,7 @@ function App() {
   const [toasts, setToasts] = useState([])
   const [swatchHint, setSwatchHint] = useState(null)
   const [isListening, setIsListening] = useState(false)
+  const [datePickerTaskId, setDatePickerTaskId] = useState(null)
   const isMobileViewport = viewportWidth <= 640
   const isSpeechSupported = Boolean(globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition)
 
@@ -960,6 +1069,11 @@ function App() {
 
       if (!target.closest('.recurring-menu-wrap')) {
         setIsDraftRecurringMenuOpen(false)
+      }
+
+      if (!target.closest('.date-picker-wrap')) {
+        setIsDraftDatePickerOpen(false)
+        setDatePickerTaskId(null)
       }
 
       if (!target.closest('.task-label-selector-wrap')) {
@@ -1215,11 +1329,14 @@ function App() {
   const tomorrow = useMemo(() => addDaysToISODate(today, 1), [today])
 
   const effectiveDraftDueDate = isDraftDateAuto ? today : draftDueDate
+  const effectiveDraftDueDateValue = buildDueDate(effectiveDraftDueDate, draftDueTime, isDraftTimeEnabled)
+  const draftDateLabel = formatDateLabel(effectiveDraftDueDate, activeLanguage.locale, today)
+  const draftTimeLabel = isDraftTimeEnabled ? formatTimeLabel(draftDueTime, activeLanguage.locale) : null
 
   const notDoneTasks = useMemo(() => {
     return tasks
-      .filter((task) => !task.isDone && task.dueDate <= today)
-      .sort((a, b) => b.dueDate.localeCompare(a.dueDate) || b.createdAt - a.createdAt)
+      .filter((task) => !task.isDone && getDueDateDatePart(task.dueDate) <= today)
+      .sort((a, b) => compareTasksByDateThenTime(a, b, 'desc'))
   }, [tasks, today])
 
   const doneTasks = useMemo(() => {
@@ -1231,8 +1348,8 @@ function App() {
   const plannedTasks = useMemo(() => {
     const recurringSeriesSeen = new Set()
     return tasks
-      .filter((task) => !task.isDone && task.dueDate > today)
-      .sort((a, b) => a.dueDate.localeCompare(b.dueDate) || a.createdAt - b.createdAt)
+      .filter((task) => !task.isDone && getDueDateDatePart(task.dueDate) > today)
+      .sort((a, b) => compareTasksByDateThenTime(a, b, 'asc'))
       .filter((task) => {
         if (task.recurring === 'none') {
           return true
@@ -1268,7 +1385,7 @@ function App() {
 
   const notDoneStatusStats = useMemo(() => {
     const completedTodayInScope = tasks.filter((task) => {
-      if (!task.isDone || task.dueDate > today) {
+      if (!task.isDone || getDueDateDatePart(task.dueDate) > today) {
         return false
       }
 
@@ -1329,7 +1446,7 @@ function App() {
     const newTask = {
       id: createId(),
       text,
-      dueDate: effectiveDraftDueDate,
+      dueDate: effectiveDraftDueDateValue,
       isDone: false,
       color: draftColor,
       createdAt: taskModel.getNow(),
@@ -1344,21 +1461,25 @@ function App() {
 
     setDraftText('')
     setDraftDueDate(today)
+    setDraftDueTime(DEFAULT_DRAFT_TIME)
+    setIsDraftTimeEnabled(false)
+    setIsDraftDatePickerOpen(false)
     setDraftColor(LABELS[0].color)
     setDraftRecurring('none')
     setIsDraftDateAuto(true)
     setIsDraftLabelOpen(false)
     setIsDraftRecurringMenuOpen(false)
 
-    if (newTask.dueDate > today) {
+    if (getDueDateDatePart(newTask.dueDate) > today) {
       setActiveTab(TAB_KEYS.planned)
     } else {
       setActiveTab(TAB_KEYS.notDone)
     }
   }
 
-  const getRecurringTargetDate = (recurringRule) => {
-    return getNextRecurringDate(today, recurringRule)
+  const getRecurringTargetDate = (recurringRule, dueDateForTime = '') => {
+    const baseDueDate = buildDueDate(today, getDueDateTimePart(dueDateForTime), isDueDateTimed(dueDateForTime))
+    return getNextRecurringDate(baseDueDate, recurringRule)
   }
 
   const getLaterToast = (targetDate) => {
@@ -1418,14 +1539,14 @@ function App() {
     setFrequencySelectorTaskId(null)
   }
 
-  const updateTaskDate = (taskId, date) => {
+  const updateTaskSchedule = (taskId, date, time, hasTime) => {
     if (!date) {
       return
     }
 
     const updatedTask = updateTaskInState(taskId, (task) => ({
       ...task,
-      dueDate: date,
+      dueDate: buildDueDate(date, time, hasTime),
       last_updated: taskModel.getNowIso(),
     }))
 
@@ -1507,18 +1628,11 @@ function App() {
     return (activeTab === TAB_KEYS.notDone && !task.isDone) || (activeTab === TAB_KEYS.done && task.isDone)
   }
 
-  const getSwipeTargetDate = (recurringRule) => {
-    if (recurringRule === 'none') {
-      return tomorrow
-    }
-
-    return getRecurringTargetDate(recurringRule)
-  }
-
-  const hasRecurringDuplicateAtDate = (task, targetDate) => {
+  const hasRecurringDuplicateAtDate = (task, targetDueDate) => {
     const taskSeriesId = getSeriesId(task)
+    const targetDate = getDueDateDatePart(targetDueDate)
     return tasks.some((candidate) => {
-      if (candidate.id === task.id || candidate.isDone || candidate.dueDate !== targetDate) {
+      if (candidate.id === task.id || candidate.isDone || getDueDateDatePart(candidate.dueDate) !== targetDate) {
         return false
       }
 
@@ -1557,15 +1671,17 @@ function App() {
         return
       }
 
-      const targetDate = getSwipeTargetDate(task.recurring)
-      if (task.recurring !== 'none' && hasRecurringDuplicateAtDate(task, targetDate)) {
-        pushToast(getLaterToast(targetDate))
+      const targetDueDate = task.recurring === 'none'
+        ? buildDueDate(tomorrow, getDueDateTimePart(task.dueDate), isDueDateTimed(task.dueDate))
+        : getRecurringTargetDate(task.recurring, task.dueDate)
+      if (task.recurring !== 'none' && hasRecurringDuplicateAtDate(task, targetDueDate)) {
+        pushToast(getLaterToast(getDueDateDatePart(targetDueDate)))
         return
       }
 
       const updatedTask = updateTaskInState(task.id, (currentTask) => ({
         ...currentTask,
-        dueDate: targetDate,
+        dueDate: targetDueDate,
         last_updated: taskModel.getNowIso(),
       }))
 
@@ -1684,12 +1800,12 @@ function App() {
     const seriesId = getSeriesId(task)
     const nowIso = taskModel.getNowIso()
     const nowMs = taskModel.getNow()
-    const nextDueDate = getRecurringTargetDate(nextRecurring)
+    const nextDueDate = getRecurringTargetDate(nextRecurring, task.dueDate)
     const futureSeriesTasks = tasks.filter((candidate) => {
       if (candidate.id === task.id || candidate.isDone) {
         return false
       }
-      if (candidate.dueDate <= today) {
+      if (getDueDateDatePart(candidate.dueDate) <= today) {
         return false
       }
       return getSeriesId(candidate) === seriesId
@@ -1719,7 +1835,7 @@ function App() {
     })
 
     const save = [updatedSelectedTask]
-    if (nextRecurring !== 'none' && updatedSelectedTask.dueDate <= today) {
+    if (nextRecurring !== 'none' && getDueDateDatePart(updatedSelectedTask.dueDate) <= today) {
       const nextOccurrence = {
         id: createId(),
         text: updatedSelectedTask.text,
@@ -1964,16 +2080,52 @@ function App() {
                   </div>
                 ) : null}
               </div>
-              <input
-                id="new-task-date"
-                type="date"
-                value={effectiveDraftDueDate}
-                onChange={(event) => {
-                  setDraftDueDate(event.target.value)
-                  setIsDraftDateAuto(false)
-                }}
-                required
-              />
+              <div className="date-picker-wrap">
+                <button
+                  id="new-task-date"
+                  type="button"
+                  className="date-pill"
+                  onClick={() => setIsDraftDatePickerOpen((prev) => !prev)}
+                  aria-label={translate('dueDate')}
+                >
+                  <span>{draftDateLabel}</span>
+                  {draftTimeLabel ? <span className="date-pill-time">• {draftTimeLabel}</span> : null}
+                </button>
+                {isDraftDatePickerOpen ? (
+                  <div className="date-picker-popover">
+                    <input
+                      type="date"
+                      value={effectiveDraftDueDate}
+                      onChange={(event) => {
+                        setDraftDueDate(event.target.value)
+                        setIsDraftDateAuto(false)
+                      }}
+                      required
+                    />
+                    <label className="date-time-toggle">
+                      <input
+                        type="checkbox"
+                        checked={isDraftTimeEnabled}
+                        onChange={(event) => setIsDraftTimeEnabled(event.target.checked)}
+                      />
+                      <span>{translate('setTime')}</span>
+                    </label>
+                    {isDraftTimeEnabled ? (
+                      <div>
+                        <label className="sr-only" htmlFor="new-task-time">
+                          {translate('time')}
+                        </label>
+                        <input
+                          id="new-task-time"
+                          type="time"
+                          value={draftDueTime}
+                          onChange={(event) => setDraftDueTime(event.target.value)}
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
               <div className="label-select-wrap">
                 <button
                   type="button"
@@ -2018,6 +2170,11 @@ function App() {
             <AnimatePresence initial={false}>
             {visibleTasks.map((task) => {
               const label = getLabelByColor(task.color)
+              const taskDueParts = parseDueDate(task.dueDate)
+              const taskDateLabel = formatDateLabel(taskDueParts.date, activeLanguage.locale, today)
+              const taskTimeLabel = taskDueParts.isTimed
+                ? formatTimeLabel(taskDueParts.time.slice(0, 5), activeLanguage.locale)
+                : null
               const commitDirection = swipeCommitByTaskId[task.id] || null
               const swipeIntent = swipeIntentByTaskId[task.id] || null
               const isCommitInProgress = Boolean(commitDirection)
@@ -2040,7 +2197,10 @@ function App() {
                   ? swipeRightHintLabel(task)
                   : ''
               const rowShellClassName =
-                menuTaskId === task.id || frequencySelectorTaskId === task.id || labelSelectorTaskId === task.id
+                menuTaskId === task.id
+                || frequencySelectorTaskId === task.id
+                || labelSelectorTaskId === task.id
+                || datePickerTaskId === task.id
                   ? 'task-row-shell menu-open'
                   : 'task-row-shell'
 
@@ -2136,13 +2296,56 @@ function App() {
                       aria-label={translate('markTaskDoneAria', { task: task.text })}
                     />
 
-                    <input
-                      className="task-date"
-                      type="date"
-                      value={task.dueDate}
-                      onChange={(event) => updateTaskDate(task.id, event.target.value)}
-                      aria-label={translate('changeDateAria', { task: task.text })}
-                    />
+                    <div className="date-picker-wrap">
+                      <button
+                        type="button"
+                        className="date-pill task-date-pill"
+                        onClick={() => setDatePickerTaskId((prev) => (prev === task.id ? null : task.id))}
+                        aria-label={translate('changeDateAria', { task: task.text })}
+                      >
+                        <span>{taskDateLabel}</span>
+                        {taskTimeLabel ? <span className="date-pill-time">• {taskTimeLabel}</span> : null}
+                      </button>
+                      {datePickerTaskId === task.id ? (
+                        <div className="date-picker-popover task-date-picker">
+                          <input
+                            className="task-date"
+                            type="date"
+                            value={taskDueParts.date}
+                            onChange={(event) => {
+                              updateTaskSchedule(task.id, event.target.value, taskDueParts.time, taskDueParts.isTimed)
+                            }}
+                          />
+                          <label className="date-time-toggle">
+                            <input
+                              type="checkbox"
+                              checked={taskDueParts.isTimed}
+                              onChange={(event) => {
+                                const nextHasTime = event.target.checked
+                                const nextTime = nextHasTime && !taskDueParts.isTimed ? DEFAULT_DRAFT_TIME : taskDueParts.time
+                                updateTaskSchedule(task.id, taskDueParts.date, nextTime, nextHasTime)
+                              }}
+                            />
+                            <span>{translate('setTime')}</span>
+                          </label>
+                          {taskDueParts.isTimed ? (
+                            <div>
+                              <label className="sr-only" htmlFor={`task-time-${task.id}`}>
+                                {translate('time')}
+                              </label>
+                              <input
+                                id={`task-time-${task.id}`}
+                                type="time"
+                                value={getDueDateTimeForInput(task.dueDate)}
+                                onChange={(event) => {
+                                  updateTaskSchedule(task.id, taskDueParts.date, event.target.value, true)
+                                }}
+                              />
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
 
                     <button
                       type="button"

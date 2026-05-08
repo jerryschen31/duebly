@@ -12,6 +12,7 @@ const SETTINGS_KEYS = {
 
 const RECURRING_VALUES = ['none', 'daily', 'weekly', 'weekdays']
 const TASK_RETENTION_DAYS = 60
+const ALL_DAY_TIME = '23:59:59'
 
 const parseBooleanFlag = (value, defaultValue) => {
   if (typeof value !== 'string') {
@@ -71,6 +72,55 @@ const parseIsoDate = (value) => {
   }
 
   return trimmed
+}
+
+const normalizeDueDate = (value) => {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const trimmed = value.trim()
+  if (!trimmed) {
+    return null
+  }
+
+  const dateOnly = parseIsoDate(trimmed)
+  if (dateOnly) {
+    return `${dateOnly}T${ALL_DAY_TIME}`
+  }
+
+  const dateTimeMatch = trimmed.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})(?::(\d{2}))?$/)
+  if (!dateTimeMatch) {
+    return null
+  }
+
+  const [, datePart, timePart, secondsPart] = dateTimeMatch
+  const normalizedDate = parseIsoDate(datePart)
+  if (!normalizedDate) {
+    return null
+  }
+
+  const [hoursRaw, minutesRaw] = timePart.split(':')
+  const secondsRaw = secondsPart || '00'
+  const hours = Number(hoursRaw)
+  const minutes = Number(minutesRaw)
+  const seconds = Number(secondsRaw)
+  if (
+    !Number.isInteger(hours)
+    || !Number.isInteger(minutes)
+    || !Number.isInteger(seconds)
+    || hours < 0
+    || hours > 23
+    || minutes < 0
+    || minutes > 59
+    || seconds < 0
+    || seconds > 59
+  ) {
+    return null
+  }
+
+  const normalizedTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+  return `${normalizedDate}T${normalizedTime}`
 }
 
 const getCurrentISODate = () => new Date().toISOString().slice(0, 10)
@@ -138,7 +188,7 @@ const normalizeTask = (task) => {
     return null
   }
 
-  const dueDate = parseIsoDate(String(task.dueDate))
+  const dueDate = normalizeDueDate(String(task.dueDate))
   if (!dueDate) {
     return null
   }
