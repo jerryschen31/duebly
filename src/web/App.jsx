@@ -717,8 +717,22 @@ const formatDueTime = (dueDate, compact = false) => {
   return formatTimePart(getDueTimePart(dueDate), compact)
 }
 
-const formatTaskRowTime = (dueDate) => {
-  return formatDueTime(dueDate, true).replace(/am$/, 'a').replace(/pm$/, 'p')
+const formatTaskTimeCompact = (dueDate) => {
+  const [hoursRaw, minutes] = getDueTimePart(dueDate).split(':')
+  const hours = Number(hoursRaw)
+  const minuteNumber = Number(minutes)
+  if (
+    !Number.isFinite(hours)
+    || hours < 0
+    || hours > 23
+    || !/^\d{2}$/.test(minutes || '')
+    || !Number.isFinite(minuteNumber)
+    || minuteNumber > 59
+  ) {
+    return ''
+  }
+
+  return `${hours % 12 || 12}:${minutes}${hours >= 12 ? 'p' : 'a'}`
 }
 
 const formatDateTimeLabel = (dueDate, locale, today) => {
@@ -2527,7 +2541,7 @@ function App() {
                     />
 
                     {hasTaskTime ? (
-                      <span className="task-time">{formatTaskRowTime(task.dueDate)}</span>
+                      <span className="task-time">{formatTaskTimeCompact(task.dueDate)}</span>
                     ) : null}
 
                     <div className="task-main">
