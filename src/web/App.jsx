@@ -1543,16 +1543,14 @@ function App() {
   }
 
   const updateTaskInState = (taskId, updater) => {
-    let nextTask = null
-    setTasks((prev) =>
-      prev.map((task) => {
-        if (task.id !== taskId) {
-          return task
-        }
+    const currentTask = tasks.find((task) => task.id === taskId)
+    if (!currentTask) {
+      return null
+    }
 
-        nextTask = updater(task)
-        return nextTask
-      }),
+    const nextTask = updater(currentTask)
+    setTasks((prev) =>
+      prev.map((task) => (task.id === taskId ? nextTask : task)),
     )
 
     return nextTask

@@ -266,14 +266,18 @@ const writeSettings = async (settings) => {
 const migrateFromLegacy = async () => {
   const legacyTasks = readLegacyTasks()
   const legacyTimezone = readLegacyTimezone()
+  const hasPersistedTasks = (await db.tasks.count()) > 0
 
-  if (legacyTasks.length) {
+  // Only hydrate from legacy localStorage on a true first migration.
+  if (!hasPersistedTasks && legacyTasks.length) {
     await upsertTasks(legacyTasks)
   }
 
-  if (legacyTimezone) {
+  const hasPersistedTimezone = Boolean((await db.settings.get(SETTINGS_KEYS.timezone))?.value)
+  if (!hasPersistedTimezone && legacyTimezone) {
     await db.settings.put({ id: SETTINGS_KEYS.timezone, value: legacyTimezone })
   }
+
   safeLocalStorageRemove(LEGACY_TASKS_KEY)
   safeLocalStorageRemove(LEGACY_TIMEZONE_KEY)
 }
