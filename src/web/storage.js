@@ -89,7 +89,10 @@ const parseIsoDate = (value) => {
 }
 
 const getCurrentISODate = () => new Date().toISOString().slice(0, 10)
-const getDatePartFromDueDateTime = (dueDate) => String(dueDate).slice(0, 10)
+const getDatePartFromDueDateTime = (dueDate) => {
+  const match = String(dueDate).match(/^(\d{4}-\d{2}-\d{2})/)
+  return match ? match[1] : ''
+}
 
 const addDaysToISODate = (isoDate, daysToAdd) => {
   const date = new Date(`${isoDate}T00:00:00Z`)

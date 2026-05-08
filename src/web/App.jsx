@@ -675,7 +675,15 @@ const formatDateLabel = (dueDate, locale, today) => {
 const formatTimePart = (timePart, compact = false) => {
   const [hoursRaw, minutes] = timePart.split(':')
   const hours = Number(hoursRaw)
-  if (!Number.isFinite(hours) || hours < 0 || hours > 23 || !/^\d{2}$/.test(minutes || '')) {
+  const minuteNumber = Number(minutes)
+  if (
+    !Number.isFinite(hours)
+    || hours < 0
+    || hours > 23
+    || !/^\d{2}$/.test(minutes || '')
+    || !Number.isFinite(minuteNumber)
+    || minuteNumber > 59
+  ) {
     return ''
   }
 
@@ -1009,6 +1017,7 @@ function App() {
     return { value, label: translate('repeatWeekdays') }
   })
   const timeOptions = useMemo(() => dateTimePicker ? buildTimeOptions() : [], [dateTimePicker])
+  const parsedPickerTime = dateTimePicker ? parseTimeInput(dateTimePicker.timeText) : null
 
   const getShouldOpenUp = (anchorElement, estimatedHeight = 240) => {
     if (!anchorElement) {
@@ -2143,7 +2152,7 @@ function App() {
                     key={option.value}
                     type="button"
                     role="option"
-                    aria-selected={parseTimeInput(dateTimePicker.timeText) === option.value}
+                    aria-selected={parsedPickerTime === option.value}
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={() => {
                       commitPickerTime(option.label)
