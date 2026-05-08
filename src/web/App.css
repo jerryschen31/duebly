@@ -256,8 +256,14 @@
   gap: 0.45rem;
 }
 
+.date-picker-popover.open-up {
+  top: auto;
+  bottom: calc(100% + 0.3rem);
+}
+
 .date-picker-popover input[type='date'],
-.date-picker-popover input[type='time'] {
+.date-picker-popover input[type='time'],
+.date-picker-popover input[type='text'] {
   width: 100%;
   border: 1px solid #d1d5db;
   border-radius: 0.45rem;
@@ -266,12 +272,12 @@
   font: inherit;
 }
 
-.date-time-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.9rem;
-  color: #374151;
+.time-input-wrap {
+  display: grid;
+}
+
+.time-combobox::placeholder {
+  color: #9ca3af;
 }
 
 .recurring-menu-wrap {
@@ -493,7 +499,7 @@
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: auto auto auto 1fr auto;
+  grid-template-columns: auto auto auto auto 1fr auto;
   align-items: center;
   gap: 0.5rem;
   border: 1px solid #e5e7eb;
@@ -504,6 +510,12 @@
 
 .task-main {
   min-width: 0;
+}
+
+.task-time {
+  color: #6b7280;
+  font-size: 0.9rem;
+  white-space: nowrap;
 }
 
 .task-date,
@@ -714,7 +726,7 @@
   }
 
   .task-row {
-    grid-template-columns: auto auto auto 1fr;
+    grid-template-columns: auto auto auto auto 1fr;
   }
 
   .task-menu-wrap {

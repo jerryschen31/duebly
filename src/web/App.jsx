@@ -684,30 +684,51 @@ const normalizeTimeInput = (time) => {
     return null
   }
 
-  const match = time.trim().match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/)
-  if (!match) {
+  const trimmed = time.trim()
+
+  const twentyFourHourMatch = trimmed.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/)
+  if (twentyFourHourMatch) {
+    const [, hoursRaw, minutesRaw, secondsRaw] = twentyFourHourMatch
+    const hours = Number(hoursRaw)
+    const minutes = Number(minutesRaw)
+    const seconds = Number(secondsRaw || '00')
+    if (
+      Number.isInteger(hours)
+      && Number.isInteger(minutes)
+      && Number.isInteger(seconds)
+      && hours >= 0
+      && hours <= 23
+      && minutes >= 0
+      && minutes <= 59
+      && seconds >= 0
+      && seconds <= 59
+    ) {
+      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+    }
+  }
+
+  const twelveHourMatch = trimmed.match(/^(\d{1,2})(?::(\d{2}))?\s*([AaPp])[.]?[Mm][.]?$/)
+  if (!twelveHourMatch) {
     return null
   }
 
-  const [, hoursRaw, minutesRaw, secondsRaw] = match
-  const hours = Number(hoursRaw)
-  const minutes = Number(minutesRaw)
-  const seconds = Number(secondsRaw || '00')
+  const [, hourRaw, minuteRaw, periodRaw] = twelveHourMatch
+  const hour12 = Number(hourRaw)
+  const minutes = Number(minuteRaw || '00')
   if (
-    !Number.isInteger(hours)
+    !Number.isInteger(hour12)
     || !Number.isInteger(minutes)
-    || !Number.isInteger(seconds)
-    || hours < 0
-    || hours > 23
+    || hour12 < 1
+    || hour12 > 12
     || minutes < 0
     || minutes > 59
-    || seconds < 0
-    || seconds > 59
   ) {
     return null
   }
 
-  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+  const isPm = periodRaw.toLowerCase() === 'p'
+  const hour24 = isPm ? (hour12 % 12) + 12 : hour12 % 12
+  return `${String(hour24).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`
 }
 
 const buildDueDate = (date, time, includeTime) => {
@@ -726,7 +747,6 @@ const buildDueDate = (date, time, includeTime) => {
 const getDueDateDatePart = (dueDate) => parseDueDate(dueDate).date
 const getDueDateTimePart = (dueDate) => parseDueDate(dueDate).time
 const isDueDateTimed = (dueDate) => parseDueDate(dueDate).isTimed
-const getDueDateTimeForInput = (dueDate) => getDueDateTimePart(dueDate).slice(0, 5)
 
 const getNextWeekdayISODate = (isoDate) => {
   const date = parseISODate(isoDate)
@@ -819,6 +839,19 @@ const formatTimeLabel = (timeValue, locale) => {
     hour: 'numeric',
     minute: '2-digit',
   }).format(timeDate)
+}
+
+const getNextHalfHourTime = (date) => {
+  const next = new Date(date)
+  next.setSeconds(0, 0)
+  const minute = next.getMinutes()
+  const minutesToAdd = minute === 0 || minute === 30
+    ? 30
+    : minute < 30
+      ? 30 - minute
+      : 60 - minute
+  next.setMinutes(minute + minutesToAdd)
+  return next
 }
 
 const getSeriesId = (task) => task.originalTaskId || task.id
@@ -946,9 +979,9 @@ function App() {
   })
   const [draftText, setDraftText] = useState('')
   const [draftDueDate, setDraftDueDate] = useState(() => toISODateInTimeZone(new Date(), defaultTimeZone))
-  const [draftDueTime, setDraftDueTime] = useState(DEFAULT_DRAFT_TIME)
-  const [isDraftTimeEnabled, setIsDraftTimeEnabled] = useState(false)
+  const [draftDueTime, setDraftDueTime] = useState('')
   const [isDraftDatePickerOpen, setIsDraftDatePickerOpen] = useState(false)
+  const [isDraftDatePickerOpenUp, setIsDraftDatePickerOpenUp] = useState(false)
   const [draftColor, setDraftColor] = useState(LABELS[0].color)
   const [isDraftDateAuto, setIsDraftDateAuto] = useState(true)
   const [isDraftLabelOpen, setIsDraftLabelOpen] = useState(false)
@@ -966,6 +999,8 @@ function App() {
   const [swatchHint, setSwatchHint] = useState(null)
   const [isListening, setIsListening] = useState(false)
   const [datePickerTaskId, setDatePickerTaskId] = useState(null)
+  const [isTaskDatePickerOpenUp, setIsTaskDatePickerOpenUp] = useState(false)
+  const [taskTimeDraftById, setTaskTimeDraftById] = useState({})
   const isMobileViewport = viewportWidth <= 640
   const isSpeechSupported = Boolean(globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition)
 
@@ -976,6 +1011,8 @@ function App() {
   const taskMenuButtonRefs = useRef(new Map())
   const editModalInputRef = useRef(null)
   const draftTextInputRef = useRef(null)
+  const draftDateInputRef = useRef(null)
+  const taskDateInputRefs = useRef(new Map())
   const swipeCommitTimeoutsRef = useRef(new Map())
   const textRefs = useRef(new Map())
   const mirrorLegacyRef = useRef(false)
@@ -1106,7 +1143,9 @@ function App() {
 
       if (!target.closest('.date-picker-wrap')) {
         setIsDraftDatePickerOpen(false)
+        setIsDraftDatePickerOpenUp(false)
         setDatePickerTaskId(null)
+        setIsTaskDatePickerOpenUp(false)
       }
 
       if (!target.closest('.task-label-selector-wrap')) {
@@ -1362,9 +1401,26 @@ function App() {
   const tomorrow = useMemo(() => addDaysToISODate(today, 1), [today])
 
   const effectiveDraftDueDate = isDraftDateAuto ? today : draftDueDate
-  const effectiveDraftDueDateValue = buildDueDate(effectiveDraftDueDate, draftDueTime, isDraftTimeEnabled)
+  const normalizedDraftTime = normalizeTimeInput(draftDueTime)
+  const effectiveDraftDueDateValue = buildDueDate(effectiveDraftDueDate, normalizedDraftTime || '', Boolean(normalizedDraftTime))
   const draftDateLabel = formatDateLabel(effectiveDraftDueDate, activeLanguage.locale, today)
-  const draftTimeLabel = isDraftTimeEnabled ? formatTimeLabel(draftDueTime, activeLanguage.locale) : null
+  const draftTimeLabel = normalizedDraftTime ? formatTimeLabel(normalizedDraftTime, activeLanguage.locale) : null
+  const timeSuggestions = useMemo(() => {
+    const start = getNextHalfHourTime(new Date(nowTick))
+    const options = []
+    const startDay = start.getDate()
+    for (let index = 0; index < 48; index += 1) {
+      const next = new Date(start.getTime() + (index * 30 * 60 * 1000))
+      if (next.getDate() !== startDay) {
+        break
+      }
+      const hours = String(next.getHours()).padStart(2, '0')
+      const minutes = String(next.getMinutes()).padStart(2, '0')
+      const normalized = `${hours}:${minutes}:00`
+      options.push(formatTimeLabel(normalized, activeLanguage.locale))
+    }
+    return options
+  }, [activeLanguage.locale, nowTick])
 
   const notDoneTasks = useMemo(() => {
     return tasks
@@ -1494,9 +1550,9 @@ function App() {
 
     setDraftText('')
     setDraftDueDate(today)
-    setDraftDueTime(DEFAULT_DRAFT_TIME)
-    setIsDraftTimeEnabled(false)
+    setDraftDueTime('')
     setIsDraftDatePickerOpen(false)
+    setIsDraftDatePickerOpenUp(false)
     setDraftColor(LABELS[0].color)
     setDraftRecurring('none')
     setIsDraftDateAuto(true)
@@ -1570,22 +1626,68 @@ function App() {
     setMenuTaskId(null)
     setLabelSelectorTaskId(null)
     setFrequencySelectorTaskId(null)
+    setTaskTimeDraftById((prev) => {
+      if (!(taskId in prev)) {
+        return prev
+      }
+      const next = { ...prev }
+      delete next[taskId]
+      return next
+    })
   }
 
-  const updateTaskSchedule = (taskId, date, time, hasTime) => {
+  const updateTaskSchedule = (taskId, date, time, includeTime) => {
     if (!date) {
       return
     }
 
     const updatedTask = updateTaskInState(taskId, (task) => ({
       ...task,
-      dueDate: buildDueDate(date, time, hasTime),
+      dueDate: buildDueDate(date, time, includeTime),
       last_updated: taskModel.getNowIso(),
     }))
 
     if (updatedTask) {
       persistTask(updatedTask)
     }
+  }
+
+  const applyTaskTimeInput = (task) => {
+    const typedValue = (taskTimeDraftById[task.id] || '').trim()
+    const normalized = normalizeTimeInput(typedValue)
+    const nextDueTime = normalized || ALL_DAY_TIME
+    const shouldIncludeTime = Boolean(normalized)
+    updateTaskSchedule(task.id, getDueDateDatePart(task.dueDate), nextDueTime, shouldIncludeTime)
+
+    setTaskTimeDraftById((prev) => ({
+      ...prev,
+      [task.id]: normalized ? formatTimeLabel(normalized, activeLanguage.locale) : '',
+    }))
+  }
+
+  const openDraftDatePicker = (triggerElement) => {
+    const openUp = getShouldOpenUp(triggerElement, 300)
+    setIsDraftDatePickerOpenUp(openUp)
+    setIsDraftDatePickerOpen(true)
+    window.setTimeout(() => {
+      draftDateInputRef.current?.showPicker?.()
+      draftDateInputRef.current?.focus()
+    }, 0)
+  }
+
+  const openTaskDatePicker = (task, triggerElement) => {
+    setDatePickerTaskId(task.id)
+    setIsTaskDatePickerOpenUp(getShouldOpenUp(triggerElement, 300))
+    const dueParts = parseDueDate(task.dueDate)
+    setTaskTimeDraftById((prev) => ({
+      ...prev,
+      [task.id]: dueParts.isTimed ? formatTimeLabel(dueParts.time, activeLanguage.locale) : '',
+    }))
+    window.setTimeout(() => {
+      const taskDateInput = taskDateInputRefs.current.get(task.id)
+      taskDateInput?.showPicker?.()
+      taskDateInput?.focus()
+    }, 0)
   }
 
   const setTaskColor = (taskId, color) => {
@@ -1608,6 +1710,10 @@ function App() {
     setMenuTaskId(null)
     setLabelSelectorTaskId(null)
     setFrequencySelectorTaskId(null)
+    setIsDraftDatePickerOpen(false)
+    setIsDraftDatePickerOpenUp(false)
+    setDatePickerTaskId(null)
+    setIsTaskDatePickerOpenUp(false)
     setIsTaskMenuOpenUp(false)
     setIsFrequencyMenuOpenUp(false)
   }
@@ -2118,15 +2224,23 @@ function App() {
                   id="new-task-date"
                   type="button"
                   className="date-pill"
-                  onClick={() => setIsDraftDatePickerOpen((prev) => !prev)}
+                  onClick={(event) => {
+                    if (isDraftDatePickerOpen) {
+                      setIsDraftDatePickerOpen(false)
+                      setIsDraftDatePickerOpenUp(false)
+                      return
+                    }
+                    openDraftDatePicker(event.currentTarget)
+                  }}
                   aria-label={translate('dueDate')}
                 >
                   <span>{draftDateLabel}</span>
                   {draftTimeLabel ? <span className="date-pill-time">• {draftTimeLabel}</span> : null}
                 </button>
                 {isDraftDatePickerOpen ? (
-                  <div className="date-picker-popover">
+                  <div className={`date-picker-popover ${isDraftDatePickerOpenUp ? 'open-up' : ''}`}>
                     <input
+                      ref={draftDateInputRef}
                       type="date"
                       value={effectiveDraftDueDate}
                       onChange={(event) => {
@@ -2135,27 +2249,35 @@ function App() {
                       }}
                       required
                     />
-                    <label className="date-time-toggle">
+                    <div className="time-input-wrap">
+                      <label className="sr-only" htmlFor="new-task-time">
+                        {translate('time')}
+                      </label>
                       <input
-                        type="checkbox"
-                        checked={isDraftTimeEnabled}
-                        onChange={(event) => setIsDraftTimeEnabled(event.target.checked)}
+                        id="new-task-time"
+                        className="time-combobox"
+                        type="text"
+                        list="time-suggestions-draft"
+                        placeholder={translate('setTime')}
+                        value={draftDueTime}
+                        onChange={(event) => setDraftDueTime(event.target.value)}
+                        onBlur={() => {
+                          const normalized = normalizeTimeInput(draftDueTime)
+                          if (!normalized) {
+                            if (!draftDueTime.trim()) {
+                              setDraftDueTime('')
+                            }
+                            return
+                          }
+                          setDraftDueTime(formatTimeLabel(normalized, activeLanguage.locale))
+                        }}
                       />
-                      <span>{translate('setTime')}</span>
-                    </label>
-                    {isDraftTimeEnabled ? (
-                      <div>
-                        <label className="sr-only" htmlFor="new-task-time">
-                          {translate('time')}
-                        </label>
-                        <input
-                          id="new-task-time"
-                          type="time"
-                          value={draftDueTime}
-                          onChange={(event) => setDraftDueTime(event.target.value)}
-                        />
-                      </div>
-                    ) : null}
+                      <datalist id="time-suggestions-draft">
+                        {timeSuggestions.map((option, index) => (
+                          <option key={`draft-${index}-${option}`} value={option} />
+                        ))}
+                      </datalist>
+                    </div>
                   </div>
                 ) : null}
               </div>
@@ -2333,51 +2455,65 @@ function App() {
                       <button
                         type="button"
                         className="date-pill task-date-pill"
-                        onClick={() => setDatePickerTaskId((prev) => (prev === task.id ? null : task.id))}
+                        onClick={(event) => {
+                          if (datePickerTaskId === task.id) {
+                            setDatePickerTaskId(null)
+                            setIsTaskDatePickerOpenUp(false)
+                            return
+                          }
+                          openTaskDatePicker(task, event.currentTarget)
+                        }}
                         aria-label={translate('changeDateAria', { task: task.text })}
                       >
                         <span>{taskDateLabel}</span>
-                        {taskTimeLabel ? <span className="date-pill-time">• {taskTimeLabel}</span> : null}
                       </button>
                       {datePickerTaskId === task.id ? (
-                        <div className="date-picker-popover task-date-picker">
+                        <div className={`date-picker-popover task-date-picker ${isTaskDatePickerOpenUp ? 'open-up' : ''}`}>
                           <input
                             className="task-date"
+                            ref={(element) => {
+                              if (element) {
+                                taskDateInputRefs.current.set(task.id, element)
+                              } else {
+                                taskDateInputRefs.current.delete(task.id)
+                              }
+                            }}
                             type="date"
                             value={taskDueParts.date}
                             onChange={(event) => {
                               updateTaskSchedule(task.id, event.target.value, taskDueParts.time, taskDueParts.isTimed)
                             }}
                           />
-                          <label className="date-time-toggle">
+                          <div className="time-input-wrap">
+                            <label className="sr-only" htmlFor={`task-time-${task.id}`}>
+                              {translate('time')}
+                            </label>
                             <input
-                              type="checkbox"
-                              checked={taskDueParts.isTimed}
+                              id={`task-time-${task.id}`}
+                              className="time-combobox"
+                              type="text"
+                              list={`time-suggestions-task-${task.id}`}
+                              placeholder={translate('setTime')}
+                              value={taskTimeDraftById[task.id] || ''}
                               onChange={(event) => {
-                                const nextHasTime = event.target.checked
-                                const timeToUse = nextHasTime
-                                  ? `${DEFAULT_DRAFT_TIME}:00`
-                                  : ALL_DAY_TIME
-                                updateTaskSchedule(task.id, taskDueParts.date, timeToUse, nextHasTime)
+                                setTaskTimeDraftById((prev) => ({
+                                  ...prev,
+                                  [task.id]: event.target.value,
+                                }))
+                              }}
+                              onBlur={() => applyTaskTimeInput(task)}
+                              onKeyDown={(event) => {
+                                if (event.key === 'Enter') {
+                                  applyTaskTimeInput(task)
+                                }
                               }}
                             />
-                            <span>{translate('setTime')}</span>
-                          </label>
-                          {taskDueParts.isTimed ? (
-                            <div>
-                              <label className="sr-only" htmlFor={`task-time-${task.id}`}>
-                                {translate('time')}
-                              </label>
-                              <input
-                                id={`task-time-${task.id}`}
-                                type="time"
-                                value={getDueDateTimeForInput(task.dueDate)}
-                                onChange={(event) => {
-                                  updateTaskSchedule(task.id, taskDueParts.date, event.target.value, true)
-                                }}
-                              />
-                            </div>
-                          ) : null}
+                            <datalist id={`time-suggestions-task-${task.id}`}>
+                              {timeSuggestions.map((option, index) => (
+                                <option key={`task-${task.id}-${index}-${option}`} value={option} />
+                              ))}
+                            </datalist>
+                          </div>
                         </div>
                       ) : null}
                     </div>
@@ -2407,6 +2543,8 @@ function App() {
                         }
                       }}
                     />
+
+                    {taskTimeLabel ? <span className="task-time">{taskTimeLabel}</span> : null}
 
                     <div className="task-main">
                       {editingTaskId === task.id && !isMobileViewport ? (
