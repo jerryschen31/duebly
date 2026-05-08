@@ -1907,16 +1907,10 @@ function App() {
     return translate('saveForLater')
   }
 
-  const rowShellMotionProps = isMobileViewport
-    ? {
-      initial: false,
-      transition: { duration: 0 },
-    }
-    : {
-      initial: false,
-      exit: { opacity: 0, height: 0, marginBottom: 0 },
-      transition: { duration: 0.18, ease: 'easeOut' },
-    }
+  const rowShellMotionProps = {
+    initial: false,
+    transition: { duration: 0 },
+  }
 
   const persistTaskBatch = ({ save = [], deleteIds = [] }) => {
     save.forEach((task) => {
