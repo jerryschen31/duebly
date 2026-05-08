@@ -630,6 +630,7 @@ const MAX_TASK_DESCRIPTION_LENGTH = 200
 const TIME_OPTION_INTERVAL_MINUTES = 30
 const TIME_OPTIONS_COUNT = (24 * 60) / TIME_OPTION_INTERVAL_MINUTES
 const ALL_DAY_TASKS_SORT_LAST = '99:99:99'
+const MIN_DATE_TIME_PICKER_HEIGHT = 132
 const SPEECH_LANGUAGE_FALLBACKS = {
   'en-US': ['en-US', 'en'],
   'en-GB': ['en-GB', 'en-US', 'en'],
@@ -744,6 +745,7 @@ const formatTaskTimeCompact = (dueDate, amSuffix = 'a', pmSuffix = 'p') => {
     || hours > 23
     || !/^\d{2}$/.test(minutes || '')
     || !Number.isFinite(minuteNumber)
+    || minuteNumber < 0
     || minuteNumber > 59
   ) {
     return ''
@@ -1511,11 +1513,12 @@ function App() {
     const pickerWidth = Math.min(320, viewportWidth - viewportPadding * 2)
     const rect = triggerElement.getBoundingClientRect()
     const preferredHeight = Math.min(330, window.innerHeight - viewportPadding * 2)
-    const openUp = getShouldOpenUp(triggerElement, preferredHeight) && rect.top > viewportPadding + 132
+    const openUp = getShouldOpenUp(triggerElement, preferredHeight)
+      && rect.top > viewportPadding + MIN_DATE_TIME_PICKER_HEIGHT
     const availableHeight = openUp
       ? rect.top - viewportPadding * 2
       : window.innerHeight - rect.bottom - viewportPadding * 2
-    const maxHeight = Math.max(132, availableHeight)
+    const maxHeight = Math.max(MIN_DATE_TIME_PICKER_HEIGHT, availableHeight)
     const left = Math.max(
       viewportPadding,
       Math.min(rect.left, viewportWidth - pickerWidth - viewportPadding),

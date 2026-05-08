@@ -270,7 +270,7 @@
 
 .time-options {
   display: grid;
-  max-height: min(var(--time-options-max-height, 14rem), 14rem);
+  max-height: var(--time-options-max-height, 14rem);
   overflow-y: auto;
   border: 1px solid #d1d5db;
   border-radius: 0.5rem;
