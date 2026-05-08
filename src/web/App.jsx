@@ -44,6 +44,8 @@ const TRANSLATIONS = {
     dueDate: 'Due date',
     setTime: 'Set time (optional)',
     clearTime: 'Clear time',
+    timeAmAbbrev: 'a',
+    timePmAbbrev: 'p',
     setRecurringRule: 'Set recurring rule',
     doesNotRepeat: 'Does not repeat',
     repeatDaily: 'Repeat daily',
@@ -103,6 +105,8 @@ const TRANSLATIONS = {
     languageName: 'British English',
     setTime: 'Set time (optional)',
     clearTime: 'Clear time',
+    timeAmAbbrev: 'a',
+    timePmAbbrev: 'p',
     changeLabel: 'Change label',
   },
   'zh-CN': {
@@ -126,6 +130,8 @@ const TRANSLATIONS = {
     dueDate: '截止日期',
     setTime: '设置时间（可选）',
     clearTime: '清除时间',
+    timeAmAbbrev: 'a',
+    timePmAbbrev: 'p',
     setRecurringRule: '设置重复规则',
     doesNotRepeat: '不重复',
     repeatDaily: '每天重复',
@@ -202,6 +208,8 @@ const TRANSLATIONS = {
     dueDate: '期限日',
     setTime: '時刻を設定（任意）',
     clearTime: '時刻をクリア',
+    timeAmAbbrev: 'a',
+    timePmAbbrev: 'p',
     setRecurringRule: '繰り返し設定',
     doesNotRepeat: '繰り返さない',
     repeatDaily: '毎日繰り返す',
@@ -278,6 +286,8 @@ const TRANSLATIONS = {
     dueDate: '마감일',
     setTime: '시간 설정(선택 사항)',
     clearTime: '시간 지우기',
+    timeAmAbbrev: 'a',
+    timePmAbbrev: 'p',
     setRecurringRule: '반복 규칙 설정',
     doesNotRepeat: '반복 안 함',
     repeatDaily: '매일 반복',
@@ -354,6 +364,8 @@ const TRANSLATIONS = {
     dueDate: 'Date d’échéance',
     setTime: 'Définir l’heure (facultatif)',
     clearTime: 'Effacer l’heure',
+    timeAmAbbrev: 'a',
+    timePmAbbrev: 'p',
     setRecurringRule: 'Définir la récurrence',
     doesNotRepeat: 'Ne se répète pas',
     repeatDaily: 'Répéter chaque jour',
@@ -430,6 +442,8 @@ const TRANSLATIONS = {
     dueDate: 'Fecha límite',
     setTime: 'Configurar hora (opcional)',
     clearTime: 'Borrar hora',
+    timeAmAbbrev: 'a',
+    timePmAbbrev: 'p',
     setRecurringRule: 'Configurar repetición',
     doesNotRepeat: 'No se repite',
     repeatDaily: 'Repetir a diario',
@@ -506,6 +520,8 @@ const TRANSLATIONS = {
     dueDate: 'Data di scadenza',
     setTime: 'Imposta ora (facoltativo)',
     clearTime: 'Cancella ora',
+    timeAmAbbrev: 'a',
+    timePmAbbrev: 'p',
     setRecurringRule: 'Imposta ricorrenza',
     doesNotRepeat: 'Non si ripete',
     repeatDaily: 'Ripeti ogni giorno',
@@ -717,7 +733,7 @@ const formatDueTime = (dueDate, compact = false) => {
   return formatTimePart(getDueTimePart(dueDate), compact)
 }
 
-const formatTaskTimeCompact = (dueDate) => {
+const formatTaskTimeCompact = (dueDate, amSuffix = 'a', pmSuffix = 'p') => {
   const [hoursRaw, minutes] = getDueTimePart(dueDate).split(':')
   const hours = Number(hoursRaw)
   const minuteNumber = Number(minutes)
@@ -732,7 +748,7 @@ const formatTaskTimeCompact = (dueDate) => {
     return ''
   }
 
-  return `${hours % 12 || 12}:${minutes}${hours >= 12 ? 'p' : 'a'}`
+  return `${hours % 12 || 12}:${minutes}${hours >= 12 ? pmSuffix : amSuffix}`
 }
 
 const formatDateTimeLabel = (dueDate, locale, today) => {
@@ -1507,7 +1523,7 @@ function App() {
       left,
       top: openUp ? rect.top - 8 : rect.bottom + 8,
       width: pickerWidth,
-      transform: openUp ? 'translateY(-100%)' : 'none',
+      transform: openUp ? 'translateY(-100%)' : '',
       maxHeight,
       timeOptionsMaxHeight: Math.max(96, maxHeight - 104),
     }
@@ -2541,7 +2557,9 @@ function App() {
                     />
 
                     {hasTaskTime ? (
-                      <span className="task-time">{formatTaskTimeCompact(task.dueDate)}</span>
+                      <span className="task-time">
+                        {formatTaskTimeCompact(task.dueDate, translate('timeAmAbbrev'), translate('timePmAbbrev'))}
+                      </span>
                     ) : null}
 
                     <div className="task-main">
