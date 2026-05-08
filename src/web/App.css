@@ -39,6 +39,7 @@
 .brand-button,
 .tab-button,
 .primary-button,
+.date-pill,
 .task-menu button,
 .task-color,
 .label-trigger,
@@ -218,6 +219,65 @@
 
 .composer-meta-row input[type='date'] {
   min-width: 0;
+}
+
+.date-picker-wrap {
+  position: relative;
+}
+
+.date-pill {
+  height: 2.25rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  background: #ffffff;
+  padding: 0.35rem 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.date-pill-time {
+  color: #6b7280;
+  font-size: 0.9em;
+}
+
+.date-picker-popover {
+  position: absolute;
+  top: calc(100% + 0.3rem);
+  left: 0;
+  z-index: 240;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+  padding: 0.5rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.date-picker-popover.open-up {
+  top: auto;
+  bottom: calc(100% + 0.3rem);
+}
+
+.date-picker-popover input[type='date'],
+.date-picker-popover input[type='time'],
+.date-picker-popover input[type='text'] {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 0.45rem;
+  padding: 0.4rem 0.5rem;
+  height: 2rem;
+  font: inherit;
+}
+
+.time-input-wrap {
+  display: grid;
+}
+
+.time-combobox::placeholder {
+  color: #9ca3af;
 }
 
 .recurring-menu-wrap {
@@ -439,7 +499,7 @@
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: auto auto auto 1fr auto;
+  grid-template-columns: auto auto auto auto 1fr auto;
   align-items: center;
   gap: 0.5rem;
   border: 1px solid #e5e7eb;
@@ -452,11 +512,27 @@
   min-width: 0;
 }
 
+.task-time {
+  color: #6b7280;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
 .task-date,
 .task-edit-input {
   border: 1px solid #d1d5db;
   border-radius: 0.4rem;
   padding: 0.3rem 0.45rem;
+}
+
+.task-date-pill {
+  max-width: 9.5rem;
+}
+
+.task-date-picker {
+  left: auto;
+  right: 0;
+  min-width: 12rem;
 }
 
 .task-edit-input {
@@ -650,7 +726,7 @@
   }
 
   .task-row {
-    grid-template-columns: auto auto auto 1fr;
+    grid-template-columns: auto auto auto auto 1fr;
   }
 
   .task-menu-wrap {
