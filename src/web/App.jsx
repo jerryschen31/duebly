@@ -710,7 +710,7 @@ const formatDateLabel = (dueDate, locale, today) => {
   return formatter.format(new Date(`${datePart}T00:00:00Z`))
 }
 
-const formatTimePart = (timePart, compact = false) => {
+const getValidClockTimeParts = (timePart) => {
   const [hoursRaw, minutes] = timePart.split(':')
   const hours = Number(hoursRaw)
   const minuteNumber = Number(minutes)
@@ -720,12 +720,21 @@ const formatTimePart = (timePart, compact = false) => {
     || hours > 23
     || !/^\d{2}$/.test(minutes || '')
     || !Number.isFinite(minuteNumber)
-    || minuteNumber < 0
     || minuteNumber > 59
   ) {
+    return null
+  }
+
+  return { hours, minutes }
+}
+
+const formatTimePart = (timePart, compact = false) => {
+  const clockTime = getValidClockTimeParts(timePart)
+  if (!clockTime) {
     return ''
   }
 
+  const { hours, minutes } = clockTime
   const period = hours >= 12 ? 'pm' : 'am'
   const hour12 = hours % 12 || 12
   return `${hour12}:${minutes}${compact ? '' : ' '}${period}`
@@ -736,21 +745,12 @@ const formatDueTime = (dueDate, compact = false) => {
 }
 
 const formatTaskTimeCompact = (dueDate, amSuffix = 'a', pmSuffix = 'p') => {
-  const [hoursRaw, minutes] = getDueTimePart(dueDate).split(':')
-  const hours = Number(hoursRaw)
-  const minuteNumber = Number(minutes)
-  if (
-    !Number.isFinite(hours)
-    || hours < 0
-    || hours > 23
-    || !/^\d{2}$/.test(minutes || '')
-    || !Number.isFinite(minuteNumber)
-    || minuteNumber < 0
-    || minuteNumber > 59
-  ) {
+  const clockTime = getValidClockTimeParts(getDueTimePart(dueDate))
+  if (!clockTime) {
     return ''
   }
 
+  const { hours, minutes } = clockTime
   return `${hours % 12 || 12}:${minutes}${hours >= 12 ? pmSuffix : amSuffix}`
 }
 
@@ -1513,8 +1513,8 @@ function App() {
     const pickerWidth = Math.min(320, viewportWidth - viewportPadding * 2)
     const rect = triggerElement.getBoundingClientRect()
     const preferredHeight = Math.min(330, window.innerHeight - viewportPadding * 2)
-    const openUp = getShouldOpenUp(triggerElement, preferredHeight)
-      && rect.top > viewportPadding + MIN_DATE_TIME_PICKER_HEIGHT
+    const canOpenUp = rect.top > viewportPadding + MIN_DATE_TIME_PICKER_HEIGHT
+    const openUp = getShouldOpenUp(triggerElement, preferredHeight) && canOpenUp
     const availableHeight = openUp
       ? rect.top - viewportPadding * 2
       : window.innerHeight - rect.bottom - viewportPadding * 2
