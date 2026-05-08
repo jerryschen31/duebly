@@ -1477,8 +1477,8 @@ function App() {
     }
   }
 
-  const getRecurringTargetDate = (recurringRule, dueDateForTime = '') => {
-    const baseDueDate = buildDueDate(today, getDueDateTimePart(dueDateForTime), isDueDateTimed(dueDateForTime))
+  const getRecurringTargetDate = (recurringRule, referenceDueDate = '') => {
+    const baseDueDate = buildDueDate(today, getDueDateTimePart(referenceDueDate), isDueDateTimed(referenceDueDate))
     return getNextRecurringDate(baseDueDate, recurringRule)
   }
 
@@ -2322,7 +2322,9 @@ function App() {
                               checked={taskDueParts.isTimed}
                               onChange={(event) => {
                                 const nextHasTime = event.target.checked
-                                const timeToUse = nextHasTime && !taskDueParts.isTimed ? DEFAULT_DRAFT_TIME : taskDueParts.time
+                                const timeToUse = nextHasTime
+                                  ? (taskDueParts.isTimed ? taskDueParts.time : DEFAULT_DRAFT_TIME)
+                                  : taskDueParts.time
                                 updateTaskSchedule(task.id, taskDueParts.date, timeToUse, nextHasTime)
                               }}
                             />
