@@ -2513,13 +2513,6 @@ function App() {
                       })
                     }}
                   >
-                    <input
-                      type="checkbox"
-                      checked={task.isDone}
-                      onChange={(event) => toggleTaskDone(task, event.target.checked)}
-                      aria-label={translate('markTaskDoneAria', { task: task.text })}
-                    />
-
                     <button
                       className="task-date date-time-trigger"
                       type="button"
@@ -2647,6 +2640,18 @@ function App() {
                       </button>
                       {menuTaskId === task.id ? (
                         <div className={`task-menu ${isTaskMenuOpenUp ? 'open-up' : ''}`}>
+                          {!task.isDone ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setMenuTaskId(null)
+                                setFrequencySelectorTaskId(null)
+                                toggleTaskDone(task, true)
+                              }}
+                            >
+                              {translate('markAsDone')}
+                            </button>
+                          ) : null}
                           <button type="button" onClick={() => beginEditTask(task)}>
                             {translate('editTask')}
                           </button>

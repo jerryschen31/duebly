@@ -509,7 +509,7 @@
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: auto auto auto auto 1fr auto;
+  grid-template-columns: auto auto auto 1fr auto;
   align-items: center;
   gap: 0.5rem;
   border: 1px solid #e5e7eb;
@@ -519,7 +519,7 @@
 }
 
 .task-main {
-  grid-column: 5;
+  grid-column: 4;
   min-width: 0;
 }
 
@@ -568,7 +568,8 @@
 }
 
 .task-menu-wrap {
-  grid-column: 6;
+  grid-column: 5;
+  justify-self: end;
 }
 
 .task-menu,
@@ -736,13 +737,7 @@
   }
 
   .task-row {
-    grid-template-columns: auto auto auto auto 1fr;
-  }
-
-  .task-menu-wrap {
-    grid-column: 1 / -1;
-    justify-self: end;
-    position: relative;
+    grid-template-columns: auto auto auto minmax(0, 1fr) auto;
   }
 
   .task-label-selector {
