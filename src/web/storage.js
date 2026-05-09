@@ -53,12 +53,10 @@ const configureDb = (database) => {
   return database
 }
 
-const hashProfileValue = (value) => {
-  let hash = 0
-  for (let index = 0; index < value.length; index += 1) {
-    hash = (Math.imul(31, hash) + value.charCodeAt(index)) | 0
-  }
-  return Math.abs(hash).toString(36)
+const encodeProfileValue = (value) => {
+  const bytes = new TextEncoder().encode(value)
+  const binary = Array.from(bytes, (byte) => String.fromCharCode(byte)).join('')
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
 }
 
 const normalizeProfileSegment = (value, fallback) => {
@@ -78,7 +76,7 @@ const getProfileKey = (profile) => {
 
   const identity = String(profile.id || profile.email || 'user')
   const label = normalizeProfileSegment(profile.email || profile.id, 'user')
-  return `user-${label}-${hashProfileValue(identity)}`
+  return `user-${label}-${encodeProfileValue(identity)}`
 }
 
 const getDatabaseName = (profileKey) => profileKey === 'guest' ? GUEST_DB_NAME : `duebly-${profileKey}-db`
@@ -373,8 +371,10 @@ const migrateGuestFromLegacyDb = async () => {
     if (legacySettings.length) {
       await getDb().settings.bulkPut(legacySettings)
     }
-  } catch {
-    // ignore missing or inaccessible legacy database
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn('Failed to migrate guest tasks from legacy database', error)
+    }
   } finally {
     legacyDb.close()
   }

@@ -1063,6 +1063,13 @@ function App() {
     isAuthenticated: false,
     user: null,
   })
+  const [currentPath, setCurrentPath] = useState(() => {
+    if (typeof window === 'undefined') {
+      return '/'
+    }
+
+    return window.location.pathname
+  })
   const [tasks, setTasks] = useState([])
   const [activeTab, setActiveTab] = useState(TAB_KEYS.notDone)
   const [menuTaskId, setMenuTaskId] = useState(null)
@@ -1265,17 +1272,6 @@ function App() {
   }, [authReady, authSession.isAuthenticated, authSession.user?.email, authSession.user?.id, defaultLanguage, defaultTimeZone])
 
   useEffect(() => {
-    if (
-      authReady
-      && authSession.isAuthenticated
-      && typeof window !== 'undefined'
-      && window.location.pathname === '/login'
-    ) {
-      window.history.replaceState({}, '', '/')
-    }
-  }, [authReady, authSession.isAuthenticated])
-
-  useEffect(() => {
     const timer = window.setInterval(() => {
       setNowTick(taskModel.getNow())
     }, 60_000)
@@ -1290,6 +1286,15 @@ function App() {
 
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  useEffect(() => {
+    const onPopState = () => {
+      setCurrentPath(window.location.pathname)
+    }
+
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
   }, [])
 
   useEffect(() => {
@@ -2332,14 +2337,15 @@ function App() {
     return translate('emptyNotDone')
   }
 
-  const isLoginRoute = typeof window !== 'undefined' && window.location.pathname === '/login'
+  const isLoginRoute = currentPath === '/login'
   const userEmail = authSession.user?.email || authSession.user?.id || ''
   const authStatusLabel = authSession.isAuthenticated
     ? translate('loggedInAs', { email: userEmail })
     : translate('guestMode')
 
   const navigateToLogin = () => {
-    window.location.assign('/login')
+    window.history.pushState({}, '', '/login')
+    setCurrentPath('/login')
   }
 
   if (!isReady) {
