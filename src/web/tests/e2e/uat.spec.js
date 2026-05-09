@@ -54,13 +54,31 @@ const getTaskRow = (page, text) => page.locator('.task-row', { hasText: text }).
 const swipeTaskRow = async (page, rowLocator, direction) => {
   const box = await rowLocator.boundingBox()
   expect(box).toBeTruthy()
-  const startX = box.x + box.width / 2
+  if (!box) {
+    return
+  }
+
+  const viewport = page.viewportSize()
+  const viewportWidth = viewport?.width ?? Math.ceil(box.x + box.width)
+  const horizontalPadding = 8
+  const minX = horizontalPadding
+  const maxX = Math.max(horizontalPadding, viewportWidth - horizontalPadding)
+  const startX = Math.min(Math.max(box.x + box.width / 2, minX), maxX)
   const startY = box.y + box.height / 2
-  const deltaX = direction === 'left' ? -520 : 520
+  const desiredDistance = Math.min(520, Math.max(box.width * 0.75, 120))
+  const availableDistance =
+    direction === 'left'
+      ? Math.max(0, startX - minX)
+      : Math.max(0, maxX - startX)
+  const swipeDistance = Math.min(desiredDistance, availableDistance)
+  const endX =
+    direction === 'left'
+      ? Math.max(minX, startX - swipeDistance)
+      : Math.min(maxX, startX + swipeDistance)
 
   await page.mouse.move(startX, startY)
   await page.mouse.down()
-  await page.mouse.move(startX + deltaX, startY, { steps: 12 })
+  await page.mouse.move(endX, startY, { steps: 12 })
   await page.mouse.up()
 }
 
