@@ -20,7 +20,7 @@ const getString = (key) => {
   return typeof value === 'string' ? value.trim() : ''
 }
 
-const kindeDomain = getString('DUEBLY_KINDE_DOMAIN')
+const kindeDomain = getString('DUEBLY_KINDE_DOMAIN') || 'https://duebly.kinde.com'
 const kindeClientId = getString('DUEBLY_KINDE_CLIENT_ID')
 const kindeRedirectUri = getString('DUEBLY_KINDE_REDIRECT_URI')
 const kindeLogoutUri = getString('DUEBLY_KINDE_LOGOUT_URI')

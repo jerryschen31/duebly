@@ -42,7 +42,7 @@ const TRANSLATIONS = {
     continueToLogin: 'Continue to Login',
     loginPageTitle: 'Welcome to Duebly',
     loginMission: 'Our mission is to keep your day organized, one task at a time.',
-    loginBenefits: 'Create an account to never lose your tasks and use Duebly on multiple devices. Guest mode is one-device only and relies on your browser cache.',
+    loginBenefits: 'Create a free account to use Duebly on multiple devices and never lose your tasks. Your tasks are always private and secure.',
     signUpPrompt: "Don't have an account?",
     signUpToday: 'Sign up today!',
     authConfigMissing: 'Login is not configured for this environment.',
@@ -2364,7 +2364,6 @@ function App() {
     return (
       <div className={`app-shell login-shell ${DARK_MODE_ENABLED ? 'dark-mode' : ''}`} lang={activeLanguage.locale}>
         <main className="login-card">
-          <p className="login-kicker">Duebly</p>
           <h1>{translate('loginPageTitle')}</h1>
           <p>{translate('loginMission')}</p>
           <p className="login-benefits">{translate('loginBenefits')}</p>
@@ -2382,7 +2381,13 @@ function App() {
           ) : null}
           <p className="signup-copy">
             {translate('signUpPrompt')}{' '}
-            <button type="button" className="link-button" onClick={register}>
+            <button
+              type="button"
+              className="link-button"
+              onClick={register}
+              disabled={!appConfig.kinde.configured}
+              aria-describedby={!appConfig.kinde.configured ? 'auth-config-warning' : undefined}
+            >
               {translate('signUpToday')}
             </button>
           </p>
