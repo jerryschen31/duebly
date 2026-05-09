@@ -38,6 +38,7 @@ const shouldDeleteOldTasks = parseBooleanFlag(
 
 const LEGACY_DB_NAME = 'duebly-db'
 const GUEST_DB_NAME = 'duebly-guest-db'
+const GUEST_PROFILE = { type: 'guest' }
 let db = null
 let activeProfileKey = null
 
@@ -79,7 +80,7 @@ const getProfileKey = (profile) => {
   return `user-${label}-${encodeProfileValue(identity)}`
 }
 
-const getDatabaseName = (profileKey) => profileKey === 'guest' ? GUEST_DB_NAME : `duebly-${profileKey}-db`
+const getDatabaseName = (profileKey) => (profileKey === 'guest') ? GUEST_DB_NAME : `duebly-${profileKey}-db`
 
 const getDb = () => {
   if (!db) {
@@ -395,7 +396,7 @@ const setActiveProfile = (profile) => {
 }
 
 export const taskStorage = {
-  async initialize(defaultTimeZone, profile = { type: 'guest' }) {
+  async initialize(defaultTimeZone, profile = GUEST_PROFILE) {
     try {
       setActiveProfile(profile)
       await migrateGuestFromLegacyDb()
