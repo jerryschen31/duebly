@@ -30,6 +30,9 @@ const TRANSLATIONS = {
     openLanguageMenu: 'Open language menu',
     chooseLanguage: 'Choose language',
     setTimeZone: 'Set Time Zone',
+    timeZoneMenuTitle: 'Time Zone',
+    toggleDarkMode: 'Toggle Dark Mode',
+    buyMeCoffee: 'Buy Me a Coffee',
     login: 'Login',
     loginMvpAlert: 'Login is not part of this MVP yet.',
     taskListTabs: 'Task list tabs',
@@ -109,6 +112,10 @@ const TRANSLATIONS = {
   },
   'en-GB': {
     languageName: 'British English',
+    timeZoneMenuTitle: 'Time Zone',
+    toggleDarkMode: 'Toggle Dark Mode',
+    buyMeCoffee: 'Buy Me a Coffee',
+    taskAdded: 'Task added',
     setTime: 'Set time (optional)',
     startTime: 'Start time (opt.)',
     endTime: 'End time (opt.)',
@@ -123,6 +130,9 @@ const TRANSLATIONS = {
     openLanguageMenu: '打开语言菜单',
     chooseLanguage: '选择语言',
     setTimeZone: '设置时区',
+    timeZoneMenuTitle: '时区',
+    toggleDarkMode: '切换深色模式',
+    buyMeCoffee: '请我喝杯咖啡',
     login: '登录',
     loginMvpAlert: '登录暂未包含在此 MVP 中。',
     taskListTabs: '任务列表标签',
@@ -157,6 +167,7 @@ const TRANSLATIONS = {
     movedToTomorrow: '已移动到明天',
     movedToDate: '已移动到 {date}',
     movedToNextOccurrence: '已移动到下一次',
+    taskAdded: '任务已添加',
     taskDeleted: '任务已删除',
     taskMarkedDone: '任务已标记为完成',
     movedToDone: '已移至已完成',
@@ -203,6 +214,9 @@ const TRANSLATIONS = {
     openLanguageMenu: '言語メニューを開く',
     chooseLanguage: '言語を選択',
     setTimeZone: 'タイムゾーンを設定',
+    timeZoneMenuTitle: 'タイムゾーン',
+    toggleDarkMode: 'ダークモードを切り替え',
+    buyMeCoffee: 'コーヒーをごちそうする',
     login: 'ログイン',
     loginMvpAlert: 'ログインはこの MVP では未対応です。',
     taskListTabs: 'タスク一覧タブ',
@@ -237,6 +251,7 @@ const TRANSLATIONS = {
     movedToTomorrow: '明日に移動しました',
     movedToDate: '{date} に移動しました',
     movedToNextOccurrence: '次の予定に移動しました',
+    taskAdded: 'タスクを追加しました',
     taskDeleted: 'タスクを削除しました',
     taskMarkedDone: 'タスクを完了にしました',
     movedToDone: '完了に移動しました',
@@ -283,6 +298,9 @@ const TRANSLATIONS = {
     openLanguageMenu: '언어 메뉴 열기',
     chooseLanguage: '언어 선택',
     setTimeZone: '시간대 설정',
+    timeZoneMenuTitle: '시간대',
+    toggleDarkMode: '다크 모드 전환',
+    buyMeCoffee: '커피 한 잔 후원하기',
     login: '로그인',
     loginMvpAlert: '로그인은 현재 MVP에 포함되어 있지 않습니다.',
     taskListTabs: '작업 목록 탭',
@@ -317,6 +335,7 @@ const TRANSLATIONS = {
     movedToTomorrow: '내일로 이동됨',
     movedToDate: '{date}(으)로 이동됨',
     movedToNextOccurrence: '다음 일정으로 이동됨',
+    taskAdded: '작업이 추가됨',
     taskDeleted: '작업이 삭제됨',
     taskMarkedDone: '작업을 완료로 표시했습니다',
     movedToDone: '완료됨으로 이동됨',
@@ -363,6 +382,9 @@ const TRANSLATIONS = {
     openLanguageMenu: 'Ouvrir le menu des langues',
     chooseLanguage: 'Choisir la langue',
     setTimeZone: 'Définir le fuseau horaire',
+    timeZoneMenuTitle: 'Fuseau horaire',
+    toggleDarkMode: 'Activer/désactiver le mode sombre',
+    buyMeCoffee: 'M’offrir un café',
     login: 'Connexion',
     loginMvpAlert: 'La connexion ne fait pas encore partie de ce MVP.',
     taskListTabs: 'Onglets de tâches',
@@ -397,6 +419,7 @@ const TRANSLATIONS = {
     movedToTomorrow: 'Déplacée à demain',
     movedToDate: 'Déplacée au {date}',
     movedToNextOccurrence: 'Déplacée à la prochaine occurrence',
+    taskAdded: 'Tâche ajoutée',
     taskDeleted: 'Tâche supprimée',
     taskMarkedDone: 'Tâche marquée comme terminée',
     movedToDone: 'Déplacée vers Terminées',
@@ -443,6 +466,9 @@ const TRANSLATIONS = {
     openLanguageMenu: 'Abrir menú de idioma',
     chooseLanguage: 'Elegir idioma',
     setTimeZone: 'Configurar zona horaria',
+    timeZoneMenuTitle: 'Zona horaria',
+    toggleDarkMode: 'Alternar modo oscuro',
+    buyMeCoffee: 'Invítame a un café',
     login: 'Iniciar sesión',
     loginMvpAlert: 'El inicio de sesión aún no forma parte de este MVP.',
     taskListTabs: 'Pestañas de tareas',
@@ -477,6 +503,7 @@ const TRANSLATIONS = {
     movedToTomorrow: 'Movido a mañana',
     movedToDate: 'Movido a {date}',
     movedToNextOccurrence: 'Movido a la próxima ocurrencia',
+    taskAdded: 'Tarea añadida',
     taskDeleted: 'Tarea eliminada',
     taskMarkedDone: 'Tarea marcada como hecha',
     movedToDone: 'Movido a Hechas',
@@ -523,6 +550,9 @@ const TRANSLATIONS = {
     openLanguageMenu: 'Apri menu lingua',
     chooseLanguage: 'Scegli lingua',
     setTimeZone: 'Imposta fuso orario',
+    timeZoneMenuTitle: 'Fuso orario',
+    toggleDarkMode: 'Attiva/disattiva modalità scura',
+    buyMeCoffee: 'Offrimi un caffè',
     login: 'Accedi',
     loginMvpAlert: 'Il login non fa ancora parte di questo MVP.',
     taskListTabs: 'Schede elenco attività',
@@ -557,6 +587,7 @@ const TRANSLATIONS = {
     movedToTomorrow: 'Spostata a domani',
     movedToDate: 'Spostata al {date}',
     movedToNextOccurrence: 'Spostata alla prossima occorrenza',
+    taskAdded: 'Attività aggiunta',
     taskDeleted: 'Attività eliminata',
     taskMarkedDone: 'Attività segnata come fatta',
     movedToDone: 'Spostata in Fatte',
@@ -651,6 +682,8 @@ const TIME_OPTION_INTERVAL_MINUTES = 30
 const TIME_OPTIONS_COUNT = (24 * 60) / TIME_OPTION_INTERVAL_MINUTES
 const ALL_DAY_TASKS_SORT_LAST = '99:99:99'
 const MIN_DATE_TIME_PICKER_HEIGHT = 132
+const TIME_OPTION_VISIBLE_COUNT = 4
+const TIME_OPTION_BUTTON_HEIGHT_PX = 38
 const SPEECH_LANGUAGE_FALLBACKS = {
   'en-US': ['en-US', 'en'],
   'en-GB': ['en-GB', 'en-US', 'en'],
@@ -931,8 +964,8 @@ const getNextRecurringDate = (isoDate, recurringRule) => {
 
 const getSeriesId = (task) => task.originalTaskId || task.id
 
-const getLabelByColor = (color) => {
-  return LABELS.find((label) => label.color === color) || LABELS[0]
+const getLabelByColorFromList = (color, labels) => {
+  return labels.find((label) => label.color === color) || labels[0]
 }
 
 const toastVariants = {
@@ -1004,7 +1037,9 @@ function App() {
   const [activeTab, setActiveTab] = useState(TAB_KEYS.notDone)
   const [menuTaskId, setMenuTaskId] = useState(null)
   const [labelSelectorTaskId, setLabelSelectorTaskId] = useState(null)
-  const [isTimezoneMenuOpen, setIsTimezoneMenuOpen] = useState(false)
+  const [isTopMenuOpen, setIsTopMenuOpen] = useState(false)
+  const [isTimeZoneSubmenuOpen, setIsTimeZoneSubmenuOpen] = useState(false)
+  const [DARK_MODE_ENABLED, setDarkModeEnabled] = useState(false)
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false)
   const [selectedTimeZone, setSelectedTimeZone] = useState(defaultTimeZone)
   const [selectedLanguage, setSelectedLanguage] = useState(defaultLanguage)
@@ -1070,6 +1105,21 @@ function App() {
   const activeLanguage = useMemo(() => {
     return languageMenu.find((option) => option.code === selectedLanguage) || languageMenu[0]
   }, [languageMenu, selectedLanguage])
+  const labels = useMemo(() => {
+    return LABELS.map((label) => {
+      if (label.id !== 'general') {
+        return label
+      }
+
+      return {
+        ...label,
+        color: DARK_MODE_ENABLED ? '#d1d5db' : label.color,
+      }
+    })
+  }, [DARK_MODE_ENABLED])
+  const getDisplayLabelColor = (color) => {
+    return DARK_MODE_ENABLED && color === LABELS[0].color ? '#d1d5db' : color
+  }
   const text = useMemo(() => {
     return getTranslationsForLanguage(selectedLanguage)
   }, [selectedLanguage])
@@ -1172,7 +1222,8 @@ function App() {
       }
 
       if (!target.closest('.menu-wrap')) {
-        setIsTimezoneMenuOpen(false)
+        setIsTopMenuOpen(false)
+        setIsTimeZoneSubmenuOpen(false)
       }
       if (!target.closest('.language-menu-wrap')) {
         setIsLanguageMenuOpen(false)
@@ -1561,13 +1612,15 @@ function App() {
       Math.min(rect.left, viewportWidth - pickerWidth - viewportPadding),
     )
 
+    const maxTimeOptionsHeight = TIME_OPTION_VISIBLE_COUNT * TIME_OPTION_BUTTON_HEIGHT_PX
+
     return {
       left,
       top: openUp ? rect.top - 8 : rect.bottom + 8,
       width: pickerWidth,
       transform: openUp ? 'translateY(-100%)' : '',
       maxHeight,
-      timeOptionsMaxHeight: Math.max(96, maxHeight - 104),
+      timeOptionsMaxHeight: Math.min(Math.max(96, maxHeight - 104), maxTimeOptionsHeight),
     }
   }
 
@@ -2204,34 +2257,67 @@ function App() {
   }
 
   return (
-    <div className="app-shell" lang={activeLanguage.locale}>
+    <div className={`app-shell ${DARK_MODE_ENABLED ? 'dark-mode' : ''}`} lang={activeLanguage.locale}>
       <header className="top-nav">
         <div className="top-left">
           <div className="menu-wrap">
             <button
               type="button"
               className="icon-button"
-              onClick={() => setIsTimezoneMenuOpen((prev) => !prev)}
+              onClick={() => {
+                setIsTopMenuOpen((prev) => {
+                  const nextOpen = !prev
+                  if (!nextOpen) {
+                    setIsTimeZoneSubmenuOpen(false)
+                  }
+                  return nextOpen
+                })
+              }}
               aria-label={translate('openMenu')}
             >
               ☰
             </button>
-            {isTimezoneMenuOpen ? (
-              <div className="menu-popover">
-                <label htmlFor="timezone-select">{translate('setTimeZone')}</label>
-                <select
-                  id="timezone-select"
-                  value={selectedTimeZone}
-                  onChange={(event) => {
-                    setSelectedTimeZone(event.target.value)
-                  }}
-                >
-                  {TIMEZONE_OPTIONS.map((timeZone) => (
-                    <option key={timeZone} value={timeZone}>
-                      {timeZone}
-                    </option>
-                  ))}
-                </select>
+            {isTopMenuOpen ? (
+              <div className="menu-popover menu-popover-top">
+                <div className="menu-main-buttons">
+                  <button
+                    type="button"
+                    className={`menu-item-button ${isTimeZoneSubmenuOpen ? 'active' : ''}`}
+                    onClick={() => setIsTimeZoneSubmenuOpen((prev) => !prev)}
+                  >
+                    {translate('setTimeZone')}
+                  </button>
+                  <button
+                    type="button"
+                    className="menu-item-button"
+                    onClick={() => {
+                      setDarkModeEnabled((prev) => !prev)
+                    }}
+                  >
+                    {translate('toggleDarkMode')}
+                  </button>
+                  <button type="button" className="menu-item-button">
+                    {translate('buyMeCoffee')}
+                  </button>
+                </div>
+                {isTimeZoneSubmenuOpen ? (
+                  <div className="menu-submenu" role="group" aria-label={translate('setTimeZone')}>
+                    <label htmlFor="timezone-select">{translate('timeZoneMenuTitle')}</label>
+                    <select
+                      id="timezone-select"
+                      value={selectedTimeZone}
+                      onChange={(event) => {
+                        setSelectedTimeZone(event.target.value)
+                      }}
+                    >
+                      {TIMEZONE_OPTIONS.map((timeZone) => (
+                        <option key={timeZone} value={timeZone}>
+                          {timeZone}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </div>
@@ -2566,22 +2652,23 @@ function App() {
                   className="label-trigger"
                   onClick={() => setIsDraftLabelOpen((prev) => !prev)}
                 >
-                  <span className="label-dot" style={{ backgroundColor: draftColor }} />
-                  <span>{translate(getLabelByColor(draftColor).textKey)}</span>
+                  <span className="label-dot" style={{ backgroundColor: getDisplayLabelColor(draftColor) }} />
+                  <span>{translate(getLabelByColorFromList(draftColor, labels).textKey)}</span>
                 </button>
                 {isDraftLabelOpen ? (
                   <div className="label-dropdown">
-                    {LABELS.map((label) => (
+                    {labels.map((label) => (
                       <button
                         key={label.id}
                         type="button"
                         className="label-option"
                         onClick={() => {
-                          setDraftColor(label.color)
+                          const canonicalColor = LABELS.find((item) => item.id === label.id)?.color || label.color
+                          setDraftColor(canonicalColor)
                           setIsDraftLabelOpen(false)
                         }}
                       >
-                        <span className="label-dot" style={{ backgroundColor: label.color }} />
+                        <span className="label-dot" style={{ backgroundColor: getDisplayLabelColor(label.color) }} />
                         <span>{translate(label.textKey)}</span>
                       </button>
                     ))}
@@ -2605,7 +2692,7 @@ function App() {
 
             <AnimatePresence initial={false}>
             {visibleTasks.map((task) => {
-              const label = getLabelByColor(task.color)
+              const label = getLabelByColorFromList(task.color, labels)
               const commitDirection = swipeCommitByTaskId[task.id] || null
               const swipeIntent = swipeIntentByTaskId[task.id] || null
               const isCommitInProgress = Boolean(commitDirection)
@@ -2737,7 +2824,7 @@ function App() {
                       type="button"
                       className="task-color"
                       title={translate(label.textKey)}
-                      style={{ backgroundColor: task.color }}
+                      style={{ backgroundColor: getDisplayLabelColor(task.color) }}
                       aria-label={translate('labelAria', { label: translate(label.textKey) })}
                       onTouchStart={(event) => {
                         const swatchRect = event.currentTarget.getBoundingClientRect()
@@ -2915,9 +3002,16 @@ function App() {
                   {labelSelectorTaskId === task.id ? (
                     <div className="task-label-selector-wrap">
                       <div className="task-label-selector">
-                        {LABELS.map((item) => (
-                          <button key={item.id} type="button" onClick={() => setTaskColor(task.id, item.color)}>
-                            <span className="label-dot" style={{ backgroundColor: item.color }} />
+                        {labels.map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => {
+                              const canonicalColor = LABELS.find((labelItem) => labelItem.id === item.id)?.color || item.color
+                              setTaskColor(task.id, canonicalColor)
+                            }}
+                          >
+                            <span className="label-dot" style={{ backgroundColor: getDisplayLabelColor(item.color) }} />
                             <span>{translate(item.textKey)}</span>
                           </button>
                         ))}

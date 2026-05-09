@@ -9,6 +9,108 @@
   color: #111827;
 }
 
+.app-shell.dark-mode {
+  background: #11151b;
+  color: #e5e7eb;
+}
+
+.app-shell.dark-mode .top-nav,
+.app-shell.dark-mode .tab-bar,
+.app-shell.dark-mode .composer-card,
+.app-shell.dark-mode .task-list,
+.app-shell.dark-mode .task-row,
+.app-shell.dark-mode .task-menu,
+.app-shell.dark-mode .task-frequency-submenu,
+.app-shell.dark-mode .label-dropdown,
+.app-shell.dark-mode .task-label-selector,
+.app-shell.dark-mode .menu-popover,
+.app-shell.dark-mode .menu-submenu,
+.app-shell.dark-mode .date-time-picker,
+.app-shell.dark-mode .task-edit-modal {
+  background: #1a2029;
+  border-color: #374151;
+  color: #e5e7eb;
+}
+
+.app-shell.dark-mode .icon-button,
+.app-shell.dark-mode .ghost-button,
+.app-shell.dark-mode .task-date,
+.app-shell.dark-mode .label-trigger,
+.app-shell.dark-mode .composer input[type='text'],
+.app-shell.dark-mode .composer-date-trigger,
+.app-shell.dark-mode .task-edit-input,
+.app-shell.dark-mode .task-edit-modal-input,
+.app-shell.dark-mode .date-time-picker input[type='date'],
+.app-shell.dark-mode .date-time-picker input[type='text'],
+.app-shell.dark-mode .menu-popover select,
+.app-shell.dark-mode .menu-submenu select {
+  background: #0f141b;
+  border-color: #4b5563;
+  color: #e5e7eb;
+}
+
+.app-shell.dark-mode .tab-button.active,
+.app-shell.dark-mode .recurring-trigger.active {
+  color: #93c5fd;
+  border-bottom-color: #93c5fd;
+}
+
+.app-shell.dark-mode .tab-button {
+  color: #e5e7eb;
+}
+
+.app-shell.dark-mode .today-label,
+.app-shell.dark-mode .empty-state,
+.app-shell.dark-mode .task-time,
+.app-shell.dark-mode .recurring-badge,
+.app-shell.dark-mode .clear-time-button,
+.app-shell.dark-mode .task-text.done,
+.app-shell.dark-mode .swatch-hint {
+  color: #cbd5e1;
+}
+
+.app-shell.dark-mode .label-option:hover,
+.app-shell.dark-mode .task-label-selector button:hover,
+.app-shell.dark-mode .task-menu button:hover,
+.app-shell.dark-mode .task-menu.recurring-menu button.active,
+.app-shell.dark-mode .menu-item-button:hover,
+.app-shell.dark-mode .menu-item-button.active,
+.app-shell.dark-mode .time-options button:hover,
+.app-shell.dark-mode .time-options button[aria-selected='true'] {
+  background: #2a3240;
+}
+
+.app-shell.dark-mode .time-options {
+  background: #1a2029;
+  border-color: #4b5563;
+}
+
+.app-shell.dark-mode .task-menu button,
+.app-shell.dark-mode .task-frequency-submenu button,
+.app-shell.dark-mode .label-option,
+.app-shell.dark-mode .task-label-selector button,
+.app-shell.dark-mode .menu-item-button,
+.app-shell.dark-mode .menu-popover label,
+.app-shell.dark-mode .menu-submenu label,
+.app-shell.dark-mode .menu-popover select,
+.app-shell.dark-mode .menu-submenu select,
+.app-shell.dark-mode .menu-popover option,
+.app-shell.dark-mode .menu-submenu option,
+.app-shell.dark-mode .time-options button {
+  color: #e5e7eb;
+}
+
+.app-shell.dark-mode .menu-item-button,
+.app-shell.dark-mode .task-menu.recurring-menu button,
+.app-shell.dark-mode .task-frequency-submenu button {
+  background: #1a2029;
+}
+
+.app-shell.dark-mode .toast {
+  background: #0f141b;
+  color: #e5e7eb;
+}
+
 .loading-shell {
   display: grid;
   place-items: center;
@@ -45,7 +147,8 @@
 .date-time-picker button,
 .label-trigger,
 .label-option,
-.task-label-selector button {
+.task-label-selector button,
+.menu-item-button {
   border: 0;
   background: transparent;
   cursor: pointer;
@@ -68,6 +171,7 @@
 .brand-button {
   font-weight: 700;
   font-size: 1.05rem;
+  color: #2563eb;
 }
 
 .ghost-button {
@@ -97,6 +201,57 @@
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   display: grid;
   gap: 0.5rem;
+}
+
+.menu-popover-top {
+  width: min(52vw, 190px);
+  overflow: visible;
+  padding: 0;
+  gap: 0;
+}
+
+.menu-main-buttons {
+  display: grid;
+  gap: 0;
+}
+
+.menu-item-button {
+  width: 100%;
+  display: block;
+  text-align: left;
+  border: 0;
+  border-radius: 0;
+  background: #ffffff;
+  padding: 0.55rem 0.8rem;
+}
+
+.menu-item-button:hover,
+.menu-item-button.active {
+  background: #f3f4f6;
+}
+
+.menu-submenu {
+  position: absolute;
+  top: 0;
+  left: calc(100% + 0.35rem);
+  width: min(76vw, 190px);
+  padding: 0.7rem;
+  border-radius: 0.5rem;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  display: grid;
+  gap: 0.5rem;
+}
+
+.menu-submenu label {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.menu-submenu select {
+  width: 100%;
+  height: 2rem;
 }
 
 .language-popover {
@@ -268,7 +423,7 @@
 
 .time-options {
   display: grid;
-  max-height: var(--time-options-max-height, 14rem);
+  max-height: var(--time-options-max-height, 8.8rem);
   overflow-y: auto;
   border: 1px solid #d1d5db;
   border-radius: 0.5rem;
@@ -276,7 +431,8 @@
 }
 
 .time-options button {
-  padding: 0.55rem 0.65rem;
+  min-height: 2.375rem;
+  padding: 0.45rem 0.65rem;
   text-align: left;
 }
 
@@ -517,7 +673,7 @@
   gap: 0.5rem;
   border: 1px solid #e5e7eb;
   border-radius: 0.65rem;
-  padding: 0.6rem;
+  padding: 0.60rem;
   background: #ffffff;
 }
 
@@ -758,6 +914,7 @@
 
   .task-row {
     grid-template-columns: auto auto auto minmax(0, 1fr) auto;
+    padding: 0.5rem;
   }
 
   .task-label-selector {
