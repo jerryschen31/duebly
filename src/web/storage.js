@@ -50,20 +50,13 @@ const configureDb = (database) => {
   return database
 }
 
-const encodeProfileValueBase64Url = (value) => {
-  const bytes = new TextEncoder().encode(value)
-  const binary = Array.from(bytes, (byte) => String.fromCharCode(byte)).join('')
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
-}
-
-const normalizeProfileSegment = (value, fallback) => {
-  const normalized = String(value || '')
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9._-]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 48)
-  return normalized || fallback
+const hashProfileId = (value) => {
+  let hash = 2166136261
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index)
+    hash = Math.imul(hash, 16777619)
+  }
+  return (hash >>> 0).toString(36)
 }
 
 const getProfileKey = (profile) => {
@@ -71,9 +64,8 @@ const getProfileKey = (profile) => {
     return 'guest'
   }
 
-  const identity = String(profile.id || profile.email || 'user')
-  const label = normalizeProfileSegment(profile.id || profile.email, 'user')
-  return `user-${label}-${encodeProfileValueBase64Url(identity)}`
+  const userId = String(profile.id || '').trim()
+  return `user-${hashProfileId(userId || 'unknown-user')}`
 }
 
 const getDatabaseName = (profileKey) => {

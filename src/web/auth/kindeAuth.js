@@ -3,6 +3,11 @@ import { appConfig } from '../config/env'
 
 let clientPromise = null
 
+const replacePathAndNotify = (path) => {
+  window.history.replaceState({}, '', path)
+  window.dispatchEvent(new PopStateEvent('popstate'))
+}
+
 const isKindeHostedDomain = (domain) => {
   try {
     return new URL(domain).hostname.endsWith('.kinde.com')
@@ -26,13 +31,13 @@ export const getKindeClient = () => {
       is_dangerously_use_local_storage: isKindeHostedDomain(appConfig.kinde.domain),
       on_redirect_callback: (_user, appState = {}) => {
         const returnTo = typeof appState.returnTo === 'string' ? appState.returnTo : '/'
-        window.history.replaceState({}, '', returnTo.startsWith('/') ? returnTo : '/')
+        replacePathAndNotify(returnTo.startsWith('/') ? returnTo : '/')
       },
-      on_error_callback: ({ error, errorDescription }) => {
+      on_error_callback: () => {
         if (import.meta.env.DEV) {
-          console.warn('Kinde auth redirect failed', { error, errorDescription })
+          console.warn('Kinde auth redirect failed')
         }
-        window.history.replaceState({}, '', '/login')
+        replacePathAndNotify('/login')
       },
     })
   }

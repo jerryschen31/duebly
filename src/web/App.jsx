@@ -1218,9 +1218,9 @@ function App() {
         if (isMounted) {
           setAuthSession(session)
         }
-      } catch (error) {
+      } catch {
         if (import.meta.env.DEV) {
-          console.warn('Failed to initialize auth', error)
+          console.warn('Failed to initialize auth')
         }
       } finally {
         if (isMounted) {
@@ -1249,7 +1249,6 @@ function App() {
         ? {
             type: 'user',
             id: authSession.user?.id,
-            email: authSession.user?.email,
           }
         : { type: 'guest' }
       const result = await taskStorage.initialize(defaultTimeZone, profile)
@@ -1269,7 +1268,7 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [authReady, authSession.isAuthenticated, authSession.user?.email, authSession.user?.id, defaultLanguage, defaultTimeZone])
+  }, [authReady, authSession.isAuthenticated, authSession.user?.id, defaultLanguage, defaultTimeZone])
 
   useEffect(() => {
     const timer = window.setInterval(() => {
