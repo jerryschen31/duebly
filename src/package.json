@@ -15,6 +15,7 @@
     "deploy:dev": "npm run build && npx wrangler@4.15.2 deploy --config ../wrangler.toml --env dev --assets ./dist"
   },
   "dependencies": {
+    "@kinde-oss/kinde-auth-pkce-js": "^4.3.0",
     "dexie": "^4.4.2",
     "framer-motion": "^12.38.0",
     "react": "^19.2.5",

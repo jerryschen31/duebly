@@ -36,15 +36,60 @@ const shouldDeleteOldTasks = parseBooleanFlag(
   true,
 )
 
-const db = new Dexie('duebly-db')
-db.version(1).stores({
-  tasks: '&id, dueDate, isDone, createdAt, completedAt, recurring, last_updated',
-  settings: '&id',
-})
-db.version(2).stores({
-  tasks: '&id, dueDate, dueEndTime, isDone, createdAt, completedAt, recurring, last_updated',
-  settings: '&id',
-})
+const LEGACY_DB_NAME = 'duebly-db'
+const GUEST_DB_NAME = 'duebly-guest-db'
+let db = null
+let activeProfileKey = null
+
+const configureDb = (database) => {
+  database.version(1).stores({
+    tasks: '&id, dueDate, isDone, createdAt, completedAt, recurring, last_updated',
+    settings: '&id',
+  })
+  database.version(2).stores({
+    tasks: '&id, dueDate, dueEndTime, isDone, createdAt, completedAt, recurring, last_updated',
+    settings: '&id',
+  })
+  return database
+}
+
+const hashProfileValue = (value) => {
+  let hash = 0
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (Math.imul(31, hash) + value.charCodeAt(index)) | 0
+  }
+  return Math.abs(hash).toString(36)
+}
+
+const normalizeProfileSegment = (value, fallback) => {
+  const normalized = String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48)
+  return normalized || fallback
+}
+
+const getProfileKey = (profile) => {
+  if (!profile || profile.type !== 'user') {
+    return 'guest'
+  }
+
+  const identity = String(profile.id || profile.email || 'user')
+  const label = normalizeProfileSegment(profile.email || profile.id, 'user')
+  return `user-${label}-${hashProfileValue(identity)}`
+}
+
+const getDatabaseName = (profileKey) => profileKey === 'guest' ? GUEST_DB_NAME : `duebly-${profileKey}-db`
+
+const getDb = () => {
+  if (!db) {
+    db = configureDb(new Dexie(GUEST_DB_NAME))
+    activeProfileKey = 'guest'
+  }
+  return db
+}
 
 const getNow = () => Date.now()
 const getNowIso = () => new Date().toISOString()
@@ -219,7 +264,7 @@ const upsertTasks = async (tasks) => {
     return
   }
 
-  await db.tasks.bulkPut(tasks)
+  await getDb().tasks.bulkPut(tasks)
 }
 
 const mergeTasks = (localTasks, remoteTasks, onEqualTimestamp) => {
@@ -256,20 +301,20 @@ const mergeTasks = (localTasks, remoteTasks, onEqualTimestamp) => {
 }
 
 const readDexieTasks = async () => {
-  const tasks = await db.tasks.toArray()
+  const tasks = await getDb().tasks.toArray()
   return tasks.map(normalizeTask).filter(Boolean)
 }
 
 const prunePersistedOldTasks = async (tasks) => {
   const { keptTasks, removedTasks } = splitByRetention(tasks)
   if (removedTasks.length) {
-    await db.tasks.bulkDelete(removedTasks.map((task) => task.id))
+    await getDb().tasks.bulkDelete(removedTasks.map((task) => task.id))
   }
   return keptTasks
 }
 
 const readSettings = async () => {
-  const rows = await db.settings.toArray()
+  const rows = await getDb().settings.toArray()
   const map = rows.reduce((acc, row) => {
     acc[row.id] = row.value
     return acc
@@ -283,36 +328,78 @@ const readSettings = async () => {
 }
 
 const writeSettings = async (settings) => {
-  await db.settings.bulkPut([
+  await getDb().settings.bulkPut([
     { id: SETTINGS_KEYS.timezone, value: settings.timezone || null },
     { id: SETTINGS_KEYS.language, value: settings.language || null },
     { id: SETTINGS_KEYS.syncEnabled, value: Boolean(settings.syncEnabled) },
   ])
 }
 
-const migrateFromLegacy = async () => {
+const migrateFromLegacyLocalStorage = async () => {
+  if (activeProfileKey !== 'guest') {
+    return
+  }
+
   const legacyTasks = readLegacyTasks()
   const legacyTimezone = readLegacyTimezone()
-  const hasPersistedTasks = (await db.tasks.count()) > 0
+  const hasPersistedTasks = (await getDb().tasks.count()) > 0
 
   // Only hydrate from legacy localStorage on a true first migration.
   if (!hasPersistedTasks && legacyTasks.length) {
     await upsertTasks(legacyTasks)
   }
 
-  const hasPersistedTimezone = Boolean((await db.settings.get(SETTINGS_KEYS.timezone))?.value)
+  const hasPersistedTimezone = Boolean((await getDb().settings.get(SETTINGS_KEYS.timezone))?.value)
   if (!hasPersistedTimezone && legacyTimezone) {
-    await db.settings.put({ id: SETTINGS_KEYS.timezone, value: legacyTimezone })
+    await getDb().settings.put({ id: SETTINGS_KEYS.timezone, value: legacyTimezone })
   }
 
   safeLocalStorageRemove(LEGACY_TASKS_KEY)
   safeLocalStorageRemove(LEGACY_TIMEZONE_KEY)
 }
 
+const migrateGuestFromLegacyDb = async () => {
+  if (activeProfileKey !== 'guest' || (await getDb().tasks.count()) > 0) {
+    return
+  }
+
+  const legacyDb = configureDb(new Dexie(LEGACY_DB_NAME))
+  try {
+    const legacyTasks = (await legacyDb.tasks.toArray()).map(normalizeTask).filter(Boolean)
+    const legacySettings = await legacyDb.settings.toArray()
+    if (legacyTasks.length) {
+      await getDb().tasks.bulkPut(legacyTasks)
+    }
+    if (legacySettings.length) {
+      await getDb().settings.bulkPut(legacySettings)
+    }
+  } catch {
+    // ignore missing or inaccessible legacy database
+  } finally {
+    legacyDb.close()
+  }
+}
+
+const setActiveProfile = (profile) => {
+  const nextProfileKey = getProfileKey(profile)
+  if (db && activeProfileKey === nextProfileKey) {
+    return
+  }
+
+  if (db) {
+    db.close()
+  }
+
+  activeProfileKey = nextProfileKey
+  db = configureDb(new Dexie(getDatabaseName(nextProfileKey)))
+}
+
 export const taskStorage = {
-  async initialize(defaultTimeZone) {
+  async initialize(defaultTimeZone, profile = { type: 'guest' }) {
     try {
-      await migrateFromLegacy()
+      setActiveProfile(profile)
+      await migrateGuestFromLegacyDb()
+      await migrateFromLegacyLocalStorage()
       const tasks = await prunePersistedOldTasks(await readDexieTasks())
       const settings = await readSettings()
 
@@ -347,15 +434,15 @@ export const taskStorage = {
 
     const { keptTasks } = splitByRetention([normalizedTask])
     if (!keptTasks.length) {
-      await db.tasks.delete(normalizedTask.id)
+      await getDb().tasks.delete(normalizedTask.id)
       return
     }
 
-    await db.tasks.put(normalizedTask)
+    await getDb().tasks.put(normalizedTask)
   },
 
   async deleteTask(taskId) {
-    await db.tasks.delete(taskId)
+    await getDb().tasks.delete(taskId)
   },
 
   async saveSettings(settings) {
@@ -371,12 +458,31 @@ export const taskStorage = {
 
   async replaceAllTasks(tasks) {
     const normalizedTasks = splitByRetention(tasks.map(normalizeTask).filter(Boolean)).keptTasks
-    await db.transaction('rw', db.tasks, async () => {
-      await db.tasks.clear()
+    await getDb().transaction('rw', getDb().tasks, async () => {
+      await getDb().tasks.clear()
       if (normalizedTasks.length) {
-        await db.tasks.bulkPut(normalizedTasks)
+        await getDb().tasks.bulkPut(normalizedTasks)
       }
     })
+  },
+
+  async exportSnapshot() {
+    return {
+      profileKey: activeProfileKey || 'guest',
+      tasks: await readDexieTasks(),
+      settings: await readSettings(),
+    }
+  },
+
+  async importSnapshot(snapshot) {
+    if (!snapshot || typeof snapshot !== 'object') {
+      return
+    }
+
+    await this.replaceAllTasks(Array.isArray(snapshot.tasks) ? snapshot.tasks : [])
+    if (snapshot.settings && typeof snapshot.settings === 'object') {
+      await writeSettings(snapshot.settings)
+    }
   },
 }
 

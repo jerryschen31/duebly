@@ -2,6 +2,8 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import './App.css'
+import { initializeAuthSession, login, logout, register } from './auth/kindeAuth'
+import { appConfig } from './config/env'
 import { taskModel, taskStorage } from './storage'
 
 const TAB_KEYS = {
@@ -33,8 +35,17 @@ const TRANSLATIONS = {
     timeZoneMenuTitle: 'Time Zone',
     toggleDarkMode: 'Toggle Dark Mode',
     buyMeCoffee: 'Buy Me a Coffee',
-    login: 'Login',
-    loginMvpAlert: 'Login is not part of this MVP yet.',
+    signIn: 'Sign In',
+    signOut: 'Sign Out',
+    guestMode: 'Guest mode',
+    loggedInAs: 'Logged in as {email}',
+    continueToLogin: 'Continue to Login',
+    loginPageTitle: 'Welcome to Duebly',
+    loginMission: 'Our mission is to keep your day organized, one task at a time.',
+    loginBenefits: 'Create an account to never lose your tasks and use Duebly on multiple devices. Guest mode is one-device only and relies on your browser cache.',
+    signUpPrompt: "Don't have an account?",
+    signUpToday: 'Sign up today!',
+    authConfigMissing: 'Login is not configured for this environment.',
     taskListTabs: 'Task list tabs',
     notDoneTab: 'Not Done',
     doneTab: 'Done',
@@ -1046,6 +1057,12 @@ function App() {
   const defaultTimeZone = getDefaultTimeZone()
   const defaultLanguage = getDefaultLanguage()
   const [isReady, setIsReady] = useState(false)
+  const [authReady, setAuthReady] = useState(!appConfig.authEnabled)
+  const [authSession, setAuthSession] = useState({
+    enabled: appConfig.authEnabled,
+    isAuthenticated: false,
+    user: null,
+  })
   const [tasks, setTasks] = useState([])
   const [activeTab, setActiveTab] = useState(TAB_KEYS.notDone)
   const [menuTaskId, setMenuTaskId] = useState(null)
@@ -1184,8 +1201,51 @@ function App() {
   useEffect(() => {
     let isMounted = true
 
+    const initializeAuth = async () => {
+      if (!appConfig.authEnabled) {
+        return
+      }
+
+      try {
+        const session = await initializeAuthSession()
+        if (isMounted) {
+          setAuthSession(session)
+        }
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.warn('Failed to initialize auth', error)
+        }
+      } finally {
+        if (isMounted) {
+          setAuthReady(true)
+        }
+      }
+    }
+
+    initializeAuth()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!authReady) {
+      return undefined
+    }
+
+    let isMounted = true
+
     const initialize = async () => {
-      const result = await taskStorage.initialize(defaultTimeZone)
+      setIsReady(false)
+      const profile = authSession.isAuthenticated
+        ? {
+            type: 'user',
+            id: authSession.user?.id,
+            email: authSession.user?.email,
+          }
+        : { type: 'guest' }
+      const result = await taskStorage.initialize(defaultTimeZone, profile)
       if (!isMounted) {
         return
       }
@@ -1202,7 +1262,18 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [defaultLanguage, defaultTimeZone])
+  }, [authReady, authSession.isAuthenticated, authSession.user?.email, authSession.user?.id, defaultLanguage, defaultTimeZone])
+
+  useEffect(() => {
+    if (
+      authReady
+      && authSession.isAuthenticated
+      && typeof window !== 'undefined'
+      && window.location.pathname === '/login'
+    ) {
+      window.history.replaceState({}, '', '/')
+    }
+  }, [authReady, authSession.isAuthenticated])
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -2261,10 +2332,50 @@ function App() {
     return translate('emptyNotDone')
   }
 
+  const isLoginRoute = typeof window !== 'undefined' && window.location.pathname === '/login'
+  const userEmail = authSession.user?.email || authSession.user?.id || ''
+  const authStatusLabel = authSession.isAuthenticated
+    ? translate('loggedInAs', { email: userEmail })
+    : translate('guestMode')
+
+  const navigateToLogin = () => {
+    window.location.assign('/login')
+  }
+
   if (!isReady) {
     return (
       <div className="app-shell loading-shell">
         <p>{translate('loading')}</p>
+      </div>
+    )
+  }
+
+  if (isLoginRoute) {
+    return (
+      <div className={`app-shell login-shell ${DARK_MODE_ENABLED ? 'dark-mode' : ''}`} lang={activeLanguage.locale}>
+        <main className="login-card">
+          <p className="login-kicker">Duebly</p>
+          <h1>{translate('loginPageTitle')}</h1>
+          <p>{translate('loginMission')}</p>
+          <p className="login-benefits">{translate('loginBenefits')}</p>
+          <button
+            type="button"
+            className="primary-button login-primary-button"
+            onClick={login}
+            disabled={!appConfig.kinde.configured}
+          >
+            {translate('continueToLogin')}
+          </button>
+          {!appConfig.kinde.configured ? (
+            <p className="login-config-warning">{translate('authConfigMissing')}</p>
+          ) : null}
+          <p className="signup-copy">
+            {translate('signUpPrompt')}{' '}
+            <button type="button" className="link-button" onClick={register}>
+              {translate('signUpToday')}
+            </button>
+          </p>
+        </main>
       </div>
     )
   }
@@ -2345,6 +2456,9 @@ function App() {
           </button>
         </div>
         <div className="top-right">
+          <span className={`auth-status ${authSession.isAuthenticated ? '' : 'guest'}`}>
+            {authStatusLabel}
+          </span>
           <div className="language-menu-wrap">
             <button
               type="button"
@@ -2377,10 +2491,10 @@ function App() {
           </div>
           <button
             type="button"
-            className="ghost-button"
-            onClick={() => window.alert(translate('loginMvpAlert'))}
+            className={authSession.isAuthenticated ? 'ghost-button' : 'primary-button nav-auth-button'}
+            onClick={authSession.isAuthenticated ? logout : navigateToLogin}
           >
-            {translate('login')}
+            {authSession.isAuthenticated ? translate('signOut') : translate('signIn')}
           </button>
         </div>
       </header>
