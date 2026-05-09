@@ -2343,9 +2343,13 @@ function App() {
     ? translate('loggedInAs', { email: userEmail })
     : translate('guestMode')
 
+  const navigateToPath = (path) => {
+    window.history.pushState({}, '', path)
+    setCurrentPath(path)
+  }
+
   const navigateToLogin = () => {
-    window.history.pushState({}, '', '/login')
-    setCurrentPath('/login')
+    navigateToPath('/login')
   }
 
   if (!isReady) {
@@ -2369,11 +2373,12 @@ function App() {
             className="primary-button login-primary-button"
             onClick={login}
             disabled={!appConfig.kinde.configured}
+            aria-describedby={!appConfig.kinde.configured ? 'auth-config-warning' : undefined}
           >
             {translate('continueToLogin')}
           </button>
           {!appConfig.kinde.configured ? (
-            <p className="login-config-warning">{translate('authConfigMissing')}</p>
+            <p id="auth-config-warning" className="login-config-warning">{translate('authConfigMissing')}</p>
           ) : null}
           <p className="signup-copy">
             {translate('signUpPrompt')}{' '}

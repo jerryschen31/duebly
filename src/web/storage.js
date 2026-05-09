@@ -54,7 +54,7 @@ const configureDb = (database) => {
   return database
 }
 
-const encodeProfileValue = (value) => {
+const encodeProfileValueBase64Url = (value) => {
   const bytes = new TextEncoder().encode(value)
   const binary = Array.from(bytes, (byte) => String.fromCharCode(byte)).join('')
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
@@ -76,11 +76,17 @@ const getProfileKey = (profile) => {
   }
 
   const identity = String(profile.id || profile.email || 'user')
-  const label = normalizeProfileSegment(profile.email || profile.id, 'user')
-  return `user-${label}-${encodeProfileValue(identity)}`
+  const label = normalizeProfileSegment(profile.id || profile.email, 'user')
+  return `user-${label}-${encodeProfileValueBase64Url(identity)}`
 }
 
-const getDatabaseName = (profileKey) => (profileKey === 'guest') ? GUEST_DB_NAME : `duebly-${profileKey}-db`
+const getDatabaseName = (profileKey) => {
+  if (profileKey === 'guest') {
+    return GUEST_DB_NAME
+  }
+
+  return `duebly-${profileKey}-db`
+}
 
 const getDb = () => {
   if (!db) {
@@ -358,7 +364,11 @@ const migrateFromLegacyLocalStorage = async () => {
 }
 
 const migrateGuestFromLegacyDb = async () => {
-  if (activeProfileKey !== 'guest' || (await getDb().tasks.count()) > 0) {
+  if (activeProfileKey !== 'guest') {
+    return
+  }
+
+  if ((await getDb().tasks.count()) > 0) {
     return
   }
 
