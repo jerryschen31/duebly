@@ -137,16 +137,20 @@ test('UAT 1: With 10 tasks, menus and pickers stay on-screen (no cutoff)', async
 
 test('UAT 2 and 3: Add non-recurring and daily recurring tasks with start/end time', async ({ page }) => {
   await (await ensureComposerOpen(page)).fill('time range non recurring')
-  await setComposerTimeRange(page, '2:30p', '4:30p')
+  await setComposerTimeRange(page, '2:30 pm', '4:30 pm')
   await page.getByRole('button', { name: /^Add Task$/i }).click()
-  await expect(page.getByText('time range non recurring')).toBeVisible()
+  const nonRecurringRow = getTaskRow(page, 'time range non recurring')
+  await expect(nonRecurringRow).toBeVisible()
+  await expect(nonRecurringRow).toContainText(/2:30\s*pm\s*[–-]\s*4:30\s*pm/i)
 
   await (await ensureComposerOpen(page)).fill('time range daily recurring')
   await setRecurringDaily(page)
-  await setComposerTimeRange(page, '9:00a', '10:00a')
+  await setComposerTimeRange(page, '9:00 am', '10:00 am')
   await page.getByRole('button', { name: /^Add Task$/i }).click()
-  await expect(page.getByText('time range daily recurring')).toBeVisible()
-  await expect(page.getByText(/\(recurring\)/i)).toBeVisible()
+  const recurringRow = getTaskRow(page, 'time range daily recurring')
+  await expect(recurringRow).toBeVisible()
+  await expect(recurringRow).toContainText(/9:00\s*am\s*[–-]\s*10:00\s*am/i)
+  await expect(recurringRow).toContainText(/\(recurring\)/i)
 })
 
 test('UAT 4: Swipe left on Not Done non-recurring task moves it to Done', async ({ page }) => {
