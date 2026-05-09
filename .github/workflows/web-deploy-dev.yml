@@ -35,6 +35,9 @@ jobs:
       - name: Validate lint
         run: npm run lint
 
+      - name: Validate dev deploy build
+        run: npm run build
+
       - name: Install Playwright browser
         run: |
           npx playwright install-deps chromium
@@ -45,9 +48,6 @@ jobs:
           CI: true
           PLAYWRIGHT_HTML_OPEN: never
         run: npm run test:web
-
-      - name: Validate dev deploy build
-        run: npm run build
 
   deploy-dev:
     if: github.event_name == 'push' && github.ref == 'refs/heads/dev'

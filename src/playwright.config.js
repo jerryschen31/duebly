@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
+import process from 'node:process'
 
 export default defineConfig({
   testDir: './web/tests/e2e',
@@ -18,9 +19,9 @@ export default defineConfig({
     video: 'retain-on-failure',
   },
   webServer: {
-    command: 'npm run dev -- --host 127.0.0.1 --port 4173',
+    command: 'npm run build && npm run preview -- --host 127.0.0.1 --port 4173',
     url: 'http://127.0.0.1:4173',
-    reuseExistingServer: true,
+    reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
   projects: [
