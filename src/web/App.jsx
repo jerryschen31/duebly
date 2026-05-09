@@ -829,6 +829,19 @@ const formatTaskTimeRangeCompact = (dueDate, dueEndTime, amSuffix = 'a', pmSuffi
   return endLabel ? `${startLabel}-${endLabel}` : startLabel
 }
 
+const formatTaskTimeRangeMobile = (dueDate, dueEndTime, amSuffix = 'a', pmSuffix = 'p') => {
+  const startLabel = formatTaskTimeCompact(dueDate, amSuffix, pmSuffix)
+  const endLabel = dueEndTime
+    ? formatTaskTimeCompact(makeDueDateTime(getDatePartFromDueDateTime(dueDate), dueEndTime), amSuffix, pmSuffix)
+    : ''
+
+  if (!startLabel || !endLabel) {
+    return formatTaskTimeRangeCompact(dueDate, dueEndTime, amSuffix, pmSuffix)
+  }
+
+  return `${startLabel}-\n${endLabel}`
+}
+
 const formatDateTimeLabel = (dueDate, dueEndTime, locale, today, amSuffix = 'a', pmSuffix = 'p') => {
   const dateLabel = formatDateLabel(dueDate, locale, today)
   if (!hasExplicitDueTime(dueDate)) {
@@ -2285,7 +2298,7 @@ function App() {
                     className={`menu-item-button ${isTimeZoneSubmenuOpen ? 'active' : ''}`}
                     onClick={() => setIsTimeZoneSubmenuOpen((prev) => !prev)}
                   >
-                    {translate('setTimeZone')}
+                    {'🕒 '}{translate('setTimeZone')}
                   </button>
                   <button
                     type="button"
@@ -2294,10 +2307,16 @@ function App() {
                       setDarkModeEnabled((prev) => !prev)
                     }}
                   >
-                    {translate('toggleDarkMode')}
+                    {'🌙 '}{translate('toggleDarkMode')}
                   </button>
-                  <button type="button" className="menu-item-button">
-                    {translate('buyMeCoffee')}
+                  <button
+                    type="button"
+                    className="menu-item-button"
+                    onClick={() => {
+                      window.open('https://buymeacoffee.com/duebly', '_blank', 'noopener,noreferrer')
+                    }}
+                  >
+                    {'☕ '}{translate('buyMeCoffee')}
                   </button>
                 </div>
                 {isTimeZoneSubmenuOpen ? (
@@ -2847,13 +2866,22 @@ function App() {
                     />
 
                     {hasTaskTime ? (
-                      <span className="task-time">
-                        {formatTaskTimeRangeCompact(
-                          task.dueDate,
-                          task.dueEndTime,
-                          translate('timeAmAbbrev'),
-                          translate('timePmAbbrev'),
-                        )}
+                      <span
+                        className={`task-time ${isMobileViewport && hasExplicitDueTime(task.dueDate) && Boolean(task.dueEndTime) ? 'multiline-mobile' : ''}`}
+                      >
+                        {isMobileViewport && hasExplicitDueTime(task.dueDate) && Boolean(task.dueEndTime)
+                          ? formatTaskTimeRangeMobile(
+                              task.dueDate,
+                              task.dueEndTime,
+                              translate('timeAmAbbrev'),
+                              translate('timePmAbbrev'),
+                            )
+                          : formatTaskTimeRangeCompact(
+                              task.dueDate,
+                              task.dueEndTime,
+                              translate('timeAmAbbrev'),
+                              translate('timePmAbbrev'),
+                            )}
                       </span>
                     ) : null}
 
@@ -2946,11 +2974,11 @@ function App() {
                                 toggleTaskDone(task, true)
                               }}
                             >
-                              {translate('markAsDone')}
+                              {'✅ '}{translate('markAsDone')}
                             </button>
                           ) : null}
                           <button type="button" onClick={() => beginEditTask(task)}>
-                            {translate('editTask')}
+                            {'🛠️ '}{translate('editTask')}
                           </button>
                           <button
                             type="button"
@@ -2962,7 +2990,7 @@ function App() {
                               })
                             }}
                           >
-                            {translate('changeFrequency')}
+                            {'🔄 '}{translate('changeFrequency')}
                           </button>
                           {frequencySelectorTaskId === task.id ? (
                             <div className={`task-frequency-submenu ${isFrequencyMenuOpenUp ? 'open-up' : ''}`}>
@@ -2988,10 +3016,10 @@ function App() {
                               setFrequencySelectorTaskId(null)
                             }}
                           >
-                            {translate('changeLabel')}
+                            {'🏷️ '}{translate('changeLabel')}
                           </button>
                           <button type="button" onClick={() => deleteTask(task.id)}>
-                            {translate('deleteTask')}
+                            {'🗑️ '}{translate('deleteTask')}
                           </button>
                         </div>
                       ) : null}

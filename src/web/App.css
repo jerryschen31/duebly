@@ -917,6 +917,11 @@
     padding: 0.5rem;
   }
 
+  .task-time.multiline-mobile {
+    white-space: pre;
+    line-height: 1.05;
+  }
+
   .task-label-selector {
     width: min(90vw, 16rem);
     right: 0;
