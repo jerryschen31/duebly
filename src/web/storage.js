@@ -1,8 +1,5 @@
 import Dexie from 'dexie'
 
-const LEGACY_TASKS_KEY = 'duebly.tasks.v1'
-const LEGACY_TIMEZONE_KEY = 'duebly.timezone.v1'
-
 const SETTINGS_KEYS = {
   timezone: 'timezone',
   language: 'language',
@@ -36,7 +33,6 @@ const shouldDeleteOldTasks = parseBooleanFlag(
   true,
 )
 
-const LEGACY_DB_NAME = 'duebly-db'
 const GUEST_DB_NAME = 'duebly-guest-db'
 const GUEST_PROFILE = { type: 'guest' }
 let db = null
@@ -98,22 +94,6 @@ const getDb = () => {
 
 const getNow = () => Date.now()
 const getNowIso = () => new Date().toISOString()
-
-const safeLocalStorageGet = (key) => {
-  try {
-    return window.localStorage.getItem(key)
-  } catch {
-    return null
-  }
-}
-
-const safeLocalStorageRemove = (key) => {
-  try {
-    window.localStorage.removeItem(key)
-  } catch {
-    // ignore storage failures
-  }
-}
 
 const parseIsoDate = (value) => {
   if (typeof value !== 'string') {
@@ -241,37 +221,6 @@ const normalizeTask = (task) => {
   }
 }
 
-const readLegacyTasks = () => {
-  const raw = safeLocalStorageGet(LEGACY_TASKS_KEY)
-  if (!raw) {
-    return []
-  }
-
-  try {
-    const parsed = JSON.parse(raw)
-    if (!Array.isArray(parsed)) {
-      return []
-    }
-
-    return parsed.map(normalizeTask).filter(Boolean)
-  } catch {
-    return []
-  }
-}
-
-const readLegacyTimezone = () => {
-  const raw = safeLocalStorageGet(LEGACY_TIMEZONE_KEY)
-  return typeof raw === 'string' && raw ? raw : null
-}
-
-const upsertTasks = async (tasks) => {
-  if (!tasks.length) {
-    return
-  }
-
-  await getDb().tasks.bulkPut(tasks)
-}
-
 const mergeTasks = (localTasks, remoteTasks, onEqualTimestamp) => {
   const byId = new Map()
 
@@ -340,57 +289,6 @@ const writeSettings = async (settings) => {
   ])
 }
 
-const migrateFromLegacyLocalStorage = async () => {
-  if (activeProfileKey !== 'guest') {
-    return
-  }
-
-  const legacyTasks = readLegacyTasks()
-  const legacyTimezone = readLegacyTimezone()
-  const hasPersistedTasks = (await getDb().tasks.count()) > 0
-
-  // Only hydrate from legacy localStorage on a true first migration.
-  if (!hasPersistedTasks && legacyTasks.length) {
-    await upsertTasks(legacyTasks)
-  }
-
-  const hasPersistedTimezone = Boolean((await getDb().settings.get(SETTINGS_KEYS.timezone))?.value)
-  if (!hasPersistedTimezone && legacyTimezone) {
-    await getDb().settings.put({ id: SETTINGS_KEYS.timezone, value: legacyTimezone })
-  }
-
-  safeLocalStorageRemove(LEGACY_TASKS_KEY)
-  safeLocalStorageRemove(LEGACY_TIMEZONE_KEY)
-}
-
-const migrateGuestFromLegacyDb = async () => {
-  if (activeProfileKey !== 'guest') {
-    return
-  }
-
-  if ((await getDb().tasks.count()) > 0) {
-    return
-  }
-
-  const legacyDb = configureDb(new Dexie(LEGACY_DB_NAME))
-  try {
-    const legacyTasks = (await legacyDb.tasks.toArray()).map(normalizeTask).filter(Boolean)
-    const legacySettings = await legacyDb.settings.toArray()
-    if (legacyTasks.length) {
-      await getDb().tasks.bulkPut(legacyTasks)
-    }
-    if (legacySettings.length) {
-      await getDb().settings.bulkPut(legacySettings)
-    }
-  } catch (error) {
-    if (import.meta.env.DEV) {
-      console.warn('Failed to migrate guest tasks from legacy database', error)
-    }
-  } finally {
-    legacyDb.close()
-  }
-}
-
 const setActiveProfile = (profile) => {
   const nextProfileKey = getProfileKey(profile)
   if (db && activeProfileKey === nextProfileKey) {
@@ -409,8 +307,6 @@ export const taskStorage = {
   async initialize(defaultTimeZone, profile = GUEST_PROFILE) {
     try {
       setActiveProfile(profile)
-      await migrateGuestFromLegacyDb()
-      await migrateFromLegacyLocalStorage()
       const tasks = await prunePersistedOldTasks(await readDexieTasks())
       const settings = await readSettings()
 
