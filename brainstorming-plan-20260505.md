@@ -1,4 +1,4 @@
-# Duebly Phase 3 Plan (2026-05-05)
+# Duebly Phase 4 Plan (2026-05-05)
 
 ## Goal
 Wire Kinde Google social login into the existing Vite + React app and add Google Drive AppData as the remote task backend, while keeping IndexedDB (Dexie) as the primary local store and sync layer.

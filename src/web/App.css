@@ -787,7 +787,8 @@
 
 .task-label-selector {
   position: absolute;
-  top: 0.15rem;
+  top: auto;
+  bottom: calc(100% + 0.25rem);
 }
 
 .task-frequency-submenu {
@@ -973,10 +974,13 @@
 
   .task-row-shell .task-frequency-submenu {
     position: absolute;
-    top: calc(100% + 0.25rem);
+    top: auto;
+    bottom: calc(100% + 0.25rem);
     right: 0;
     left: auto;
     width: min(84vw, 14rem);
+    max-height: min(48dvh, 16rem);
+    overflow-y: auto;
     box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
     border-color: #d1d5db;
     z-index: 240;

@@ -35,6 +35,17 @@ jobs:
       - name: Validate lint
         run: npm run lint
 
+      - name: Install Playwright browser
+        run: |
+          npx playwright install-deps chromium
+          npx playwright install chromium
+
+      - name: Run web tests
+        env:
+          CI: true
+          PLAYWRIGHT_HTML_OPEN: never
+        run: npm run test:web
+
       - name: Validate dev deploy build
         run: npm run build
 
