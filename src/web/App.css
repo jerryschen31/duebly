@@ -65,7 +65,9 @@
 .app-shell.dark-mode .recurring-badge,
 .app-shell.dark-mode .clear-time-button,
 .app-shell.dark-mode .task-text.done,
-.app-shell.dark-mode .swatch-hint {
+.app-shell.dark-mode .swatch-hint,
+.app-shell.dark-mode .auth-status,
+.app-shell.dark-mode .login-benefits {
   color: #cbd5e1;
 }
 
@@ -116,6 +118,65 @@
   place-items: center;
 }
 
+.login-shell {
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.login-card {
+  width: min(100%, 420px);
+  border: 1px solid #d1d5db;
+  border-radius: 1rem;
+  background: #ffffff;
+  padding: 2rem;
+  text-align: center;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+}
+
+.app-shell.dark-mode .login-card {
+  background: #1a2029;
+  border-color: #374151;
+}
+
+.login-card h1 {
+  margin: 0 0 0.75rem;
+  font-size: 1.75rem;
+  color: #2563eb;
+}
+
+.login-benefits {
+  margin: 1rem 0 1.4rem;
+  color: #4b5563;
+  line-height: 1.55;
+}
+
+.login-primary-button {
+  width: 100%;
+  min-height: 2.75rem;
+}
+
+.signup-copy,
+.login-config-warning {
+  margin: 1rem 0 0;
+  font-size: 0.92rem;
+}
+
+.login-config-warning {
+  color: #b45309;
+}
+
+.link-button {
+  color: #2563eb;
+  font-weight: 700;
+  padding: 0;
+}
+
+.link-button:disabled {
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
 .top-nav {
   position: sticky;
   top: 0;
@@ -148,7 +209,8 @@
 .label-trigger,
 .label-option,
 .task-label-selector button,
-.menu-item-button {
+.menu-item-button,
+.link-button {
   border: 0;
   background: transparent;
   cursor: pointer;
@@ -179,6 +241,20 @@
   border-radius: 0.5rem;
   border: 1px solid #d1d5db;
   background: #ffffff;
+}
+
+.nav-auth-button {
+  padding: 0.42rem 0.7rem;
+}
+
+.auth-status {
+  color: #4b5563;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.auth-status.guest {
+  font-style: italic;
 }
 
 .menu-wrap {
