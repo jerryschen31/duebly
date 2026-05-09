@@ -223,6 +223,7 @@
   border-radius: 0;
   background: #ffffff;
   padding: 0.55rem 0.8rem;
+  white-space: nowrap;
 }
 
 .menu-item-button:hover,
@@ -735,7 +736,16 @@
 .task-label-selector {
   right: 0;
   left: auto;
+}
+
+.task-menu {
   width: 12.5rem;
+}
+
+.task-label-selector {
+  width: 7.5rem;
+  max-height: 10.5rem;
+  overflow-y: auto;
 }
 
 .recurring-menu-wrap .task-menu.recurring-menu {
@@ -895,6 +905,10 @@
     --top-nav-height: 3.2rem;
   }
 
+  .menu-popover-top {
+    width: min(72vw, 230px);
+  }
+
   .composer-card-collapsed {
     padding: 0.6rem 0.75rem;
   }
@@ -923,7 +937,7 @@
   }
 
   .task-label-selector {
-    width: min(90vw, 16rem);
+    width: min(54vw, 9.6rem);
     right: 0;
   }
 
@@ -941,10 +955,15 @@
     top: calc(100% + 0.35rem);
     right: 0;
     left: auto;
-    width: min(90vw, 16rem);
+    width: min(84vw, 14rem);
     max-height: min(70dvh, 24rem);
     overflow-y: auto;
     z-index: 95;
+  }
+
+  .task-row-shell .task-menu.has-submenu {
+    overflow: visible;
+    max-height: none;
   }
 
   .task-row-shell .task-menu.open-up {
@@ -957,7 +976,7 @@
     top: calc(100% + 0.25rem);
     right: 0;
     left: auto;
-    width: min(90vw, 16rem);
+    width: min(84vw, 14rem);
     box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
     border-color: #d1d5db;
     z-index: 240;
@@ -970,6 +989,15 @@
 
   .task-edit-modal {
     max-width: calc(100vw - 1rem);
+  }
+}
+
+@media (max-width: 640px) and (orientation: portrait) {
+  .menu-popover-top .menu-submenu {
+    top: calc(100% + 0.35rem);
+    left: 0;
+    right: auto;
+    width: min(72vw, 230px);
   }
 }
 

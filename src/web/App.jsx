@@ -2964,7 +2964,7 @@ function App() {
                         ⋯
                       </button>
                       {menuTaskId === task.id ? (
-                        <div className={`task-menu ${isTaskMenuOpenUp ? 'open-up' : ''}`}>
+                        <div className={`task-menu ${isTaskMenuOpenUp ? 'open-up' : ''} ${frequencySelectorTaskId === task.id ? 'has-submenu' : ''}`}>
                           {!task.isDone ? (
                             <button
                               type="button"
