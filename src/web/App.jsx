@@ -1248,7 +1248,7 @@ function App() {
       const profile = authSession.isAuthenticated
         ? {
             type: 'user',
-            id: authSession.user?.id,
+            id: authSession.user?.id || authSession.user?.sub,
           }
         : { type: 'guest' }
       const result = await taskStorage.initialize(defaultTimeZone, profile)
@@ -1268,7 +1268,7 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [authReady, authSession.isAuthenticated, authSession.user?.id, defaultLanguage, defaultTimeZone])
+  }, [authReady, authSession.isAuthenticated, authSession.user?.id, authSession.user?.sub, defaultLanguage, defaultTimeZone])
 
   useEffect(() => {
     const timer = window.setInterval(() => {

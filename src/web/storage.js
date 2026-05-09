@@ -50,6 +50,8 @@ const configureDb = (database) => {
   return database
 }
 
+// Obfuscates opaque auth identifiers for DB naming. This is non-cryptographic and
+// only intended to avoid exposing raw user identifiers in browser storage names.
 const hashProfileId = (value) => {
   let hash = 2166136261
   for (let index = 0; index < value.length; index += 1) {
@@ -65,7 +67,10 @@ const getProfileKey = (profile) => {
   }
 
   const userId = String(profile.id || '').trim()
-  return `user-${hashProfileId(userId || 'unknown-user')}`
+  if (!userId) {
+    throw new Error('Authenticated profile is missing a stable user id')
+  }
+  return `user-${hashProfileId(userId)}`
 }
 
 const getDatabaseName = (profileKey) => {
