@@ -284,7 +284,9 @@
 .profile-menu-popover {
   right: 0;
   left: auto;
-  width: min(76vw, 260px);
+  width: min(92vw, 360px);
+  max-width: calc(100vw - 1rem);
+  transform-origin: top right;
 }
 
 .profile-menu-status {
@@ -292,9 +294,9 @@
   border-bottom: 1px solid #e5e7eb;
   color: #4b5563;
   font-size: 0.82rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .menu-popover {
