@@ -10,6 +10,10 @@ const RECURRING_VALUES = ['none', 'daily', 'weekly', 'weekdays']
 const TASK_RETENTION_DAYS = 60
 // Issue #13 specifies 11:59:59 as the date-only task sentinel.
 const ALL_DAY_SENTINEL_TIME = '11:59:59'
+// Tombstones (soft-deleted tasks) are retained for this many days so
+// deletions can propagate to other devices via remote sync before the
+// record is permanently purged. See remote-storage-implementation.md §7.
+const TOMBSTONE_RETENTION_DAYS = 30
 
 const parseBooleanFlag = (value, defaultValue) => {
   if (typeof value !== 'string') {
@@ -45,6 +49,10 @@ const configureDb = (database) => {
   })
   database.version(2).stores({
     tasks: '&id, dueDate, dueEndTime, isDone, createdAt, completedAt, recurring, last_updated',
+    settings: '&id',
+  })
+  database.version(3).stores({
+    tasks: '&id, dueDate, dueEndTime, isDone, createdAt, completedAt, recurring, last_updated, deleted',
     settings: '&id',
   })
   return database
@@ -160,6 +168,21 @@ const getTaskRetentionCutoffDate = () => {
   return addDaysToISODate(getCurrentISODate(), -TASK_RETENTION_DAYS)
 }
 
+const getTombstoneCutoffDate = () => {
+  return addDaysToISODate(getCurrentISODate(), -TOMBSTONE_RETENTION_DAYS)
+}
+
+const isExpiredTombstone = (task) => {
+  if (!task.deleted) {
+    return false
+  }
+  const lastUpdatedDate = String(task.last_updated || '').slice(0, 10)
+  if (!lastUpdatedDate) {
+    return false
+  }
+  return lastUpdatedDate < getTombstoneCutoffDate()
+}
+
 const splitByRetention = (tasks) => {
   if (!shouldDeleteOldTasks) {
     return { keptTasks: tasks, removedTasks: [] }
@@ -170,6 +193,17 @@ const splitByRetention = (tasks) => {
   const removedTasks = []
 
   for (const task of tasks) {
+    // Drop tombstones that are older than the propagation safety window.
+    if (isExpiredTombstone(task)) {
+      removedTasks.push(task)
+      continue
+    }
+    // Tombstones inside the retention window are always kept so the
+    // delete propagates to other devices via sync.
+    if (task.deleted) {
+      keptTasks.push(task)
+      continue
+    }
     if (getDatePartFromDueDateTime(task.dueDate) < cutoffDate) {
       removedTasks.push(task)
       continue
@@ -185,12 +219,19 @@ const normalizeTask = (task) => {
     return null
   }
 
-  if (!task.id || !task.text || !task.dueDate) {
+  const isTombstone = Boolean(task.deleted)
+  if (!task.id) {
     return null
   }
 
-  const dueDate = parseIsoDate(String(task.dueDate))
-  if (!dueDate) {
+  if (!isTombstone && (!task.text || !task.dueDate)) {
+    return null
+  }
+
+  // Tombstones do not require a valid dueDate/text but we still store
+  // any present fields verbatim for forward compatibility.
+  const dueDate = task.dueDate ? parseIsoDate(String(task.dueDate)) : null
+  if (!isTombstone && !dueDate) {
     return null
   }
 
@@ -205,8 +246,8 @@ const normalizeTask = (task) => {
 
   return {
     id: String(task.id),
-    text: String(task.text),
-    dueDate,
+    text: typeof task.text === 'string' ? task.text : '',
+    dueDate: dueDate || '',
     dueEndTime: parseClockTime(typeof task.dueEndTime === 'string' ? task.dueEndTime : '') || null,
     isDone: Boolean(task.isDone),
     color,
@@ -215,6 +256,7 @@ const normalizeTask = (task) => {
     recurring,
     originalTaskId: typeof task.originalTaskId === 'string' ? task.originalTaskId : null,
     last_updated: lastUpdated,
+    deleted: isTombstone,
   }
 }
 
@@ -255,6 +297,9 @@ const readDexieTasks = async () => {
   const tasks = await getDb().tasks.toArray()
   return tasks.map(normalizeTask).filter(Boolean)
 }
+
+const readVisibleTasks = (tasks) => tasks.filter((task) => !task.deleted)
+const readTombstones = (tasks) => tasks.filter((task) => task.deleted)
 
 const prunePersistedOldTasks = async (tasks) => {
   const { keptTasks, removedTasks } = splitByRetention(tasks)
@@ -304,7 +349,7 @@ export const taskStorage = {
   async initialize(defaultTimeZone, profile = GUEST_PROFILE) {
     try {
       setActiveProfile(profile)
-      const tasks = await prunePersistedOldTasks(await readDexieTasks())
+      const allTasks = await prunePersistedOldTasks(await readDexieTasks())
       const settings = await readSettings()
 
       if (!settings.timezone) {
@@ -313,7 +358,7 @@ export const taskStorage = {
       }
 
       return {
-        tasks,
+        tasks: readVisibleTasks(allTasks),
         settings,
         fallbackActive: false,
       }
@@ -345,14 +390,41 @@ export const taskStorage = {
     await getDb().tasks.put(normalizedTask)
   },
 
+  // Soft-delete: mark the task as a tombstone with a fresh `last_updated`
+  // so the deletion can propagate to other devices via remote sync.
+  // Hard-deletes only happen when the tombstone exits the retention window
+  // (see splitByRetention).
   async deleteTask(taskId) {
-    await getDb().tasks.delete(taskId)
+    const id = String(taskId)
+    const existing = await getDb().tasks.get(id)
+    const tombstone = normalizeTask({
+      ...(existing || {}),
+      id,
+      deleted: true,
+      last_updated: getNowIso(),
+    })
+    if (!tombstone) {
+      await getDb().tasks.delete(id)
+      return
+    }
+    if (isExpiredTombstone(tombstone)) {
+      await getDb().tasks.delete(id)
+      return
+    }
+    await getDb().tasks.put(tombstone)
   },
 
   async saveSettings(settings) {
     await writeSettings(settings)
   },
 
+  // Read all stored tasks (including tombstones) for the sync engine.
+  async readAllForSync() {
+    const tasks = await readDexieTasks()
+    return splitByRetention(tasks).keptTasks
+  },
+
+  // Pure merge helper — also exported on taskModel.mergeForSync for tests.
   mergeForSync(localTasks, remoteTasks, onEqualTimestamp) {
     const normalizedLocal = localTasks.map(normalizeTask).filter(Boolean)
     const normalizedRemote = remoteTasks.map(normalizeTask).filter(Boolean)
@@ -360,8 +432,29 @@ export const taskStorage = {
     return splitByRetention(merged).keptTasks
   },
 
+  // Replace UI-visible tasks while preserving any existing tombstones in
+  // the DB. Used after every UI mutation so the local DB stays in sync
+  // with React state without losing pending delete tombstones.
+  async persistActiveTasks(visibleTasks) {
+    const normalizedVisible = (visibleTasks || []).map(normalizeTask).filter(Boolean)
+    const visibleById = new Map(normalizedVisible.map((task) => [task.id, task]))
+    const existingTasks = await readDexieTasks()
+    const tombstones = readTombstones(existingTasks).filter((task) => !visibleById.has(task.id))
+    const merged = splitByRetention([...normalizedVisible, ...tombstones]).keptTasks
+    await getDb().transaction('rw', getDb().tasks, async () => {
+      await getDb().tasks.clear()
+      if (merged.length) {
+        await getDb().tasks.bulkPut(merged)
+      }
+    })
+  },
+
+  // Replace the entire local task table (tombstones included). Only used
+  // by sync after a pull-merge or by importSnapshot.
   async replaceAllTasks(tasks) {
-    const normalizedTasks = splitByRetention(tasks.map(normalizeTask).filter(Boolean)).keptTasks
+    const normalizedTasks = splitByRetention(
+      (tasks || []).map(normalizeTask).filter(Boolean),
+    ).keptTasks
     await getDb().transaction('rw', getDb().tasks, async () => {
       await getDb().tasks.clear()
       if (normalizedTasks.length) {
@@ -388,6 +481,68 @@ export const taskStorage = {
       await writeSettings(snapshot.settings)
     }
   },
+
+  // Read the guest DB tasks without changing the active profile. Used
+  // during the guest-to-user migration prompt at login time.
+  async readGuestTasks() {
+    const guestDb = configureDb(new Dexie(GUEST_DB_NAME))
+    try {
+      await guestDb.open()
+      const rows = await guestDb.tasks.toArray()
+      return rows.map(normalizeTask).filter(Boolean)
+    } catch {
+      return []
+    } finally {
+      try {
+        guestDb.close()
+      } catch {
+        // ignore close errors
+      }
+    }
+  },
+
+  async wipeGuestData() {
+    try {
+      await Dexie.delete(GUEST_DB_NAME)
+    } catch {
+      // ignore: best-effort cleanup
+    }
+  },
+
+  // Returns the subset of `guestTasks` that should be imported into the
+  // authenticated user's dataset. Per remote-storage-implementation.md §8,
+  // only tasks whose IDs do not exist in the user's dataset (live or
+  // tombstoned) qualify. Guest-side edits, status changes, and deletions
+  // for IDs that already exist on the user side are intentionally ignored.
+  computeNewGuestTasks(guestTasks, userTasks) {
+    const userIds = new Set((userTasks || []).map((task) => String(task.id)))
+    return (guestTasks || [])
+      .filter((task) => task && !task.deleted)
+      .filter((task) => !userIds.has(String(task.id)))
+  },
+
+  async importNewGuestTasks(newGuestTasks) {
+    const nowIso = getNowIso()
+    const importedTasks = (newGuestTasks || [])
+      .map((task) => normalizeTask({ ...task, deleted: false, last_updated: nowIso }))
+      .filter(Boolean)
+    if (!importedTasks.length) {
+      return []
+    }
+    await getDb().tasks.bulkPut(importedTasks)
+    return importedTasks
+  },
+
+  // Test-only: drops the cached Dexie connection so the next `initialize`
+  // re-opens against whatever IndexedDB factory is currently installed.
+  // Production code never calls this.
+  __resetForTests() {
+    if (db) {
+      try { db.close() } catch { /* ignore */ }
+    }
+    db = null
+    activeProfileKey = null
+  },
 }
 
 export const taskModel = {
@@ -396,4 +551,16 @@ export const taskModel = {
   getNow,
   allDayTime: ALL_DAY_SENTINEL_TIME,
   recurringValues: RECURRING_VALUES,
+  // Pure helpers exposed for unit testing without IndexedDB.
+  mergeForSync(localTasks, remoteTasks, onEqualTimestamp) {
+    const normalizedLocal = (localTasks || []).map(normalizeTask).filter(Boolean)
+    const normalizedRemote = (remoteTasks || []).map(normalizeTask).filter(Boolean)
+    const merged = mergeTasks(normalizedLocal, normalizedRemote, onEqualTimestamp)
+    return splitByRetention(merged).keptTasks
+  },
+  computeNewGuestTasks(guestTasks, userTasks) {
+    return taskStorage.computeNewGuestTasks(guestTasks, userTasks)
+  },
+  isExpiredTombstone,
+  tombstoneRetentionDays: TOMBSTONE_RETENTION_DAYS,
 }

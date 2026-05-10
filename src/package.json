@@ -2,15 +2,19 @@
   "name": "duebly",
   "private": true,
   "version": "0.0.0",
+  "config": {
+    "appVersion": "2026.05.09"
+  },
   "type": "module",
   "engines": {
     "node": ">=20.19.0"
   },
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "DUEBLY_APP_VERSION=$(node -p \"JSON.parse(require('fs').readFileSync('./package.json','utf8')).config.appVersion\") vite",
+    "build": "DUEBLY_APP_VERSION=$(node -p \"JSON.parse(require('fs').readFileSync('./package.json','utf8')).config.appVersion\") vite build",
     "lint": "eslint .",
-    "test": "npm run test:web",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:unit": "vitest run",
     "test:e2e": "playwright test web/tests/e2e/uat.spec.js --project=chromium --project=mobile",
     "test:web": "npm run test:unit && npm run test:e2e",

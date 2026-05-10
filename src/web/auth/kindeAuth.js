@@ -28,6 +28,7 @@ export const getKindeClient = () => {
       redirect_uri: appConfig.kinde.redirectUri,
       logout_uri: appConfig.kinde.logoutUri,
       scope: appConfig.kinde.scope,
+      audience: appConfig.kinde.audience || undefined,
       is_dangerously_use_local_storage: isKindeHostedDomain(appConfig.kinde.domain),
       on_redirect_callback: (_user, appState = {}) => {
         const returnTo = typeof appState.returnTo === 'string' ? appState.returnTo : '/'
@@ -83,4 +84,30 @@ export const logout = async () => {
   if (client) {
     await client.logout()
   }
+}
+
+export const getAccessToken = async () => {
+  const client = await getKindeClient()
+  if (!client) {
+    return null
+  }
+  try {
+    if (typeof client.getToken === 'function') {
+      const token = await client.getToken()
+      if (typeof token === 'string' && token) {
+        return token
+      }
+      if (token && typeof token === 'object') {
+        const objectToken = token.access_token || token.accessToken || token.token
+        if (typeof objectToken === 'string' && objectToken) {
+          return objectToken
+        }
+      }
+    }
+  } catch {
+    if (import.meta.env.DEV) {
+      console.warn('Failed to retrieve Kinde access token')
+    }
+  }
+  return null
 }

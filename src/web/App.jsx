@@ -2,9 +2,14 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import './App.css'
-import { initializeAuthSession, login, logout, register } from './auth/kindeAuth'
+import privacyPolicyMarkdown from '../../PRIVACY.md?raw'
+import termsOfServiceMarkdown from '../../TERMS.md?raw'
+import { initializeAuthSession, getAccessToken, login, logout, register } from './auth/kindeAuth'
 import { appConfig } from './config/env'
 import { taskModel, taskStorage } from './storage'
+import { createSyncApiClient, SyncApiError } from './sync/apiClient'
+import { createSyncEngine } from './sync/syncEngine'
+import { detectImportableGuestTasks, importGuestTasks, discardGuestData } from './sync/migration'
 
 const TAB_KEYS = {
   notDone: 'not-done',
@@ -24,6 +29,66 @@ const LANGUAGE_OPTIONS = [
 ]
 
 const DEFAULT_LANGUAGE_CODE = LANGUAGE_OPTIONS[0].code
+const DARK_MODE_STORAGE_KEY = 'duebly-dark-mode'
+const LANGUAGE_STORAGE_KEY = 'duebly-language'
+
+const renderLegalMarkdown = (markdown) => {
+  const lines = markdown.split(/\r?\n/)
+  const nodes = []
+  let listItems = []
+
+  const flushList = () => {
+    if (listItems.length === 0) {
+      return
+    }
+
+    nodes.push(
+      <ul key={`list-${nodes.length}`}>
+        {listItems.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}
+      </ul>,
+    )
+    listItems = []
+  }
+
+  lines.forEach((line) => {
+    const trimmed = line.trim()
+    if (!trimmed) {
+      flushList()
+      return
+    }
+
+    if (trimmed.startsWith('- ')) {
+      listItems.push(trimmed.slice(2))
+      return
+    }
+
+    flushList()
+
+    if (trimmed.startsWith('# ')) {
+      nodes.push(<h1 key={`h1-${nodes.length}`}>{trimmed.slice(2)}</h1>)
+      return
+    }
+
+    if (trimmed.startsWith('## ')) {
+      nodes.push(<h2 key={`h2-${nodes.length}`}>{trimmed.slice(3)}</h2>)
+      return
+    }
+
+    if (trimmed.startsWith('### ')) {
+      nodes.push(<h3 key={`h3-${nodes.length}`}>{trimmed.slice(4)}</h3>)
+      return
+    }
+
+    nodes.push(
+      <p key={`p-${nodes.length}`} className={trimmed.startsWith('Last updated:') ? 'legal-updated' : undefined}>
+        {trimmed}
+      </p>,
+    )
+  })
+
+  flushList()
+  return nodes
+}
 
 const TRANSLATIONS = {
   'en-US': {
@@ -35,6 +100,8 @@ const TRANSLATIONS = {
     timeZoneMenuTitle: 'Time Zone',
     toggleDarkMode: 'Toggle Dark Mode',
     buyMeCoffee: 'Buy Me a Coffee',
+    privacyPolicy: '🔒 Privacy Policy',
+    termsOfService: '📜 Terms of Service',
     signIn: 'Sign In',
     signOut: 'Sign Out',
     guestMode: 'Guest mode',
@@ -46,6 +113,16 @@ const TRANSLATIONS = {
     signUpPrompt: "Don't have an account?",
     signUpToday: 'Sign up today!',
     authConfigMissing: 'Login is not configured for this environment.',
+    versionLabel: 'Version {version}',
+    goBack: 'Go Back',
+    privacyPolicyLink: 'Privacy Policy',
+    termsOfServiceLink: 'Terms of Service',
+    guestImportTitle: 'Import your offline tasks?',
+    guestImportBody: 'You added {count} task(s) while signed out. Add them to your account?',
+    guestImportConfirm: 'Add to my account',
+    guestImportDiscard: 'Discard',
+    syncStatusSyncing: 'Syncing…',
+    syncStatusError: 'Sync failed',
     taskListTabs: 'Task list tabs',
     notDoneTab: 'Not Done',
     doneTab: 'Done',
@@ -144,6 +221,20 @@ const TRANSLATIONS = {
     timeZoneMenuTitle: '时区',
     toggleDarkMode: '切换深色模式',
     buyMeCoffee: '请我喝杯咖啡',
+    signIn: '登录',
+    signOut: '登出',
+    guestMode: '访客模式',
+    loggedInAs: '已登录为 {email}',
+    continueToLogin: '继续登录',
+    loginPageTitle: '欢迎来到 Duebly',
+    loginMission: '我们的使命是让你的一天井井有条，一次只专注一个任务。',
+    loginBenefits: '创建免费账号，在多设备上使用 Duebly 并避免任务丢失。你的任务始终私密且安全。',
+    signUpPrompt: '还没有账号？',
+    signUpToday: '立即注册！',
+    authConfigMissing: '当前环境未配置登录。',
+    goBack: '返回',
+    privacyPolicyLink: '隐私政策',
+    termsOfServiceLink: '服务条款',
     login: '登录',
     loginMvpAlert: '登录暂未包含在此 MVP 中。',
     taskListTabs: '任务列表标签',
@@ -228,6 +319,20 @@ const TRANSLATIONS = {
     timeZoneMenuTitle: 'タイムゾーン',
     toggleDarkMode: 'ダークモードを切り替え',
     buyMeCoffee: 'コーヒーをごちそうする',
+    signIn: 'サインイン',
+    signOut: 'サインアウト',
+    guestMode: 'ゲストモード',
+    loggedInAs: '{email} としてログイン中',
+    continueToLogin: 'ログインへ進む',
+    loginPageTitle: 'Duebly へようこそ',
+    loginMission: '私たちの使命は、あなたの一日を一つずつ整理することです。',
+    loginBenefits: '無料アカウントを作成すると、複数デバイスで Duebly を使い、タスクを失わずに済みます。タスクは常に非公開で安全です。',
+    signUpPrompt: 'アカウントをお持ちでないですか？',
+    signUpToday: '今すぐ登録！',
+    authConfigMissing: 'この環境ではログインが設定されていません。',
+    goBack: '戻る',
+    privacyPolicyLink: 'プライバシーポリシー',
+    termsOfServiceLink: '利用規約',
     login: 'ログイン',
     loginMvpAlert: 'ログインはこの MVP では未対応です。',
     taskListTabs: 'タスク一覧タブ',
@@ -312,6 +417,20 @@ const TRANSLATIONS = {
     timeZoneMenuTitle: '시간대',
     toggleDarkMode: '다크 모드 전환',
     buyMeCoffee: '커피 한 잔 후원하기',
+    signIn: '로그인',
+    signOut: '로그아웃',
+    guestMode: '게스트 모드',
+    loggedInAs: '{email}(으)로 로그인됨',
+    continueToLogin: '로그인 계속하기',
+    loginPageTitle: 'Duebly에 오신 것을 환영합니다',
+    loginMission: '우리의 목표는 하루를 한 가지 작업씩 정리하도록 돕는 것입니다.',
+    loginBenefits: '무료 계정을 만들면 여러 기기에서 Duebly를 사용하고 작업을 잃지 않을 수 있습니다. 작업은 항상 비공개이며 안전합니다.',
+    signUpPrompt: '계정이 없으신가요?',
+    signUpToday: '지금 가입하세요!',
+    authConfigMissing: '이 환경에서는 로그인이 구성되지 않았습니다.',
+    goBack: '뒤로 가기',
+    privacyPolicyLink: '개인정보 처리방침',
+    termsOfServiceLink: '서비스 약관',
     login: '로그인',
     loginMvpAlert: '로그인은 현재 MVP에 포함되어 있지 않습니다.',
     taskListTabs: '작업 목록 탭',
@@ -396,6 +515,20 @@ const TRANSLATIONS = {
     timeZoneMenuTitle: 'Fuseau horaire',
     toggleDarkMode: 'Activer/désactiver le mode sombre',
     buyMeCoffee: 'M’offrir un café',
+    signIn: 'Se connecter',
+    signOut: 'Se déconnecter',
+    guestMode: 'Mode invité',
+    loggedInAs: 'Connecté en tant que {email}',
+    continueToLogin: 'Continuer vers la connexion',
+    loginPageTitle: 'Bienvenue sur Duebly',
+    loginMission: 'Notre mission est d’organiser votre journée, une tâche à la fois.',
+    loginBenefits: 'Créez un compte gratuit pour utiliser Duebly sur plusieurs appareils et ne jamais perdre vos tâches. Vos tâches restent privées et sécurisées.',
+    signUpPrompt: 'Vous n’avez pas de compte ?',
+    signUpToday: 'Inscrivez-vous dès aujourd’hui !',
+    authConfigMissing: 'La connexion n’est pas configurée pour cet environnement.',
+    goBack: 'Retour',
+    privacyPolicyLink: 'Politique de confidentialité',
+    termsOfServiceLink: 'Conditions d’utilisation',
     login: 'Connexion',
     loginMvpAlert: 'La connexion ne fait pas encore partie de ce MVP.',
     taskListTabs: 'Onglets de tâches',
@@ -480,6 +613,20 @@ const TRANSLATIONS = {
     timeZoneMenuTitle: 'Zona horaria',
     toggleDarkMode: 'Alternar modo oscuro',
     buyMeCoffee: 'Invítame a un café',
+    signIn: 'Iniciar sesión',
+    signOut: 'Cerrar sesión',
+    guestMode: 'Modo invitado',
+    loggedInAs: 'Conectado como {email}',
+    continueToLogin: 'Continuar al inicio de sesión',
+    loginPageTitle: 'Bienvenido a Duebly',
+    loginMission: 'Nuestra misión es mantener tu día organizado, una tarea a la vez.',
+    loginBenefits: 'Crea una cuenta gratis para usar Duebly en varios dispositivos y no perder tus tareas. Tus tareas siempre son privadas y seguras.',
+    signUpPrompt: '¿No tienes una cuenta?',
+    signUpToday: '¡Regístrate hoy!',
+    authConfigMissing: 'El inicio de sesión no está configurado para este entorno.',
+    goBack: 'Volver',
+    privacyPolicyLink: 'Política de privacidad',
+    termsOfServiceLink: 'Términos del servicio',
     login: 'Iniciar sesión',
     loginMvpAlert: 'El inicio de sesión aún no forma parte de este MVP.',
     taskListTabs: 'Pestañas de tareas',
@@ -564,6 +711,20 @@ const TRANSLATIONS = {
     timeZoneMenuTitle: 'Fuso orario',
     toggleDarkMode: 'Attiva/disattiva modalità scura',
     buyMeCoffee: 'Offrimi un caffè',
+    signIn: 'Accedi',
+    signOut: 'Esci',
+    guestMode: 'Modalità ospite',
+    loggedInAs: 'Accesso come {email}',
+    continueToLogin: 'Continua al login',
+    loginPageTitle: 'Benvenuto in Duebly',
+    loginMission: 'La nostra missione è mantenere la tua giornata organizzata, un’attività alla volta.',
+    loginBenefits: 'Crea un account gratuito per usare Duebly su più dispositivi e non perdere mai le tue attività. Le tue attività sono sempre private e sicure.',
+    signUpPrompt: 'Non hai un account?',
+    signUpToday: 'Registrati oggi!',
+    authConfigMissing: 'Il login non è configurato per questo ambiente.',
+    goBack: 'Indietro',
+    privacyPolicyLink: 'Informativa sulla privacy',
+    termsOfServiceLink: 'Termini di servizio',
     login: 'Accedi',
     loginMvpAlert: 'Il login non fa ancora parte di questo MVP.',
     taskListTabs: 'Schede elenco attività',
@@ -992,16 +1153,61 @@ const getLabelByColorFromList = (color, labels) => {
   return labels.find((label) => label.color === color) || labels[0]
 }
 
+const serializeTaskSnapshot = (tasks) => {
+  const normalized = (tasks || [])
+    .map((task) => ({
+      id: task.id,
+      last_updated: task.last_updated || '',
+      deleted: Boolean(task.deleted),
+      isDone: Boolean(task.isDone),
+      text: task.text || '',
+      dueDate: task.dueDate || '',
+      dueEndTime: task.dueEndTime || '',
+    }))
+    .sort((a, b) => String(a.id).localeCompare(String(b.id)))
+  return JSON.stringify(normalized)
+}
+
 const toastVariants = {
   hidden: { opacity: 0, y: -10, scale: 0.96 },
   visible: { opacity: 1, y: 0, scale: 1 },
   exit: { opacity: 0, y: -8, scale: 0.98 },
 }
 
-const syncService = {
-  isAuthenticated: () => false,
-  pullRemoteTasks: async () => [],
-  pushMergedTasks: async () => {},
+// Factory for the live sync service used by the App. The returned object
+// is shaped like the previous in-memory stub so existing call sites keep
+// working, but it now runs the real Pull-Merge-Push cycle against the
+// Cloudflare Worker described in remote-storage-implementation.md.
+const buildLiveSyncEngine = ({ onMerged, onError, onStatusChange, isAuthenticated }) => {
+  if (!appConfig.sync.enabled || !appConfig.sync.apiBaseUrl) {
+    return null
+  }
+  let apiClient
+  try {
+    apiClient = createSyncApiClient({
+      baseUrl: appConfig.sync.apiBaseUrl,
+      getAccessToken,
+    })
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn('Sync disabled: failed to create API client', error)
+    }
+    return null
+  }
+  const storageAdapter = {
+    readAllForSync: () => taskStorage.readAllForSync(),
+    mergeForSync: (local, remote, onEqual) => taskStorage.mergeForSync(local, remote, onEqual),
+    replaceAllTasks: (tasks) => taskStorage.replaceAllTasks(tasks),
+  }
+  return createSyncEngine({
+    apiClient,
+    storage: storageAdapter,
+    isAuthenticated,
+    onMerged,
+    onError,
+    onStatusChange,
+    periodicMs: 15_000,
+  })
 }
 
 const getSupportedLanguage = (languageCodeCandidate) => {
@@ -1034,6 +1240,19 @@ const getDefaultLanguage = () => {
   }
 
   return getSupportedLanguage(navigator.language)
+}
+
+const getStoredLanguage = () => {
+  if (typeof window === 'undefined') {
+    return ''
+  }
+
+  const stored = window.localStorage.getItem(LANGUAGE_STORAGE_KEY)
+  if (typeof stored !== 'string' || !stored.trim()) {
+    return ''
+  }
+
+  return getSupportedLanguage(stored)
 }
 
 const getSpeechLanguageCandidates = (preferredLocale) => {
@@ -1076,10 +1295,16 @@ function App() {
   const [labelSelectorTaskId, setLabelSelectorTaskId] = useState(null)
   const [isTopMenuOpen, setIsTopMenuOpen] = useState(false)
   const [isTimeZoneSubmenuOpen, setIsTimeZoneSubmenuOpen] = useState(false)
-  const [DARK_MODE_ENABLED, setDarkModeEnabled] = useState(false)
+  const [DARK_MODE_ENABLED, setDarkModeEnabled] = useState(() => {
+    if (typeof window === 'undefined') {
+      return false
+    }
+    return window.localStorage.getItem(DARK_MODE_STORAGE_KEY) === '1'
+  })
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false)
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
   const [selectedTimeZone, setSelectedTimeZone] = useState(defaultTimeZone)
-  const [selectedLanguage, setSelectedLanguage] = useState(defaultLanguage)
+  const [selectedLanguage, setSelectedLanguage] = useState(() => getStoredLanguage() || defaultLanguage)
   const [nowTick, setNowTick] = useState(() => taskModel.getNow())
   const [viewportWidth, setViewportWidth] = useState(() => {
     if (typeof window === 'undefined') {
@@ -1130,6 +1355,8 @@ function App() {
   const textRefs = useRef(new Map())
   const mirrorLegacyRef = useRef(false)
   const speechRecognitionRef = useRef(null)
+  const lastSystemTaskSnapshotRef = useRef('')
+  const deletingTaskIdsRef = useRef(new Set())
   const languageMenu = useMemo(() => {
     return LANGUAGE_OPTIONS.map((option) => {
       const langText = getTranslationsForLanguage(option.code)
@@ -1257,9 +1484,11 @@ function App() {
       }
 
       mirrorLegacyRef.current = result.fallbackActive
+      lastSystemTaskSnapshotRef.current = serializeTaskSnapshot(result.tasks)
       setTasks(result.tasks)
       setSelectedTimeZone(getSupportedTimeZone(result.settings.timezone || defaultTimeZone))
-      setSelectedLanguage(getSupportedLanguage(result.settings.language || defaultLanguage))
+      const preferredLanguage = getStoredLanguage() || defaultLanguage
+      setSelectedLanguage(getSupportedLanguage(result.settings.language || preferredLanguage))
       setIsReady(true)
     }
 
@@ -1315,6 +1544,10 @@ function App() {
       }
       if (!target.closest('.language-menu-wrap')) {
         setIsLanguageMenuOpen(false)
+      }
+
+      if (!target.closest('.profile-menu-wrap')) {
+        setIsProfileMenuOpen(false)
       }
 
       if (!target.closest('.task-menu-wrap')) {
@@ -1565,36 +1798,109 @@ function App() {
     }
   }
 
+  // Live sync engine reference. Created when the user becomes
+  // authenticated and torn down on logout. Null while sync is disabled.
+  const syncEngineRef = useRef(null)
+  const skipNextMutationSyncRef = useRef(false)
+  const [migrationPrompt, setMigrationPrompt] = useState(null)
+  const guestPromptDismissedRef = useRef(false)
+  const resetGuestPromptDismissal = () => {
+    guestPromptDismissedRef.current = false
+  }
+
+  // Build / tear down the sync engine when the auth session changes.
   useEffect(() => {
-    const syncOnReconnect = async () => {
-      if (!syncService.isAuthenticated()) {
-        return
+    if (!isReady || !authReady || !appConfig.sync.enabled) {
+      return undefined
+    }
+    if (!authSession.isAuthenticated) {
+      // Dismissal is scoped to an authenticated session only. Reset while
+      // signed out so a future login can surface guest migration again.
+      resetGuestPromptDismissal()
+      if (syncEngineRef.current) {
+        syncEngineRef.current.stop()
+        syncEngineRef.current = null
       }
-
-      try {
-        const remoteTasks = await syncService.pullRemoteTasks()
-        const merged = taskStorage.mergeForSync(tasks, remoteTasks, (localTask, remoteTask) => {
-          if (import.meta.env.DEV) {
-            console.warn('Equal timestamp conflict resolved with remote preference', {
-              localTask,
-              remoteTask,
-            })
-          }
-        })
-
-        setTasks(merged)
-        await taskStorage.replaceAllTasks(merged, mirrorLegacyRef.current)
-        await syncService.pushMergedTasks(merged)
-      } catch (error) {
-        if (import.meta.env.DEV) {
-          console.warn('Deferred sync failed', error)
-        }
-      }
+      return undefined
     }
 
-    window.addEventListener('online', syncOnReconnect)
-    return () => window.removeEventListener('online', syncOnReconnect)
-  }, [tasks])
+    const engine = buildLiveSyncEngine({
+      isAuthenticated: () => authSession.isAuthenticated,
+      onMerged: (merged) => {
+        // Filter tombstones out of the React-visible task list.
+        const visible = (merged || []).filter((task) => !task.deleted)
+        lastSystemTaskSnapshotRef.current = serializeTaskSnapshot(visible)
+        skipNextMutationSyncRef.current = true
+        setTasks(visible)
+      },
+      onError: (error) => {
+        if (import.meta.env.DEV) {
+          if (error instanceof SyncApiError) {
+            console.warn('Sync error', error.code, error.message)
+          } else {
+            console.warn('Sync error', error)
+          }
+        }
+      },
+    })
+    if (!engine) {
+      return undefined
+    }
+    syncEngineRef.current = engine
+    engine.start()
+    engine.triggerImmediateSync('startup').catch(() => {})
+    return () => {
+      engine.stop()
+      if (syncEngineRef.current === engine) {
+        syncEngineRef.current = null
+      }
+    }
+  }, [authReady, authSession.isAuthenticated, isReady])
+
+  // Detect new guest-only tasks at the moment of login and prompt the
+  // user to merge or discard them. Implements the guest-to-user flow
+  // from remote-storage-implementation.md §8.
+  useEffect(() => {
+    if (!isReady || !authReady) {
+      return
+    }
+    if (!authSession.isAuthenticated || migrationPrompt) {
+      return
+    }
+    if (guestPromptDismissedRef.current) {
+      return
+    }
+    let cancelled = false
+    // Intentionally omit activeUserTasks so migration detection reads the
+    // full user sync snapshot (including tombstones) from storage.
+    detectImportableGuestTasks()
+      .then((result) => {
+        if (cancelled) return
+        if (result.importable && result.importable.length > 0) {
+          setMigrationPrompt({ importable: result.importable })
+        }
+      })
+      .catch((error) => {
+        if (import.meta.env.DEV) {
+          console.warn('Failed to detect guest tasks for migration', error)
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isReady, authReady, authSession.isAuthenticated])
+
+  // Ask the browser for persistent storage so IndexedDB is not silently
+  // evicted under disk pressure (see §10 of the implementation spec).
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !navigator.storage || !navigator.storage.persist) {
+      return
+    }
+    navigator.storage.persist().catch(() => {
+      // Permission may be denied; this is a best-effort hint.
+    })
+  }, [])
 
   const today = useMemo(() => {
     return toISODateInTimeZone(new Date(nowTick), selectedTimeZone)
@@ -1652,6 +1958,7 @@ function App() {
     [TAB_KEYS.done]: doneTasks.length,
     [TAB_KEYS.planned]: plannedTasks.length,
   }
+  const serializedTaskSnapshot = useMemo(() => serializeTaskSnapshot(tasks), [tasks])
 
   useEffect(() => {
     if (!isReady) {
@@ -1669,19 +1976,97 @@ function App() {
   }, [isReady, selectedLanguage, selectedTimeZone])
 
   useEffect(() => {
-    if (!isReady) {
+    if (typeof window === 'undefined') {
       return
     }
 
-    taskStorage.replaceAllTasks(tasks, mirrorLegacyRef.current).catch((error) => {
+    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, selectedLanguage)
+  }, [selectedLanguage])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+    window.localStorage.setItem(DARK_MODE_STORAGE_KEY, DARK_MODE_ENABLED ? '1' : '0')
+  }, [DARK_MODE_ENABLED])
+
+  useEffect(() => {
+    if (!isReady) {
+      return
+    }
+    if (skipNextMutationSyncRef.current) {
+      skipNextMutationSyncRef.current = false
+      return
+    }
+    if (lastSystemTaskSnapshotRef.current === serializedTaskSnapshot) {
+      return
+    }
+
+    taskStorage.persistActiveTasks(tasks).catch((error) => {
       if (import.meta.env.DEV) {
         console.warn('Failed to persist task snapshot', error)
       }
     })
-  }, [isReady, tasks])
+
+    // Notify the sync engine that local state changed so it can debounce
+    // a Pull-Merge-Push cycle. The engine itself decides whether to act
+    // based on auth state.
+    const engine = syncEngineRef.current
+    if (engine) {
+      engine.triggerDebouncedSync('mutation')
+    }
+  }, [isReady, serializedTaskSnapshot, tasks])
 
   const persistTask = (task) => {
     taskStorage.saveTask(task, mirrorLegacyRef.current)
+  }
+
+  const handleImportGuestTasks = async () => {
+    if (!migrationPrompt) {
+      return
+    }
+    try {
+      const imported = await importGuestTasks(migrationPrompt.importable)
+      if (imported.length) {
+        setTasks((prev) => {
+          const seen = new Set(prev.map((task) => task.id))
+          const merged = [...prev]
+          for (const task of imported) {
+            if (!seen.has(task.id)) {
+              merged.push(task)
+            }
+          }
+          return merged
+        })
+      }
+      await discardGuestData()
+      const engine = syncEngineRef.current
+      if (engine) {
+        engine.triggerImmediateSync('migration').catch(() => {})
+      }
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.warn('Failed to import guest tasks', error)
+      }
+    } finally {
+      guestPromptDismissedRef.current = true
+      setMigrationPrompt(null)
+    }
+  }
+
+  const handleSkipGuestMigration = async () => {
+    guestPromptDismissedRef.current = true
+    try {
+      if (appConfig.sync.discardGuestTasks) {
+        await discardGuestData()
+      }
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.warn('Failed to discard guest tasks', error)
+      }
+    } finally {
+      setMigrationPrompt(null)
+    }
   }
 
   const getDateTimePickerPosition = (triggerElement) => {
@@ -1966,26 +2351,45 @@ function App() {
 
   }
 
-  const deleteTask = (taskId) => {
-    setTasks((prev) => prev.filter((task) => task.id !== taskId))
+  const deleteTask = async (taskId) => {
+    const id = String(taskId)
+    if (deletingTaskIdsRef.current.has(id)) {
+      return false
+    }
+
+    deletingTaskIdsRef.current.add(id)
+    try {
+      // Persist tombstone first so subsequent sync cycles cannot resurrect
+      // the task due to a transient local/remote race.
+      await taskStorage.deleteTask(id, mirrorLegacyRef.current)
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.warn('Failed to mark task as deleted', error)
+      }
+      deletingTaskIdsRef.current.delete(id)
+      return false
+    }
+
+    setTasks((prev) => prev.filter((task) => task.id !== id))
     setSwipeCommitByTaskId((prev) => {
-      if (!prev[taskId]) {
+      if (!prev[id]) {
         return prev
       }
 
       const next = { ...prev }
-      delete next[taskId]
+      delete next[id]
       return next
     })
-    const commitTimeoutId = swipeCommitTimeoutsRef.current.get(taskId)
+    const commitTimeoutId = swipeCommitTimeoutsRef.current.get(id)
     if (commitTimeoutId) {
       window.clearTimeout(commitTimeoutId)
-      swipeCommitTimeoutsRef.current.delete(taskId)
+      swipeCommitTimeoutsRef.current.delete(id)
     }
-    taskStorage.deleteTask(taskId, mirrorLegacyRef.current)
     setMenuTaskId(null)
     setLabelSelectorTaskId(null)
     setFrequencySelectorTaskId(null)
+    deletingTaskIdsRef.current.delete(id)
+    return true
   }
 
   const updateTaskDate = (taskId, date, dueEndTime = null) => {
@@ -2102,11 +2506,13 @@ function App() {
     })
   }
 
-  const onTaskSwipe = (task, swipeDirection) => {
+  const onTaskSwipe = async (task, swipeDirection) => {
     if (swipeDirection === 'left') {
       if (task.isDone) {
-        deleteTask(task.id)
-        pushToast(translate('taskDeleted'))
+        const deleted = await deleteTask(task.id)
+        if (deleted) {
+          pushToast(translate('taskDeleted'))
+        }
       } else {
         toggleTaskDone(task, true)
       }
@@ -2168,27 +2574,30 @@ function App() {
       [task.id]: swipeDirection,
     }))
 
-    const timeoutId = window.setTimeout(() => {
+    const timeoutId = window.setTimeout(async () => {
       swipeCommitTimeoutsRef.current.delete(task.id)
-      onTaskSwipe(task, swipeDirection)
-      setSwipeCommitByTaskId((prev) => {
-        if (!prev[task.id]) {
-          return prev
-        }
+      try {
+        await onTaskSwipe(task, swipeDirection)
+      } finally {
+        setSwipeCommitByTaskId((prev) => {
+          if (!prev[task.id]) {
+            return prev
+          }
 
-        const next = { ...prev }
-        delete next[task.id]
-        return next
-      })
-      setSwipeIntentByTaskId((prev) => {
-        if (!prev[task.id]) {
-          return prev
-        }
+          const next = { ...prev }
+          delete next[task.id]
+          return next
+        })
+        setSwipeIntentByTaskId((prev) => {
+          if (!prev[task.id]) {
+            return prev
+          }
 
-        const next = { ...prev }
-        delete next[task.id]
-        return next
-      })
+          const next = { ...prev }
+          delete next[task.id]
+          return next
+        })
+      }
     }, SWIPE_COMMIT_DELAY_MS)
 
     swipeCommitTimeoutsRef.current.set(task.id, timeoutId)
@@ -2337,10 +2746,17 @@ function App() {
   }
 
   const isLoginRoute = currentPath === '/login'
+  const legalPage = currentPath === '/privacy'
+    ? { title: translate('privacyPolicy'), markdown: privacyPolicyMarkdown }
+    : currentPath === '/terms'
+      ? { title: translate('termsOfService'), markdown: termsOfServiceMarkdown }
+      : null
+  const isLegalRoute = Boolean(legalPage)
   const userEmail = authSession.user?.email || authSession.user?.id || ''
   const authStatusLabel = authSession.isAuthenticated
     ? translate('loggedInAs', { email: userEmail })
     : translate('guestMode')
+  const profileInitial = (userEmail.trim().charAt(0) || 'U').toUpperCase()
 
   const navigateToPath = (path) => {
     window.history.pushState({}, '', path)
@@ -2349,6 +2765,28 @@ function App() {
 
   const navigateToLogin = () => {
     navigateToPath('/login')
+  }
+
+  const navigateToHome = () => {
+    navigateToPath('/')
+    switchTab(TAB_KEYS.notDone)
+  }
+
+  const handleLogout = async () => {
+    setIsProfileMenuOpen(false)
+    resetGuestPromptDismissal()
+    setAuthSession((prev) => ({
+      ...prev,
+      isAuthenticated: false,
+      user: null,
+    }))
+    try {
+      await logout()
+    } catch {
+      if (import.meta.env.DEV) {
+        console.warn('Failed to complete logout')
+      }
+    }
   }
 
   if (!isReady) {
@@ -2362,6 +2800,9 @@ function App() {
   if (isLoginRoute) {
     return (
       <div className={`app-shell login-shell ${DARK_MODE_ENABLED ? 'dark-mode' : ''}`} lang={activeLanguage.locale}>
+        <a href="/" className="login-back-link" aria-label={translate('goBack')}>
+          ← {translate('goBack')}
+        </a>
         <main className="login-card">
           <h1>{translate('loginPageTitle')}</h1>
           <p>{translate('loginMission')}</p>
@@ -2391,6 +2832,11 @@ function App() {
             </button>
           </p>
         </main>
+        <p className="login-legal-links">
+          <a href="/privacy">{translate('privacyPolicyLink')}</a>
+          {' • '}
+          <a href="/terms">{translate('termsOfServiceLink')}</a>
+        </p>
       </div>
     )
   }
@@ -2418,6 +2864,7 @@ function App() {
             </button>
             {isTopMenuOpen ? (
               <div className="menu-popover menu-popover-top">
+                <div className="menu-version">{translate('versionLabel', { version: appConfig.app.version })}</div>
                 <div className="menu-main-buttons">
                   <button
                     type="button"
@@ -2466,19 +2913,22 @@ function App() {
               </div>
             ) : null}
           </div>
-          <button type="button" className="brand-button" onClick={() => switchTab(TAB_KEYS.notDone)}>
+          <button type="button" className="brand-button" onClick={navigateToHome}>
             Duebly
           </button>
         </div>
         <div className="top-right">
-          <span className={`auth-status ${authSession.isAuthenticated ? '' : 'guest'}`}>
-            {authStatusLabel}
-          </span>
+          {!authSession.isAuthenticated ? (
+            <span className="auth-status guest">{authStatusLabel}</span>
+          ) : null}
           <div className="language-menu-wrap">
             <button
               type="button"
               className="icon-button"
-              onClick={() => setIsLanguageMenuOpen((prev) => !prev)}
+              onClick={() => {
+                setIsLanguageMenuOpen((prev) => !prev)
+                setIsProfileMenuOpen(false)
+              }}
               aria-label={translate('openLanguageMenu')}
               title={translate('chooseLanguage')}
             >
@@ -2504,13 +2954,45 @@ function App() {
               </div>
             ) : null}
           </div>
-          <button
-            type="button"
-            className={authSession.isAuthenticated ? 'ghost-button' : 'primary-button nav-auth-button'}
-            onClick={authSession.isAuthenticated ? logout : navigateToLogin}
-          >
-            {authSession.isAuthenticated ? translate('signOut') : translate('signIn')}
-          </button>
+          {authSession.isAuthenticated ? (
+            <div className="profile-menu-wrap">
+              <button
+                type="button"
+                className="icon-button profile-avatar-button"
+                aria-label={translate('loggedInAs', { email: userEmail })}
+                onClick={() => {
+                  setIsProfileMenuOpen((prev) => !prev)
+                  setIsLanguageMenuOpen(false)
+                }}
+              >
+                {profileInitial}
+              </button>
+              {isProfileMenuOpen ? (
+                <div className="menu-popover menu-popover-top profile-menu-popover">
+                  <div className="profile-menu-status">{authStatusLabel}</div>
+                  <div className="menu-main-buttons">
+                    <button
+                      type="button"
+                      className="menu-item-button"
+                      onClick={handleLogout}
+                    >
+                      {translate('signOut')}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="primary-button nav-auth-button"
+                onClick={navigateToLogin}
+              >
+                {translate('signIn')}
+              </button>
+            </>
+          )}
         </div>
       </header>
 
@@ -2657,6 +3139,14 @@ function App() {
         </div>
       ) : null}
 
+      {isLegalRoute ? (
+        <main className="legal-content">
+          <article className="legal-document" aria-label={legalPage.title}>
+            {renderLegalMarkdown(legalPage.markdown)}
+          </article>
+        </main>
+      ) : (
+        <>
       <nav className="tab-bar" aria-label={translate('taskListTabs')}>
         <button
           type="button"
@@ -3181,6 +3671,8 @@ function App() {
             </AnimatePresence>
         </section>
       </main>
+        </>
+      )}
 
       <div className="toast-layer" aria-live="polite" aria-atomic="true">
         <AnimatePresence>
@@ -3199,6 +3691,34 @@ function App() {
           ))}
         </AnimatePresence>
       </div>
+
+      <AnimatePresence>
+        {migrationPrompt ? (
+          <motion.div
+            key="guest-migration-prompt"
+            className="modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="guest-migration-title"
+          >
+            <div className="modal-card">
+              <h2 id="guest-migration-title">{translate('guestImportTitle')}</h2>
+              <p>{translate('guestImportBody', { count: String(migrationPrompt.importable.length) })}</p>
+              <div className="modal-actions">
+                <button type="button" className="ghost-button" onClick={handleSkipGuestMigration}>
+                  {translate('guestImportDiscard')}
+                </button>
+                <button type="button" className="primary-button" onClick={handleImportGuestTasks}>
+                  {translate('guestImportConfirm')}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
 
       <AnimatePresence>
         {swatchHint ? (
