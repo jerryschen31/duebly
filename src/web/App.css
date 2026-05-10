@@ -320,6 +320,13 @@
   gap: 0;
 }
 
+.menu-popover.profile-menu-popover {
+  left: auto;
+  right: 0;
+  width: min(92vw, 360px);
+  max-width: calc(100vw - 1rem);
+}
+
 .menu-main-buttons {
   display: grid;
   gap: 0;
@@ -1068,6 +1075,13 @@
 
   .menu-popover-top {
     width: min(72vw, 230px);
+  }
+
+  .menu-popover-top.profile-menu-popover {
+    left: auto;
+    right: 0;
+    width: min(92vw, 360px);
+    max-width: calc(100vw - 1rem);
   }
 
   .composer-card-collapsed {
