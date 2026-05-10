@@ -1,0 +1,42 @@
+{
+  "name": "duebly",
+  "private": true,
+  "version": "0.0.0",
+  "config": {
+    "appVersion": "2026.05.09"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "dev": "DUEBLY_APP_VERSION=$(node -p \"JSON.parse(require('fs').readFileSync('./package.json','utf8')).config.appVersion\") vite",
+    "build": "DUEBLY_APP_VERSION=$(node -p \"JSON.parse(require('fs').readFileSync('./package.json','utf8')).config.appVersion\") vite build",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "preview": "vite preview",
+    "deploy:dev": "npm run build && npx wrangler@4.15.2 deploy --config ../wrangler.toml --env dev --assets ./dist"
+  },
+  "dependencies": {
+    "@kinde-oss/kinde-auth-pkce-js": "^4.3.0",
+    "dexie": "^4.4.2",
+    "framer-motion": "^12.38.0",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.2.0",
+    "eslint": "^10.2.1",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "fake-indexeddb": "^6.2.5",
+    "globals": "^17.5.0",
+    "vite": "^7.3.2",
+    "vite-plugin-pwa": "^1.2.0",
+    "vitest": "^4.1.5"
+  }
+}
