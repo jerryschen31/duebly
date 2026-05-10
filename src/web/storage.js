@@ -1,0 +1,566 @@
+import Dexie from 'dexie'
+
+const SETTINGS_KEYS = {
+  timezone: 'timezone',
+  language: 'language',
+  syncEnabled: 'sync-enabled',
+}
+
+const RECURRING_VALUES = ['none', 'daily', 'weekly', 'weekdays']
+const TASK_RETENTION_DAYS = 60
+// Issue #13 specifies 11:59:59 as the date-only task sentinel.
+const ALL_DAY_SENTINEL_TIME = '11:59:59'
+// Tombstones (soft-deleted tasks) are retained for this many days so
+// deletions can propagate to other devices via remote sync before the
+// record is permanently purged. See remote-storage-implementation.md §7.
+const TOMBSTONE_RETENTION_DAYS = 30
+
+const parseBooleanFlag = (value, defaultValue) => {
+  if (typeof value !== 'string') {
+    return defaultValue
+  }
+
+  const normalized = value.trim().toLowerCase()
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) {
+    return true
+  }
+
+  if (['0', 'false', 'no', 'off'].includes(normalized)) {
+    return false
+  }
+
+  return defaultValue
+}
+
+const shouldDeleteOldTasks = parseBooleanFlag(
+  import.meta.env.VITE_DELETE_TASKS_OLDER_THAN_60_DAYS,
+  true,
+)
+
+const GUEST_DB_NAME = 'duebly-guest-db'
+const GUEST_PROFILE = { type: 'guest' }
+let db = null
+let activeProfileKey = null
+
+const configureDb = (database) => {
+  database.version(1).stores({
+    tasks: '&id, dueDate, isDone, createdAt, completedAt, recurring, last_updated',
+    settings: '&id',
+  })
+  database.version(2).stores({
+    tasks: '&id, dueDate, dueEndTime, isDone, createdAt, completedAt, recurring, last_updated',
+    settings: '&id',
+  })
+  database.version(3).stores({
+    tasks: '&id, dueDate, dueEndTime, isDone, createdAt, completedAt, recurring, last_updated, deleted',
+    settings: '&id',
+  })
+  return database
+}
+
+// Obfuscates opaque auth identifiers for DB naming. This is non-cryptographic and
+// only intended to avoid exposing raw user identifiers in browser storage names.
+const hashProfileId = (value) => {
+  let hash = 2166136261
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index)
+    hash = Math.imul(hash, 16777619)
+  }
+  return (hash >>> 0).toString(36)
+}
+
+const getProfileKey = (profile) => {
+  if (!profile || profile.type !== 'user') {
+    return 'guest'
+  }
+
+  const userId = String(profile.id || '').trim()
+  if (!userId) {
+    throw new Error('Authenticated profile is missing a stable user id')
+  }
+  return `user-${hashProfileId(userId)}`
+}
+
+const getDatabaseName = (profileKey) => {
+  if (profileKey === 'guest') {
+    return GUEST_DB_NAME
+  }
+
+  return `duebly-${profileKey}-db`
+}
+
+const getDb = () => {
+  if (!db) {
+    db = configureDb(new Dexie(GUEST_DB_NAME))
+    activeProfileKey = 'guest'
+  }
+  return db
+}
+
+const getNow = () => Date.now()
+const getNowIso = () => new Date().toISOString()
+
+const parseIsoDate = (value) => {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const trimmed = value.trim()
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return `${trimmed}T${ALL_DAY_SENTINEL_TIME}`
+  }
+
+  const dateTimeMatch = trimmed.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/)
+  if (!dateTimeMatch) {
+    return null
+  }
+
+  const [, datePart, hours, minutes, seconds = '00'] = dateTimeMatch
+  const hourNumber = Number(hours)
+  const minuteNumber = Number(minutes)
+  const secondNumber = Number(seconds)
+  if (hourNumber > 23 || minuteNumber > 59 || secondNumber > 59) {
+    return null
+  }
+
+  return `${datePart}T${hours}:${minutes}:${seconds}`
+}
+
+const parseClockTime = (value) => {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const trimmed = value.trim()
+  const match = trimmed.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/)
+  if (!match) {
+    return null
+  }
+
+  const [, hours, minutes, seconds = '00'] = match
+  const hourNumber = Number(hours)
+  const minuteNumber = Number(minutes)
+  const secondNumber = Number(seconds)
+  if (hourNumber > 23 || minuteNumber > 59 || secondNumber > 59) {
+    return null
+  }
+
+  return `${hours}:${minutes}:${seconds}`
+}
+
+const getCurrentISODate = () => new Date().toISOString().slice(0, 10)
+const getDatePartFromDueDateTime = (dueDate) => {
+  const match = String(dueDate).match(/^(\d{4}-\d{2}-\d{2})/)
+  return match ? match[1] : ''
+}
+
+const addDaysToISODate = (isoDate, daysToAdd) => {
+  const date = new Date(`${isoDate}T00:00:00Z`)
+  if (Number.isNaN(date.getTime())) {
+    return isoDate
+  }
+
+  date.setUTCDate(date.getUTCDate() + daysToAdd)
+  return date.toISOString().slice(0, 10)
+}
+
+const getTaskRetentionCutoffDate = () => {
+  return addDaysToISODate(getCurrentISODate(), -TASK_RETENTION_DAYS)
+}
+
+const getTombstoneCutoffDate = () => {
+  return addDaysToISODate(getCurrentISODate(), -TOMBSTONE_RETENTION_DAYS)
+}
+
+const isExpiredTombstone = (task) => {
+  if (!task.deleted) {
+    return false
+  }
+  const lastUpdatedDate = String(task.last_updated || '').slice(0, 10)
+  if (!lastUpdatedDate) {
+    return false
+  }
+  return lastUpdatedDate < getTombstoneCutoffDate()
+}
+
+const splitByRetention = (tasks) => {
+  if (!shouldDeleteOldTasks) {
+    return { keptTasks: tasks, removedTasks: [] }
+  }
+
+  const cutoffDate = getTaskRetentionCutoffDate()
+  const keptTasks = []
+  const removedTasks = []
+
+  for (const task of tasks) {
+    // Drop tombstones that are older than the propagation safety window.
+    if (isExpiredTombstone(task)) {
+      removedTasks.push(task)
+      continue
+    }
+    // Tombstones inside the retention window are always kept so the
+    // delete propagates to other devices via sync.
+    if (task.deleted) {
+      keptTasks.push(task)
+      continue
+    }
+    if (getDatePartFromDueDateTime(task.dueDate) < cutoffDate) {
+      removedTasks.push(task)
+      continue
+    }
+    keptTasks.push(task)
+  }
+
+  return { keptTasks, removedTasks }
+}
+
+const normalizeTask = (task) => {
+  if (!task || typeof task !== 'object') {
+    return null
+  }
+
+  const isTombstone = Boolean(task.deleted)
+  if (!task.id) {
+    return null
+  }
+
+  if (!isTombstone && (!task.text || !task.dueDate)) {
+    return null
+  }
+
+  // Tombstones do not require a valid dueDate/text but we still store
+  // any present fields verbatim for forward compatibility.
+  const dueDate = task.dueDate ? parseIsoDate(String(task.dueDate)) : null
+  if (!isTombstone && !dueDate) {
+    return null
+  }
+
+  const recurring = RECURRING_VALUES.includes(task.recurring) ? task.recurring : 'none'
+  const color = typeof task.color === 'string' && task.color ? task.color : '#374151'
+  const lastUpdatedCandidate = typeof task.last_updated === 'string' ? task.last_updated : null
+  const createdAt = Number.isFinite(task.createdAt) ? task.createdAt : getNow()
+  const fallbackLastUpdated = new Date(createdAt).toISOString()
+  const lastUpdated = Number.isNaN(Date.parse(lastUpdatedCandidate || ''))
+    ? fallbackLastUpdated
+    : String(lastUpdatedCandidate)
+
+  return {
+    id: String(task.id),
+    text: typeof task.text === 'string' ? task.text : '',
+    dueDate: dueDate || '',
+    dueEndTime: parseClockTime(typeof task.dueEndTime === 'string' ? task.dueEndTime : '') || null,
+    isDone: Boolean(task.isDone),
+    color,
+    createdAt,
+    completedAt: Number.isFinite(task.completedAt) ? task.completedAt : null,
+    recurring,
+    originalTaskId: typeof task.originalTaskId === 'string' ? task.originalTaskId : null,
+    last_updated: lastUpdated,
+    deleted: isTombstone,
+  }
+}
+
+const mergeTasks = (localTasks, remoteTasks, onEqualTimestamp) => {
+  const byId = new Map()
+
+  for (const task of localTasks) {
+    byId.set(task.id, task)
+  }
+
+  for (const remoteTask of remoteTasks) {
+    const localTask = byId.get(remoteTask.id)
+    if (!localTask) {
+      byId.set(remoteTask.id, remoteTask)
+      continue
+    }
+
+    const localTs = Date.parse(localTask.last_updated || '')
+    const remoteTs = Date.parse(remoteTask.last_updated || '')
+
+    if (Number.isFinite(localTs) && Number.isFinite(remoteTs) && localTs === remoteTs) {
+      if (onEqualTimestamp) {
+        onEqualTimestamp(localTask, remoteTask)
+      }
+      byId.set(remoteTask.id, remoteTask)
+      continue
+    }
+
+    if (!Number.isFinite(localTs) || remoteTs > localTs) {
+      byId.set(remoteTask.id, remoteTask)
+    }
+  }
+
+  return Array.from(byId.values())
+}
+
+const readDexieTasks = async () => {
+  const tasks = await getDb().tasks.toArray()
+  return tasks.map(normalizeTask).filter(Boolean)
+}
+
+const readVisibleTasks = (tasks) => tasks.filter((task) => !task.deleted)
+const readTombstones = (tasks) => tasks.filter((task) => task.deleted)
+
+const prunePersistedOldTasks = async (tasks) => {
+  const { keptTasks, removedTasks } = splitByRetention(tasks)
+  if (removedTasks.length) {
+    await getDb().tasks.bulkDelete(removedTasks.map((task) => task.id))
+  }
+  return keptTasks
+}
+
+const readSettings = async () => {
+  const rows = await getDb().settings.toArray()
+  const map = rows.reduce((acc, row) => {
+    acc[row.id] = row.value
+    return acc
+  }, {})
+
+  return {
+    timezone: typeof map[SETTINGS_KEYS.timezone] === 'string' ? map[SETTINGS_KEYS.timezone] : null,
+    language: typeof map[SETTINGS_KEYS.language] === 'string' ? map[SETTINGS_KEYS.language] : null,
+    syncEnabled: Boolean(map[SETTINGS_KEYS.syncEnabled]),
+  }
+}
+
+const writeSettings = async (settings) => {
+  await getDb().settings.bulkPut([
+    { id: SETTINGS_KEYS.timezone, value: settings.timezone || null },
+    { id: SETTINGS_KEYS.language, value: settings.language || null },
+    { id: SETTINGS_KEYS.syncEnabled, value: Boolean(settings.syncEnabled) },
+  ])
+}
+
+const setActiveProfile = (profile) => {
+  const nextProfileKey = getProfileKey(profile)
+  if (db && activeProfileKey === nextProfileKey) {
+    return
+  }
+
+  if (db) {
+    db.close()
+  }
+
+  activeProfileKey = nextProfileKey
+  db = configureDb(new Dexie(getDatabaseName(nextProfileKey)))
+}
+
+export const taskStorage = {
+  async initialize(defaultTimeZone, profile = GUEST_PROFILE) {
+    try {
+      setActiveProfile(profile)
+      const allTasks = await prunePersistedOldTasks(await readDexieTasks())
+      const settings = await readSettings()
+
+      if (!settings.timezone) {
+        settings.timezone = defaultTimeZone
+        await writeSettings(settings)
+      }
+
+      return {
+        tasks: readVisibleTasks(allTasks),
+        settings,
+        fallbackActive: false,
+      }
+    } catch {
+      return {
+        tasks: [],
+        settings: {
+          timezone: defaultTimeZone,
+          language: null,
+          syncEnabled: false,
+        },
+        fallbackActive: false,
+      }
+    }
+  },
+
+  async saveTask(task) {
+    const normalizedTask = normalizeTask(task)
+    if (!normalizedTask) {
+      return
+    }
+
+    const { keptTasks } = splitByRetention([normalizedTask])
+    if (!keptTasks.length) {
+      await getDb().tasks.delete(normalizedTask.id)
+      return
+    }
+
+    await getDb().tasks.put(normalizedTask)
+  },
+
+  // Soft-delete: mark the task as a tombstone with a fresh `last_updated`
+  // so the deletion can propagate to other devices via remote sync.
+  // Hard-deletes only happen when the tombstone exits the retention window
+  // (see splitByRetention).
+  async deleteTask(taskId) {
+    const id = String(taskId)
+    const existing = await getDb().tasks.get(id)
+    const tombstone = normalizeTask({
+      ...(existing || {}),
+      id,
+      deleted: true,
+      last_updated: getNowIso(),
+    })
+    if (!tombstone) {
+      await getDb().tasks.delete(id)
+      return
+    }
+    if (isExpiredTombstone(tombstone)) {
+      await getDb().tasks.delete(id)
+      return
+    }
+    await getDb().tasks.put(tombstone)
+  },
+
+  async saveSettings(settings) {
+    await writeSettings(settings)
+  },
+
+  // Read all stored tasks (including tombstones) for the sync engine.
+  async readAllForSync() {
+    const tasks = await readDexieTasks()
+    return splitByRetention(tasks).keptTasks
+  },
+
+  // Pure merge helper — also exported on taskModel.mergeForSync for tests.
+  mergeForSync(localTasks, remoteTasks, onEqualTimestamp) {
+    const normalizedLocal = localTasks.map(normalizeTask).filter(Boolean)
+    const normalizedRemote = remoteTasks.map(normalizeTask).filter(Boolean)
+    const merged = mergeTasks(normalizedLocal, normalizedRemote, onEqualTimestamp)
+    return splitByRetention(merged).keptTasks
+  },
+
+  // Replace UI-visible tasks while preserving any existing tombstones in
+  // the DB. Used after every UI mutation so the local DB stays in sync
+  // with React state without losing pending delete tombstones.
+  async persistActiveTasks(visibleTasks) {
+    const normalizedVisible = (visibleTasks || []).map(normalizeTask).filter(Boolean)
+    const visibleById = new Map(normalizedVisible.map((task) => [task.id, task]))
+    const existingTasks = await readDexieTasks()
+    const tombstones = readTombstones(existingTasks).filter((task) => !visibleById.has(task.id))
+    const merged = splitByRetention([...normalizedVisible, ...tombstones]).keptTasks
+    await getDb().transaction('rw', getDb().tasks, async () => {
+      await getDb().tasks.clear()
+      if (merged.length) {
+        await getDb().tasks.bulkPut(merged)
+      }
+    })
+  },
+
+  // Replace the entire local task table (tombstones included). Only used
+  // by sync after a pull-merge or by importSnapshot.
+  async replaceAllTasks(tasks) {
+    const normalizedTasks = splitByRetention(
+      (tasks || []).map(normalizeTask).filter(Boolean),
+    ).keptTasks
+    await getDb().transaction('rw', getDb().tasks, async () => {
+      await getDb().tasks.clear()
+      if (normalizedTasks.length) {
+        await getDb().tasks.bulkPut(normalizedTasks)
+      }
+    })
+  },
+
+  async exportSnapshot() {
+    return {
+      profileKey: activeProfileKey || 'guest',
+      tasks: await readDexieTasks(),
+      settings: await readSettings(),
+    }
+  },
+
+  async importSnapshot(snapshot) {
+    if (!snapshot || typeof snapshot !== 'object') {
+      return
+    }
+
+    await this.replaceAllTasks(Array.isArray(snapshot.tasks) ? snapshot.tasks : [])
+    if (snapshot.settings && typeof snapshot.settings === 'object') {
+      await writeSettings(snapshot.settings)
+    }
+  },
+
+  // Read the guest DB tasks without changing the active profile. Used
+  // during the guest-to-user migration prompt at login time.
+  async readGuestTasks() {
+    const guestDb = configureDb(new Dexie(GUEST_DB_NAME))
+    try {
+      await guestDb.open()
+      const rows = await guestDb.tasks.toArray()
+      return rows.map(normalizeTask).filter(Boolean)
+    } catch {
+      return []
+    } finally {
+      try {
+        guestDb.close()
+      } catch {
+        // ignore close errors
+      }
+    }
+  },
+
+  async wipeGuestData() {
+    try {
+      await Dexie.delete(GUEST_DB_NAME)
+    } catch {
+      // ignore: best-effort cleanup
+    }
+  },
+
+  // Returns the subset of `guestTasks` that should be imported into the
+  // authenticated user's dataset. Per remote-storage-implementation.md §8,
+  // only tasks whose IDs do not exist in the user's dataset (live or
+  // tombstoned) qualify. Guest-side edits, status changes, and deletions
+  // for IDs that already exist on the user side are intentionally ignored.
+  computeNewGuestTasks(guestTasks, userTasks) {
+    const userIds = new Set((userTasks || []).map((task) => String(task.id)))
+    return (guestTasks || [])
+      .filter((task) => task && !task.deleted)
+      .filter((task) => !userIds.has(String(task.id)))
+  },
+
+  async importNewGuestTasks(newGuestTasks) {
+    const nowIso = getNowIso()
+    const importedTasks = (newGuestTasks || [])
+      .map((task) => normalizeTask({ ...task, deleted: false, last_updated: nowIso }))
+      .filter(Boolean)
+    if (!importedTasks.length) {
+      return []
+    }
+    await getDb().tasks.bulkPut(importedTasks)
+    return importedTasks
+  },
+
+  // Test-only: drops the cached Dexie connection so the next `initialize`
+  // re-opens against whatever IndexedDB factory is currently installed.
+  // Production code never calls this.
+  __resetForTests() {
+    if (db) {
+      try { db.close() } catch { /* ignore */ }
+    }
+    db = null
+    activeProfileKey = null
+  },
+}
+
+export const taskModel = {
+  normalizeTask,
+  getNowIso,
+  getNow,
+  allDayTime: ALL_DAY_SENTINEL_TIME,
+  recurringValues: RECURRING_VALUES,
+  // Pure helpers exposed for unit testing without IndexedDB.
+  mergeForSync(localTasks, remoteTasks, onEqualTimestamp) {
+    const normalizedLocal = (localTasks || []).map(normalizeTask).filter(Boolean)
+    const normalizedRemote = (remoteTasks || []).map(normalizeTask).filter(Boolean)
+    const merged = mergeTasks(normalizedLocal, normalizedRemote, onEqualTimestamp)
+    return splitByRetention(merged).keptTasks
+  },
+  computeNewGuestTasks(guestTasks, userTasks) {
+    return taskStorage.computeNewGuestTasks(guestTasks, userTasks)
+  },
+  isExpiredTombstone,
+  tombstoneRetentionDays: TOMBSTONE_RETENTION_DAYS,
+}

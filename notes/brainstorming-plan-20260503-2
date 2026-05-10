@@ -5,7 +5,7 @@ Since you are using **Cloudflare Pages**, the deployment is essentially instant 
 ---
 
 ### 📋 Global Prerequisites (Do this first)
-1. **GitHub Repository:** Create a private repo named `duedly`.
+1. **GitHub Repository:** Create a private repo named `duebly`.
 2. **Node.js Environment:** Ensure you have `pnpm` or `npm` installed.
 3. **Cloudflare Account:** Connect your GitHub to Cloudflare Pages for auto-deployment.
 
@@ -19,7 +19,7 @@ Since you are using **Cloudflare Pages**, the deployment is essentially instant 
 * None. The agent can generate everything from scratch.
 
 ### The "One-Shot" Prompt for Phase 1
-> "Build a mobile-first, local-only To-Do app called 'Duedly' using Next.js (App Router), Tailwind CSS, Lucide React, and Dexie.js for storage. 
+> "Build a mobile-first, local-only To-Do app called 'Duebly' using Next.js (App Router), Tailwind CSS, Lucide React, and Dexie.js for storage. 
 > 
 > **Core Logic:**
 > 1. Every task MUST have a `dueDate` (YYYY-MM-DD). The 'Save' button is disabled until a date is picked.
@@ -42,18 +42,18 @@ Since you are using **Cloudflare Pages**, the deployment is essentially instant 
 **Focus:** Kinde Auth + Google Drive REST API.
 
 ### Manual Setup (Prerequisites)
-1. **Kinde:** Create a project, enable "Google" as a social connection. Add your `duedly.app` URLs to the callback list.
+1. **Kinde:** Create a project, enable "Google" as a social connection. Add your `duebly.app` URLs to the callback list.
 2. **Google Cloud Console:** - Create an OAuth 2.0 Client ID. 
    - Add the scope: `https://www.googleapis.com/auth/drive.appdata` (This lets you save the hidden `todo.json`).
 3. **Env Variables:** Add `KINDE_CLIENT_ID`, `KINDE_DOMAIN`, and Google Client IDs to your Cloudflare Pages environment.
 
 ### The "One-Shot" Prompt for Phase 2
-> "Integrate Kinde Auth and Google Drive Sync into the existing Duedly app.
+> "Integrate Kinde Auth and Google Drive Sync into the existing Duebly app.
 > 
 > **Requirements:**
 > 1. Wrap the entire app in a Kinde Auth check. Only logged-in users can access the list.
 > 2. Create a `SyncService`: 
->    - On login, check the Google Drive 'App Data' folder for `duedly_backup.json`.
+>    - On login, check the Google Drive 'App Data' folder for `duebly_backup.json`.
 >    - If the cloud version is newer (check `updatedAt` timestamps), update Dexie.js.
 >    - On every change in Dexie, debounce a 3-second upload of the full JSON to the Google Drive App Data folder.
 > 3. UI: Add a small 'Syncing' indicator and a 'User Profile/Logout' button in the header."
@@ -70,11 +70,11 @@ Since you are using **Cloudflare Pages**, the deployment is essentially instant 
 1. **Google Cloud Console:** Add the `https://www.googleapis.com/auth/drive.file` scope.
 
 ### The "Few-Shot" Prompt for Phase 3
-> "Upgrade Duedly to support shared lists using the Google Drive Permissions API. 
+> "Upgrade Duebly to support shared lists using the Google Drive Permissions API. 
 > 
 > **Logic Changes:**
 > 1. Allow a user to 'Share' their todo list by entering another user's email.
-> 2. Under the hood: Move the data from the AppData folder to a standard `duedly_shared.json` file in the root of the user's Drive.
+> 2. Under the hood: Move the data from the AppData folder to a standard `duebly_shared.json` file in the root of the user's Drive.
 > 3. Use the Google Drive Permissions API to grant 'Writer' access to the invited email.
 > 4. Implementation: Add a 'Shared with Me' sub-tab or a toggle to switch between 'My List' and 'Shared Lists'.
 > 5. Handle conflict resolution: Since two people might edit at once, use a 'Last Write Wins' strategy based on the `updatedAt` field in each task."

@@ -14,10 +14,18 @@
 
 # production
 /build
+/dist
+/src/dist
 
 # misc
 .DS_Store
 *.pem
+*.key
+*.p12
+*.pfx
+*.crt
+.dev.vars
+.dev.vars.*
 
 # debug
 npm-debug.log*
@@ -27,6 +35,8 @@ yarn-error.log*
 # local env files
 .env*.local
 .env
+.env.*
+!.env.example
 
 # vercel
 .vercel
@@ -34,3 +44,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/web/node_modules
+/web/dist
+/src/node_modules
