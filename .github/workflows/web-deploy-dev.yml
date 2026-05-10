@@ -35,6 +35,9 @@ jobs:
       - name: Validate lint
         run: npm run lint
 
+      - name: Run unit tests
+        run: npm test
+
       - name: Validate dev deploy build
         run: npm run build
 

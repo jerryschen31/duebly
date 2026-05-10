@@ -4,9 +4,12 @@ import { flushSync } from 'react-dom'
 import './App.css'
 import privacyPolicyMarkdown from '../../PRIVACY.md?raw'
 import termsOfServiceMarkdown from '../../TERMS.md?raw'
-import { initializeAuthSession, login, logout, register } from './auth/kindeAuth'
+import { initializeAuthSession, getAccessToken, login, logout, register } from './auth/kindeAuth'
 import { appConfig } from './config/env'
 import { taskModel, taskStorage } from './storage'
+import { createSyncApiClient, SyncApiError } from './sync/apiClient'
+import { createSyncEngine } from './sync/syncEngine'
+import { detectImportableGuestTasks, importGuestTasks, discardGuestData } from './sync/migration'
 
 const TAB_KEYS = {
   notDone: 'not-done',
@@ -108,6 +111,12 @@ const TRANSLATIONS = {
     signUpPrompt: "Don't have an account?",
     signUpToday: 'Sign up today!',
     authConfigMissing: 'Login is not configured for this environment.',
+    guestImportTitle: 'Import your offline tasks?',
+    guestImportBody: 'You added {count} task(s) while signed out. Add them to your account?',
+    guestImportConfirm: 'Add to my account',
+    guestImportDiscard: 'Discard',
+    syncStatusSyncing: 'Syncing…',
+    syncStatusError: 'Sync failed',
     taskListTabs: 'Task list tabs',
     notDoneTab: 'Not Done',
     doneTab: 'Done',
@@ -1060,10 +1069,39 @@ const toastVariants = {
   exit: { opacity: 0, y: -8, scale: 0.98 },
 }
 
-const syncService = {
-  isAuthenticated: () => false,
-  pullRemoteTasks: async () => [],
-  pushMergedTasks: async () => {},
+// Factory for the live sync service used by the App. The returned object
+// is shaped like the previous in-memory stub so existing call sites keep
+// working, but it now runs the real Pull-Merge-Push cycle against the
+// Cloudflare Worker described in remote-storage-implementation.md.
+const buildLiveSyncEngine = ({ onMerged, onError, onStatusChange, isAuthenticated }) => {
+  if (!appConfig.sync.enabled || !appConfig.sync.apiBaseUrl) {
+    return null
+  }
+  let apiClient
+  try {
+    apiClient = createSyncApiClient({
+      baseUrl: appConfig.sync.apiBaseUrl,
+      getAccessToken,
+    })
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn('Sync disabled: failed to create API client', error)
+    }
+    return null
+  }
+  const storageAdapter = {
+    readAllForSync: () => taskStorage.readAllForSync(),
+    mergeForSync: (local, remote, onEqual) => taskStorage.mergeForSync(local, remote, onEqual),
+    replaceAllTasks: (tasks) => taskStorage.replaceAllTasks(tasks),
+  }
+  return createSyncEngine({
+    apiClient,
+    storage: storageAdapter,
+    isAuthenticated,
+    onMerged,
+    onError,
+    onStatusChange,
+  })
 }
 
 const getSupportedLanguage = (languageCodeCandidate) => {
@@ -1632,36 +1670,121 @@ function App() {
     }
   }
 
+  // Live sync engine reference. Created when the user becomes
+  // authenticated and torn down on logout. Null while sync is disabled.
+  const syncEngineRef = useRef(null)
+  const [syncStatus, setSyncStatus] = useState('idle')
+  const [migrationPrompt, setMigrationPrompt] = useState(null)
+  const tasksRef = useRef(tasks)
   useEffect(() => {
-    const syncOnReconnect = async () => {
-      if (!syncService.isAuthenticated()) {
-        return
-      }
+    tasksRef.current = tasks
+  }, [tasks])
 
-      try {
-        const remoteTasks = await syncService.pullRemoteTasks()
-        const merged = taskStorage.mergeForSync(tasks, remoteTasks, (localTask, remoteTask) => {
-          if (import.meta.env.DEV) {
-            console.warn('Equal timestamp conflict resolved with remote preference', {
-              localTask,
-              remoteTask,
-            })
-          }
-        })
-
-        setTasks(merged)
-        await taskStorage.replaceAllTasks(merged, mirrorLegacyRef.current)
-        await syncService.pushMergedTasks(merged)
-      } catch (error) {
-        if (import.meta.env.DEV) {
-          console.warn('Deferred sync failed', error)
-        }
+  // Build / tear down the sync engine when the auth session changes.
+  useEffect(() => {
+    if (!isReady || !authReady || !appConfig.sync.enabled) {
+      return undefined
+    }
+    if (!authSession.isAuthenticated) {
+      if (syncEngineRef.current) {
+        syncEngineRef.current.stop()
+        syncEngineRef.current = null
       }
+      // Defer status reset to a microtask to avoid the React lint rule
+      // about synchronous setState within effect bodies.
+      Promise.resolve().then(() => setSyncStatus('idle'))
+      return undefined
     }
 
-    window.addEventListener('online', syncOnReconnect)
-    return () => window.removeEventListener('online', syncOnReconnect)
-  }, [tasks])
+    const engine = buildLiveSyncEngine({
+      isAuthenticated: () => authSession.isAuthenticated,
+      onMerged: (merged) => {
+        // Filter tombstones out of the React-visible task list.
+        const visible = (merged || []).filter((task) => !task.deleted)
+        setTasks(visible)
+      },
+      onStatusChange: ({ status }) => setSyncStatus(status),
+      onError: (error) => {
+        if (import.meta.env.DEV) {
+          if (error instanceof SyncApiError) {
+            console.warn('Sync error', error.code, error.message)
+          } else {
+            console.warn('Sync error', error)
+          }
+        }
+      },
+    })
+    if (!engine) {
+      return undefined
+    }
+    syncEngineRef.current = engine
+    engine.start()
+    // Initial pull-merge-push at startup / login.
+    engine.triggerImmediateSync('startup').catch(() => {
+      // onError already handled the failure; keep app responsive.
+    })
+    return () => {
+      engine.stop()
+      if (syncEngineRef.current === engine) {
+        syncEngineRef.current = null
+      }
+    }
+  }, [authReady, authSession.isAuthenticated, isReady])
+
+  // Detect new guest-only tasks at the moment of login and prompt the
+  // user to merge or discard them. Implements the guest-to-user flow
+  // from remote-storage-implementation.md §8.
+  useEffect(() => {
+    if (!isReady || !authReady) {
+      return
+    }
+    if (!authSession.isAuthenticated || migrationPrompt) {
+      return
+    }
+    let cancelled = false
+    detectImportableGuestTasks({ activeUserTasks: tasksRef.current })
+      .then((result) => {
+        if (cancelled) return
+        if (result.importable && result.importable.length > 0) {
+          setMigrationPrompt({ importable: result.importable })
+        }
+      })
+      .catch((error) => {
+        if (import.meta.env.DEV) {
+          console.warn('Failed to detect guest tasks for migration', error)
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isReady, authReady, authSession.isAuthenticated])
+
+  // Ask the browser for persistent storage so IndexedDB is not silently
+  // evicted under disk pressure (see §10 of the implementation spec).
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !navigator.storage || !navigator.storage.persist) {
+      return
+    }
+    navigator.storage.persist().catch(() => {
+      // Permission may be denied; this is a best-effort hint.
+    })
+  }, [])
+
+  // Reconnect handler — defer to the live sync engine when present.
+  useEffect(() => {
+    const handleOnline = () => {
+      const engine = syncEngineRef.current
+      if (!engine) {
+        return
+      }
+      engine.triggerImmediateSync('reconnect').catch(() => {
+        // onError handler already reports.
+      })
+    }
+    window.addEventListener('online', handleOnline)
+    return () => window.removeEventListener('online', handleOnline)
+  }, [])
 
   const today = useMemo(() => {
     return toISODateInTimeZone(new Date(nowTick), selectedTimeZone)
@@ -1740,15 +1863,67 @@ function App() {
       return
     }
 
-    taskStorage.replaceAllTasks(tasks, mirrorLegacyRef.current).catch((error) => {
+    taskStorage.persistActiveTasks(tasks).catch((error) => {
       if (import.meta.env.DEV) {
         console.warn('Failed to persist task snapshot', error)
       }
     })
+
+    // Notify the sync engine that local state changed so it can debounce
+    // a Pull-Merge-Push cycle. The engine itself decides whether to act
+    // based on auth state.
+    const engine = syncEngineRef.current
+    if (engine) {
+      engine.triggerDebouncedSync('mutation')
+    }
   }, [isReady, tasks])
 
   const persistTask = (task) => {
     taskStorage.saveTask(task, mirrorLegacyRef.current)
+  }
+
+  const handleImportGuestTasks = async () => {
+    if (!migrationPrompt) {
+      return
+    }
+    try {
+      const imported = await importGuestTasks(migrationPrompt.importable)
+      if (imported.length) {
+        setTasks((prev) => {
+          const seen = new Set(prev.map((task) => task.id))
+          const merged = [...prev]
+          for (const task of imported) {
+            if (!seen.has(task.id)) {
+              merged.push(task)
+            }
+          }
+          return merged
+        })
+      }
+      await discardGuestData()
+      const engine = syncEngineRef.current
+      if (engine) {
+        engine.triggerImmediateSync('migration').catch(() => {})
+      }
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.warn('Failed to import guest tasks', error)
+      }
+    } finally {
+      setMigrationPrompt(null)
+    }
+  }
+
+  const handleDiscardGuestTasks = async () => {
+    try {
+      await discardGuestData()
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.warn('Failed to discard guest tasks', error)
+      }
+    } finally {
+      setMigrationPrompt(null)
+    }
   }
 
   const getDateTimePickerPosition = (triggerElement) => {
@@ -3342,8 +3517,49 @@ function App() {
               {toast.message}
             </motion.div>
           ))}
+          {syncStatus === 'syncing' ? (
+            <motion.div
+              key="sync-status"
+              className="toast"
+              variants={toastVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              transition={{ duration: 0.16 }}
+            >
+              {translate('syncStatusSyncing')}
+            </motion.div>
+          ) : null}
         </AnimatePresence>
       </div>
+
+      <AnimatePresence>
+        {migrationPrompt ? (
+          <motion.div
+            key="guest-migration-prompt"
+            className="modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="guest-migration-title"
+          >
+            <div className="modal-card">
+              <h2 id="guest-migration-title">{translate('guestImportTitle')}</h2>
+              <p>{translate('guestImportBody', { count: String(migrationPrompt.importable.length) })}</p>
+              <div className="modal-actions">
+                <button type="button" className="ghost-button" onClick={handleDiscardGuestTasks}>
+                  {translate('guestImportDiscard')}
+                </button>
+                <button type="button" className="primary-button" onClick={handleImportGuestTasks}>
+                  {translate('guestImportConfirm')}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
 
       <AnimatePresence>
         {swatchHint ? (

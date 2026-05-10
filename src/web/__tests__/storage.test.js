@@ -2,7 +2,7 @@
 // the guest-to-user migration helpers from the storage module. These tests
 // run against fake-indexeddb so they exercise Dexie end-to-end.
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import 'fake-indexeddb/auto'
 import { IDBFactory } from 'fake-indexeddb'
 
