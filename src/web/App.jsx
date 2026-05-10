@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import './App.css'
 import privacyPolicyMarkdown from '../../PRIVACY.md?raw'
@@ -850,6 +850,7 @@ const SWIPE_THRESHOLD = 70
 const SWIPE_COMMIT_DELAY_MS = 170
 const TOAST_DURATION_MS = 1800
 const MAX_TASK_DESCRIPTION_LENGTH = 200
+const MOBILE_BREAKPOINT_WIDTH = 640
 const TIME_OPTION_INTERVAL_MINUTES = 30
 const TIME_OPTIONS_COUNT = (24 * 60) / TIME_OPTION_INTERVAL_MINUTES
 const ALL_DAY_TASKS_SORT_LAST = '99:99:99'
@@ -893,14 +894,6 @@ const getSupportedTimeZone = (timeZoneCandidate) => {
 const getDefaultTimeZone = () => {
   const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
   return getSupportedTimeZone(browserTimeZone)
-}
-
-const getISODateFromTimestampInTimeZone = (timestamp, timeZone) => {
-  if (!Number.isFinite(timestamp)) {
-    return null
-  }
-
-  return toISODateInTimeZone(new Date(timestamp), timeZone)
 }
 
 const getDatePartFromDueDateTime = (dueDate) => String(dueDate || '').slice(0, 10)
@@ -1339,9 +1332,9 @@ function App() {
       return true
     }
 
-    return window.innerWidth > 640
+    return window.innerWidth > MOBILE_BREAKPOINT_WIDTH
   })
-  const isMobileViewport = viewportWidth <= 640
+  const isMobileViewport = viewportWidth <= MOBILE_BREAKPOINT_WIDTH
   const isSpeechSupported = Boolean(globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition)
 
   const toastTimeoutsRef = useRef(new Map())
@@ -1426,11 +1419,11 @@ function App() {
     return !canFitBelow
   }
 
-  const cancelEditTask = () => {
+  const cancelEditTask = useCallback(() => {
     setEditingTaskId(null)
     setEditingText('')
     setEditingModalAnchor(null)
-  }
+  }, [])
 
   useEffect(() => {
     let isMounted = true
@@ -1509,13 +1502,16 @@ function App() {
 
   useEffect(() => {
     const onResize = () => {
-      setViewportWidth(window.innerWidth)
+      const width = window.innerWidth
+      setViewportWidth(width)
+      if (width > MOBILE_BREAKPOINT_WIDTH) {
+        setIsComposerExpanded(true)
+      }
     }
 
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [])
-
   useEffect(() => {
     const onPopState = () => {
       setCurrentPath(window.location.pathname)
@@ -1524,12 +1520,6 @@ function App() {
     window.addEventListener('popstate', onPopState)
     return () => window.removeEventListener('popstate', onPopState)
   }, [])
-
-  useEffect(() => {
-    if (!isMobileViewport) {
-      setIsComposerExpanded(true)
-    }
-  }, [isMobileViewport])
 
   useEffect(() => {
     const onPointerDown = (event) => {
@@ -1587,7 +1577,7 @@ function App() {
       document.removeEventListener('mousedown', onPointerDown)
       document.removeEventListener('touchstart', onPointerDown)
     }
-  }, [])
+  }, [isMobileViewport, editingTaskId, cancelEditTask])
 
   useEffect(() => {
     const toastTimeouts = toastTimeoutsRef.current
