@@ -2,13 +2,16 @@
   "name": "duebly",
   "private": true,
   "version": "0.0.0",
+  "config": {
+    "appVersion": "2026.05.09"
+  },
   "type": "module",
   "engines": {
     "node": ">=20.19.0"
   },
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "DUEBLY_APP_VERSION=$(node -p \"JSON.parse(require('fs').readFileSync('./package.json','utf8')).config.appVersion\") vite",
+    "build": "DUEBLY_APP_VERSION=$(node -p \"JSON.parse(require('fs').readFileSync('./package.json','utf8')).config.appVersion\") vite build",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",

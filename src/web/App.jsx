@@ -30,6 +30,7 @@ const LANGUAGE_OPTIONS = [
 
 const DEFAULT_LANGUAGE_CODE = LANGUAGE_OPTIONS[0].code
 const DARK_MODE_STORAGE_KEY = 'duebly-dark-mode'
+const LANGUAGE_STORAGE_KEY = 'duebly-language'
 
 const renderLegalMarkdown = (markdown) => {
   const lines = markdown.split(/\r?\n/)
@@ -112,6 +113,10 @@ const TRANSLATIONS = {
     signUpPrompt: "Don't have an account?",
     signUpToday: 'Sign up today!',
     authConfigMissing: 'Login is not configured for this environment.',
+    versionLabel: 'Version {version}',
+    goBack: 'Go Back',
+    privacyPolicyLink: 'Privacy Policy',
+    termsOfServiceLink: 'Terms of Service',
     guestImportTitle: 'Import your offline tasks?',
     guestImportBody: 'You added {count} task(s) while signed out. Add them to your account?',
     guestImportConfirm: 'Add to my account',
@@ -216,6 +221,20 @@ const TRANSLATIONS = {
     timeZoneMenuTitle: '时区',
     toggleDarkMode: '切换深色模式',
     buyMeCoffee: '请我喝杯咖啡',
+    signIn: '登录',
+    signOut: '登出',
+    guestMode: '访客模式',
+    loggedInAs: '已登录为 {email}',
+    continueToLogin: '继续登录',
+    loginPageTitle: '欢迎来到 Duebly',
+    loginMission: '我们的使命是让你的一天井井有条，一次只专注一个任务。',
+    loginBenefits: '创建免费账号，在多设备上使用 Duebly 并避免任务丢失。你的任务始终私密且安全。',
+    signUpPrompt: '还没有账号？',
+    signUpToday: '立即注册！',
+    authConfigMissing: '当前环境未配置登录。',
+    goBack: '返回',
+    privacyPolicyLink: '隐私政策',
+    termsOfServiceLink: '服务条款',
     login: '登录',
     loginMvpAlert: '登录暂未包含在此 MVP 中。',
     taskListTabs: '任务列表标签',
@@ -300,6 +319,20 @@ const TRANSLATIONS = {
     timeZoneMenuTitle: 'タイムゾーン',
     toggleDarkMode: 'ダークモードを切り替え',
     buyMeCoffee: 'コーヒーをごちそうする',
+    signIn: 'サインイン',
+    signOut: 'サインアウト',
+    guestMode: 'ゲストモード',
+    loggedInAs: '{email} としてログイン中',
+    continueToLogin: 'ログインへ進む',
+    loginPageTitle: 'Duebly へようこそ',
+    loginMission: '私たちの使命は、あなたの一日を一つずつ整理することです。',
+    loginBenefits: '無料アカウントを作成すると、複数デバイスで Duebly を使い、タスクを失わずに済みます。タスクは常に非公開で安全です。',
+    signUpPrompt: 'アカウントをお持ちでないですか？',
+    signUpToday: '今すぐ登録！',
+    authConfigMissing: 'この環境ではログインが設定されていません。',
+    goBack: '戻る',
+    privacyPolicyLink: 'プライバシーポリシー',
+    termsOfServiceLink: '利用規約',
     login: 'ログイン',
     loginMvpAlert: 'ログインはこの MVP では未対応です。',
     taskListTabs: 'タスク一覧タブ',
@@ -384,6 +417,20 @@ const TRANSLATIONS = {
     timeZoneMenuTitle: '시간대',
     toggleDarkMode: '다크 모드 전환',
     buyMeCoffee: '커피 한 잔 후원하기',
+    signIn: '로그인',
+    signOut: '로그아웃',
+    guestMode: '게스트 모드',
+    loggedInAs: '{email}(으)로 로그인됨',
+    continueToLogin: '로그인 계속하기',
+    loginPageTitle: 'Duebly에 오신 것을 환영합니다',
+    loginMission: '우리의 목표는 하루를 한 가지 작업씩 정리하도록 돕는 것입니다.',
+    loginBenefits: '무료 계정을 만들면 여러 기기에서 Duebly를 사용하고 작업을 잃지 않을 수 있습니다. 작업은 항상 비공개이며 안전합니다.',
+    signUpPrompt: '계정이 없으신가요?',
+    signUpToday: '지금 가입하세요!',
+    authConfigMissing: '이 환경에서는 로그인이 구성되지 않았습니다.',
+    goBack: '뒤로 가기',
+    privacyPolicyLink: '개인정보 처리방침',
+    termsOfServiceLink: '서비스 약관',
     login: '로그인',
     loginMvpAlert: '로그인은 현재 MVP에 포함되어 있지 않습니다.',
     taskListTabs: '작업 목록 탭',
@@ -468,6 +515,20 @@ const TRANSLATIONS = {
     timeZoneMenuTitle: 'Fuseau horaire',
     toggleDarkMode: 'Activer/désactiver le mode sombre',
     buyMeCoffee: 'M’offrir un café',
+    signIn: 'Se connecter',
+    signOut: 'Se déconnecter',
+    guestMode: 'Mode invité',
+    loggedInAs: 'Connecté en tant que {email}',
+    continueToLogin: 'Continuer vers la connexion',
+    loginPageTitle: 'Bienvenue sur Duebly',
+    loginMission: 'Notre mission est d’organiser votre journée, une tâche à la fois.',
+    loginBenefits: 'Créez un compte gratuit pour utiliser Duebly sur plusieurs appareils et ne jamais perdre vos tâches. Vos tâches restent privées et sécurisées.',
+    signUpPrompt: 'Vous n’avez pas de compte ?',
+    signUpToday: 'Inscrivez-vous dès aujourd’hui !',
+    authConfigMissing: 'La connexion n’est pas configurée pour cet environnement.',
+    goBack: 'Retour',
+    privacyPolicyLink: 'Politique de confidentialité',
+    termsOfServiceLink: 'Conditions d’utilisation',
     login: 'Connexion',
     loginMvpAlert: 'La connexion ne fait pas encore partie de ce MVP.',
     taskListTabs: 'Onglets de tâches',
@@ -552,6 +613,20 @@ const TRANSLATIONS = {
     timeZoneMenuTitle: 'Zona horaria',
     toggleDarkMode: 'Alternar modo oscuro',
     buyMeCoffee: 'Invítame a un café',
+    signIn: 'Iniciar sesión',
+    signOut: 'Cerrar sesión',
+    guestMode: 'Modo invitado',
+    loggedInAs: 'Conectado como {email}',
+    continueToLogin: 'Continuar al inicio de sesión',
+    loginPageTitle: 'Bienvenido a Duebly',
+    loginMission: 'Nuestra misión es mantener tu día organizado, una tarea a la vez.',
+    loginBenefits: 'Crea una cuenta gratis para usar Duebly en varios dispositivos y no perder tus tareas. Tus tareas siempre son privadas y seguras.',
+    signUpPrompt: '¿No tienes una cuenta?',
+    signUpToday: '¡Regístrate hoy!',
+    authConfigMissing: 'El inicio de sesión no está configurado para este entorno.',
+    goBack: 'Volver',
+    privacyPolicyLink: 'Política de privacidad',
+    termsOfServiceLink: 'Términos del servicio',
     login: 'Iniciar sesión',
     loginMvpAlert: 'El inicio de sesión aún no forma parte de este MVP.',
     taskListTabs: 'Pestañas de tareas',
@@ -636,6 +711,20 @@ const TRANSLATIONS = {
     timeZoneMenuTitle: 'Fuso orario',
     toggleDarkMode: 'Attiva/disattiva modalità scura',
     buyMeCoffee: 'Offrimi un caffè',
+    signIn: 'Accedi',
+    signOut: 'Esci',
+    guestMode: 'Modalità ospite',
+    loggedInAs: 'Accesso come {email}',
+    continueToLogin: 'Continua al login',
+    loginPageTitle: 'Benvenuto in Duebly',
+    loginMission: 'La nostra missione è mantenere la tua giornata organizzata, un’attività alla volta.',
+    loginBenefits: 'Crea un account gratuito per usare Duebly su più dispositivi e non perdere mai le tue attività. Le tue attività sono sempre private e sicure.',
+    signUpPrompt: 'Non hai un account?',
+    signUpToday: 'Registrati oggi!',
+    authConfigMissing: 'Il login non è configurato per questo ambiente.',
+    goBack: 'Indietro',
+    privacyPolicyLink: 'Informativa sulla privacy',
+    termsOfServiceLink: 'Termini di servizio',
     login: 'Accedi',
     loginMvpAlert: 'Il login non fa ancora parte di questo MVP.',
     taskListTabs: 'Schede elenco attività',
@@ -1153,6 +1242,19 @@ const getDefaultLanguage = () => {
   return getSupportedLanguage(navigator.language)
 }
 
+const getStoredLanguage = () => {
+  if (typeof window === 'undefined') {
+    return ''
+  }
+
+  const stored = window.localStorage.getItem(LANGUAGE_STORAGE_KEY)
+  if (typeof stored !== 'string' || !stored.trim()) {
+    return ''
+  }
+
+  return getSupportedLanguage(stored)
+}
+
 const getSpeechLanguageCandidates = (preferredLocale) => {
   const candidates = new Set()
   const configuredCandidates = SPEECH_LANGUAGE_FALLBACKS[preferredLocale] || [preferredLocale]
@@ -1202,7 +1304,7 @@ function App() {
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false)
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
   const [selectedTimeZone, setSelectedTimeZone] = useState(defaultTimeZone)
-  const [selectedLanguage, setSelectedLanguage] = useState(defaultLanguage)
+  const [selectedLanguage, setSelectedLanguage] = useState(() => getStoredLanguage() || defaultLanguage)
   const [nowTick, setNowTick] = useState(() => taskModel.getNow())
   const [viewportWidth, setViewportWidth] = useState(() => {
     if (typeof window === 'undefined') {
@@ -1384,7 +1486,8 @@ function App() {
       lastSystemTaskSnapshotRef.current = serializeTaskSnapshot(result.tasks)
       setTasks(result.tasks)
       setSelectedTimeZone(getSupportedTimeZone(result.settings.timezone || defaultTimeZone))
-      setSelectedLanguage(getSupportedLanguage(result.settings.language || defaultLanguage))
+      const preferredLanguage = getStoredLanguage() || defaultLanguage
+      setSelectedLanguage(getSupportedLanguage(result.settings.language || preferredLanguage))
       setIsReady(true)
     }
 
@@ -1870,6 +1973,14 @@ function App() {
       mirrorLegacyRef.current,
     )
   }, [isReady, selectedLanguage, selectedTimeZone])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, selectedLanguage)
+  }, [selectedLanguage])
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -2653,12 +2764,6 @@ function App() {
     }
   }
 
-  const navigateFromMenu = (path) => {
-    setIsTopMenuOpen(false)
-    setIsTimeZoneSubmenuOpen(false)
-    navigateToPath(path)
-  }
-
   if (!isReady) {
     return (
       <div className="app-shell loading-shell">
@@ -2670,8 +2775,8 @@ function App() {
   if (isLoginRoute) {
     return (
       <div className={`app-shell login-shell ${DARK_MODE_ENABLED ? 'dark-mode' : ''}`} lang={activeLanguage.locale}>
-        <a href="/" className="login-back-link" aria-label="Go back to home">
-          ← Go Back
+        <a href="/" className="login-back-link" aria-label={translate('goBack')}>
+          ← {translate('goBack')}
         </a>
         <main className="login-card">
           <h1>{translate('loginPageTitle')}</h1>
@@ -2702,6 +2807,11 @@ function App() {
             </button>
           </p>
         </main>
+        <p className="login-legal-links">
+          <a href="/privacy">{translate('privacyPolicyLink')}</a>
+          {' • '}
+          <a href="/terms">{translate('termsOfServiceLink')}</a>
+        </p>
       </div>
     )
   }
@@ -2729,6 +2839,7 @@ function App() {
             </button>
             {isTopMenuOpen ? (
               <div className="menu-popover menu-popover-top">
+                <div className="menu-version">{translate('versionLabel', { version: appConfig.app.version })}</div>
                 <div className="menu-main-buttons">
                   <button
                     type="button"
@@ -2754,20 +2865,6 @@ function App() {
                     }}
                   >
                     {'☕ '}{translate('buyMeCoffee')}
-                  </button>
-                  <button
-                    type="button"
-                    className="menu-item-button"
-                    onClick={() => navigateFromMenu('/privacy')}
-                  >
-                    {translate('privacyPolicy')}
-                  </button>
-                  <button
-                    type="button"
-                    className="menu-item-button"
-                    onClick={() => navigateFromMenu('/terms')}
-                  >
-                    {translate('termsOfService')}
                   </button>
                 </div>
                 {isTimeZoneSubmenuOpen ? (
