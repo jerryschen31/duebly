@@ -84,3 +84,29 @@ export const logout = async () => {
     await client.logout()
   }
 }
+
+export const getAccessToken = async () => {
+  const client = await getKindeClient()
+  if (!client) {
+    return null
+  }
+  try {
+    if (typeof client.getToken === 'function') {
+      const token = await client.getToken()
+      if (typeof token === 'string' && token) {
+        return token
+      }
+    }
+    if (typeof client.getIdToken === 'function') {
+      const idToken = await client.getIdToken()
+      if (typeof idToken === 'string' && idToken) {
+        return idToken
+      }
+    }
+  } catch {
+    if (import.meta.env.DEV) {
+      console.warn('Failed to retrieve Kinde access token')
+    }
+  }
+  return null
+}
