@@ -1704,6 +1704,8 @@ function App() {
       return undefined
     }
     if (!authSession.isAuthenticated) {
+      // Dismissal is scoped to an authenticated session only. Reset while
+      // signed out so a future login can surface guest migration again.
       guestPromptDismissedRef.current = false
       if (syncEngineRef.current) {
         syncEngineRef.current.stop()
@@ -1919,7 +1921,7 @@ function App() {
     }
   }
 
-  const handleDiscardGuestTasks = () => {
+  const handleDismissGuestPrompt = () => {
     guestPromptDismissedRef.current = true
     setMigrationPrompt(null)
   }
@@ -3553,7 +3555,7 @@ function App() {
               <h2 id="guest-migration-title">{translate('guestImportTitle')}</h2>
               <p>{translate('guestImportBody', { count: String(migrationPrompt.importable.length) })}</p>
               <div className="modal-actions">
-                <button type="button" className="ghost-button" onClick={handleDiscardGuestTasks}>
+                <button type="button" className="ghost-button" onClick={handleDismissGuestPrompt}>
                   {translate('guestImportDiscard')}
                 </button>
                 <button type="button" className="primary-button" onClick={handleImportGuestTasks}>
