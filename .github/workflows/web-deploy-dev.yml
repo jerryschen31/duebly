@@ -41,6 +41,17 @@ jobs:
       - name: Validate dev deploy build
         run: npm run build
 
+      - name: Install Playwright browser
+        run: |
+          npx playwright install-deps chromium
+          npx playwright install chromium
+
+      - name: Run web tests
+        env:
+          CI: true
+          PLAYWRIGHT_HTML_OPEN: never
+        run: npm run test:web
+
   deploy-dev:
     if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
