@@ -3,14 +3,16 @@ name: Web Deploy Dev
 on:
   push:
     branches:
-      - dev
+      - build
+      - master
   pull_request:
     branches:
-      - dev
+      - build
+      - master
   workflow_dispatch:
 
 jobs:
-  validate-dev-deploy:
+  validate-deploy:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
@@ -38,7 +40,7 @@ jobs:
       - name: Run unit tests
         run: npm test
 
-      - name: Validate dev deploy build
+      - name: Validate deploy build
         run: npm run build
 
       - name: Install Playwright browser
@@ -53,7 +55,7 @@ jobs:
         run: npm run test:web
 
   deploy-dev:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/build'
     runs-on: ubuntu-latest
     environment:
       name: ${{ github.ref_name }}
@@ -89,3 +91,41 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npm run deploy:dev
+
+  deploy-prod:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: src
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: src/.nvmrc
+          cache: npm
+          cache-dependency-path: src/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate Cloudflare secrets are present
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          [[ -n "${CLOUDFLARE_API_TOKEN:-}" ]] || { echo "Missing required secret: CLOUDFLARE_API_TOKEN"; exit 1; }
+          [[ -n "${CLOUDFLARE_ACCOUNT_ID:-}" ]] || { echo "Missing required secret: CLOUDFLARE_ACCOUNT_ID"; exit 1; }
+
+      - name: Deploy prod worker with static assets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npm run deploy:prod

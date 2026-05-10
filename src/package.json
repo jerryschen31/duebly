@@ -19,7 +19,8 @@
     "test:e2e": "playwright test web/tests/e2e/uat.spec.js --project=chromium --project=mobile",
     "test:web": "npm run test:unit && npm run test:e2e",
     "preview": "vite preview",
-    "deploy:dev": "npm run build && npx wrangler@4.15.2 deploy --config ../wrangler.toml --env dev --assets ./dist"
+    "deploy:dev": "npm run build && npx wrangler@4.15.2 deploy --config ../wrangler.toml --env dev --assets ./dist",
+    "deploy:prod": "DUEBLY_KINDE_AUDIENCE=https://api.duebly.app npm run build && npx wrangler@4.15.2 deploy --config ../wrangler.toml --assets ./dist"
   },
   "dependencies": {
     "@kinde-oss/kinde-auth-pkce-js": "^4.3.0",
