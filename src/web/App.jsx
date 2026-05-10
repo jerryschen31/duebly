@@ -1063,7 +1063,7 @@ const getLabelByColorFromList = (color, labels) => {
   return labels.find((label) => label.color === color) || labels[0]
 }
 
-const getTaskSnapshotSignature = (tasks) => {
+const serializeTaskSnapshot = (tasks) => {
   const normalized = (tasks || [])
     .map((task) => ({
       id: task.id,
@@ -1375,7 +1375,7 @@ function App() {
       }
 
       mirrorLegacyRef.current = result.fallbackActive
-      lastSystemTaskSnapshotRef.current = getTaskSnapshotSignature(result.tasks)
+      lastSystemTaskSnapshotRef.current = serializeTaskSnapshot(result.tasks)
       setTasks(result.tasks)
       setSelectedTimeZone(getSupportedTimeZone(result.settings.timezone || defaultTimeZone))
       setSelectedLanguage(getSupportedLanguage(result.settings.language || defaultLanguage))
@@ -1719,7 +1719,7 @@ function App() {
       onMerged: (merged) => {
         // Filter tombstones out of the React-visible task list.
         const visible = (merged || []).filter((task) => !task.deleted)
-        lastSystemTaskSnapshotRef.current = getTaskSnapshotSignature(visible)
+        lastSystemTaskSnapshotRef.current = serializeTaskSnapshot(visible)
         setTasks(visible)
       },
       onStatusChange: ({ status }) => setSyncStatus(status),
@@ -1842,6 +1842,7 @@ function App() {
     [TAB_KEYS.done]: doneTasks.length,
     [TAB_KEYS.planned]: plannedTasks.length,
   }
+  const serializedTaskSnapshot = useMemo(() => serializeTaskSnapshot(tasks), [tasks])
 
   useEffect(() => {
     if (!isReady) {
@@ -1862,7 +1863,7 @@ function App() {
     if (!isReady) {
       return
     }
-    if (lastSystemTaskSnapshotRef.current === getTaskSnapshotSignature(tasks)) {
+    if (lastSystemTaskSnapshotRef.current === serializedTaskSnapshot) {
       return
     }
 
@@ -1879,7 +1880,7 @@ function App() {
     if (engine) {
       engine.triggerDebouncedSync('mutation')
     }
-  }, [isReady, tasks])
+  }, [isReady, serializedTaskSnapshot, tasks])
 
   const persistTask = (task) => {
     taskStorage.saveTask(task, mirrorLegacyRef.current)
