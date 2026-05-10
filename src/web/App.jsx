@@ -1916,7 +1916,7 @@ function App() {
         console.warn('Failed to import guest tasks', error)
       }
     } finally {
-      guestPromptDismissedRef.current = false
+      guestPromptDismissedRef.current = true
       setMigrationPrompt(null)
     }
   }
