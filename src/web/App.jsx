@@ -1116,7 +1116,7 @@ const buildLiveSyncEngine = ({ onMerged, onError, onStatusChange, isAuthenticate
     onMerged,
     onError,
     onStatusChange,
-    periodicMs: 0,
+    periodicMs: 30_000,
   })
 }
 
@@ -1691,7 +1691,7 @@ function App() {
   // Live sync engine reference. Created when the user becomes
   // authenticated and torn down on logout. Null while sync is disabled.
   const syncEngineRef = useRef(null)
-  const [syncStatus, setSyncStatus] = useState('idle')
+  const [, setSyncStatus] = useState('idle')
   const [migrationPrompt, setMigrationPrompt] = useState(null)
   const tasksRef = useRef(tasks)
   useEffect(() => {
@@ -1708,9 +1708,6 @@ function App() {
         syncEngineRef.current.stop()
         syncEngineRef.current = null
       }
-      // syncStatus is derived for the UI via `effectiveSyncStatus` below,
-      // so we do not need to reset it here — the indicator will hide on
-      // sign-out automatically.
       return undefined
     }
 
@@ -3537,19 +3534,6 @@ function App() {
               {toast.message}
             </motion.div>
           ))}
-          {authSession.isAuthenticated && syncStatus === 'syncing' ? (
-            <motion.div
-              key="sync-status"
-              className="toast"
-              variants={toastVariants}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              transition={{ duration: 0.16 }}
-            >
-              {translate('syncStatusSyncing')}
-            </motion.div>
-          ) : null}
         </AnimatePresence>
       </div>
 
