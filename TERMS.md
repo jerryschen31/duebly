@@ -15,7 +15,7 @@ Duebly is a productivity aid only. It is not a guaranteed storage, backup, archi
 
 ### 2.1 Age requirements
 
-You must be at least 18 years old to create a Duebly account and use the Service. If you are between 13 and 17 years old, you may use the Service only with the verifiable consent and active supervision of a parent or legal guardian who agrees to be bound by these Terms on your behalf. The Service is not directed to, and we do not knowingly collect personal information from, children under the age of 13 in compliance with the United States Children's Online Privacy Protection Act ("COPPA") and the California Online Privacy Protection Act ("CalOPPA").
+You must be at least 18 years old to create a Duebly account on your own behalf. If you are between 13 and 17 years old, you may use the Service only with the verifiable consent and active supervision of a parent or legal guardian who agrees to be bound by these Terms on your behalf, and any account used for that access must be created or expressly authorized by your parent or legal guardian. The Service is not directed to, and we do not knowingly collect personal information from, children under the age of 13 in compliance with the United States Children's Online Privacy Protection Act ("COPPA") and the California Online Privacy Protection Act ("CalOPPA").
 
 ### 2.2 Account information and authentication tokens
 
