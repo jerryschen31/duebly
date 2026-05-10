@@ -1690,9 +1690,9 @@ function App() {
         syncEngineRef.current.stop()
         syncEngineRef.current = null
       }
-      // Defer status reset to a microtask to avoid the React lint rule
-      // about synchronous setState within effect bodies.
-      Promise.resolve().then(() => setSyncStatus('idle'))
+      // syncStatus is derived for the UI via `effectiveSyncStatus` below,
+      // so we do not need to reset it here — the indicator will hide on
+      // sign-out automatically.
       return undefined
     }
 
@@ -3517,7 +3517,7 @@ function App() {
               {toast.message}
             </motion.div>
           ))}
-          {syncStatus === 'syncing' ? (
+          {authSession.isAuthenticated && syncStatus === 'syncing' ? (
             <motion.div
               key="sync-status"
               className="toast"
