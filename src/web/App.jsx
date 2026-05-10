@@ -2,6 +2,8 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import './App.css'
+import privacyPolicyMarkdown from '../../PRIVACY.md?raw'
+import termsOfServiceMarkdown from '../../TERMS.md?raw'
 import { initializeAuthSession, login, logout, register } from './auth/kindeAuth'
 import { appConfig } from './config/env'
 import { taskModel, taskStorage } from './storage'
@@ -25,6 +27,64 @@ const LANGUAGE_OPTIONS = [
 
 const DEFAULT_LANGUAGE_CODE = LANGUAGE_OPTIONS[0].code
 
+const renderLegalMarkdown = (markdown) => {
+  const lines = markdown.split(/\r?\n/)
+  const nodes = []
+  let listItems = []
+
+  const flushList = () => {
+    if (listItems.length === 0) {
+      return
+    }
+
+    nodes.push(
+      <ul key={`list-${nodes.length}`}>
+        {listItems.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}
+      </ul>,
+    )
+    listItems = []
+  }
+
+  lines.forEach((line) => {
+    const trimmed = line.trim()
+    if (!trimmed) {
+      flushList()
+      return
+    }
+
+    if (trimmed.startsWith('- ')) {
+      listItems.push(trimmed.slice(2))
+      return
+    }
+
+    flushList()
+
+    if (trimmed.startsWith('# ')) {
+      nodes.push(<h1 key={`h1-${nodes.length}`}>{trimmed.slice(2)}</h1>)
+      return
+    }
+
+    if (trimmed.startsWith('## ')) {
+      nodes.push(<h2 key={`h2-${nodes.length}`}>{trimmed.slice(3)}</h2>)
+      return
+    }
+
+    if (trimmed.startsWith('### ')) {
+      nodes.push(<h3 key={`h3-${nodes.length}`}>{trimmed.slice(4)}</h3>)
+      return
+    }
+
+    nodes.push(
+      <p key={`p-${nodes.length}`} className={trimmed.startsWith('Last updated:') ? 'legal-updated' : undefined}>
+        {trimmed}
+      </p>,
+    )
+  })
+
+  flushList()
+  return nodes
+}
+
 const TRANSLATIONS = {
   'en-US': {
     languageName: 'American English',
@@ -35,6 +95,8 @@ const TRANSLATIONS = {
     timeZoneMenuTitle: 'Time Zone',
     toggleDarkMode: 'Toggle Dark Mode',
     buyMeCoffee: 'Buy Me a Coffee',
+    privacyPolicy: '🔒 Privacy Policy',
+    termsOfService: '📜 Terms of Service',
     signIn: 'Sign In',
     signOut: 'Sign Out',
     guestMode: 'Guest mode',
@@ -2337,6 +2399,12 @@ function App() {
   }
 
   const isLoginRoute = currentPath === '/login'
+  const legalPage = currentPath === '/privacy'
+    ? { title: translate('privacyPolicy'), markdown: privacyPolicyMarkdown }
+    : currentPath === '/terms'
+      ? { title: translate('termsOfService'), markdown: termsOfServiceMarkdown }
+      : null
+  const isLegalRoute = Boolean(legalPage)
   const userEmail = authSession.user?.email || authSession.user?.id || ''
   const authStatusLabel = authSession.isAuthenticated
     ? translate('loggedInAs', { email: userEmail })
@@ -2349,6 +2417,17 @@ function App() {
 
   const navigateToLogin = () => {
     navigateToPath('/login')
+  }
+
+  const navigateToHome = () => {
+    navigateToPath('/')
+    switchTab(TAB_KEYS.notDone)
+  }
+
+  const navigateFromMenu = (path) => {
+    setIsTopMenuOpen(false)
+    setIsTimeZoneSubmenuOpen(false)
+    navigateToPath(path)
   }
 
   if (!isReady) {
@@ -2444,6 +2523,20 @@ function App() {
                   >
                     {'☕ '}{translate('buyMeCoffee')}
                   </button>
+                  <button
+                    type="button"
+                    className="menu-item-button"
+                    onClick={() => navigateFromMenu('/privacy')}
+                  >
+                    {translate('privacyPolicy')}
+                  </button>
+                  <button
+                    type="button"
+                    className="menu-item-button"
+                    onClick={() => navigateFromMenu('/terms')}
+                  >
+                    {translate('termsOfService')}
+                  </button>
                 </div>
                 {isTimeZoneSubmenuOpen ? (
                   <div className="menu-submenu" role="group" aria-label={translate('setTimeZone')}>
@@ -2466,7 +2559,7 @@ function App() {
               </div>
             ) : null}
           </div>
-          <button type="button" className="brand-button" onClick={() => switchTab(TAB_KEYS.notDone)}>
+          <button type="button" className="brand-button" onClick={navigateToHome}>
             Duebly
           </button>
         </div>
@@ -2657,6 +2750,14 @@ function App() {
         </div>
       ) : null}
 
+      {isLegalRoute ? (
+        <main className="legal-content">
+          <article className="legal-document" aria-label={legalPage.title}>
+            {renderLegalMarkdown(legalPage.markdown)}
+          </article>
+        </main>
+      ) : (
+        <>
       <nav className="tab-bar" aria-label={translate('taskListTabs')}>
         <button
           type="button"
@@ -3181,6 +3282,8 @@ function App() {
             </AnimatePresence>
         </section>
       </main>
+        </>
+      )}
 
       <div className="toast-layer" aria-live="polite" aria-atomic="true">
         <AnimatePresence>

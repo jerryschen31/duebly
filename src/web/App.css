@@ -25,6 +25,7 @@
 .app-shell.dark-mode .task-label-selector,
 .app-shell.dark-mode .menu-popover,
 .app-shell.dark-mode .menu-submenu,
+.app-shell.dark-mode .legal-document,
 .app-shell.dark-mode .date-time-picker,
 .app-shell.dark-mode .task-edit-modal {
   background: #1a2029;
@@ -67,6 +68,7 @@
 .app-shell.dark-mode .task-text.done,
 .app-shell.dark-mode .swatch-hint,
 .app-shell.dark-mode .auth-status,
+.app-shell.dark-mode .legal-updated,
 .app-shell.dark-mode .login-benefits {
   color: #cbd5e1;
 }
@@ -373,6 +375,57 @@
   padding: 0.8rem;
   max-width: 900px;
   margin: 0 auto;
+}
+
+.legal-content {
+  padding: 0.8rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.legal-document {
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 0.75rem;
+  padding: clamp(1rem, 2vw, 1.5rem);
+  line-height: 1.6;
+}
+
+.legal-document h1,
+.legal-document h2,
+.legal-document h3,
+.legal-document p,
+.legal-document ul {
+  margin-top: 0;
+}
+
+.legal-document h1 {
+  font-size: 1.65rem;
+  margin-bottom: 0.25rem;
+}
+
+.legal-document h2 {
+  font-size: 1.15rem;
+  margin: 1.5rem 0 0.55rem;
+}
+
+.legal-document h3 {
+  font-size: 1rem;
+  margin: 1.1rem 0 0.45rem;
+}
+
+.legal-document p,
+.legal-document li {
+  font-size: 0.94rem;
+}
+
+.legal-document ul {
+  padding-left: 1.3rem;
+}
+
+.legal-updated {
+  color: #4b5563;
+  font-size: 0.9rem;
 }
 
 .composer-card,
