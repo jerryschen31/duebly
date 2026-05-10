@@ -29,6 +29,7 @@ const LANGUAGE_OPTIONS = [
 ]
 
 const DEFAULT_LANGUAGE_CODE = LANGUAGE_OPTIONS[0].code
+const DARK_MODE_STORAGE_KEY = 'duebly-dark-mode'
 
 const renderLegalMarkdown = (markdown) => {
   const lines = markdown.split(/\r?\n/)
@@ -1116,7 +1117,7 @@ const buildLiveSyncEngine = ({ onMerged, onError, onStatusChange, isAuthenticate
     onMerged,
     onError,
     onStatusChange,
-    periodicMs: 30_000,
+    periodicMs: 15_000,
   })
 }
 
@@ -1192,7 +1193,12 @@ function App() {
   const [labelSelectorTaskId, setLabelSelectorTaskId] = useState(null)
   const [isTopMenuOpen, setIsTopMenuOpen] = useState(false)
   const [isTimeZoneSubmenuOpen, setIsTimeZoneSubmenuOpen] = useState(false)
-  const [DARK_MODE_ENABLED, setDarkModeEnabled] = useState(false)
+  const [DARK_MODE_ENABLED, setDarkModeEnabled] = useState(() => {
+    if (typeof window === 'undefined') {
+      return false
+    }
+    return window.localStorage.getItem(DARK_MODE_STORAGE_KEY) === '1'
+  })
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false)
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
   const [selectedTimeZone, setSelectedTimeZone] = useState(defaultTimeZone)
@@ -1740,6 +1746,7 @@ function App() {
     }
     syncEngineRef.current = engine
     engine.start()
+    engine.triggerImmediateSync('startup').catch(() => {})
     return () => {
       engine.stop()
       if (syncEngineRef.current === engine) {
@@ -1863,6 +1870,13 @@ function App() {
       mirrorLegacyRef.current,
     )
   }, [isReady, selectedLanguage, selectedTimeZone])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+    window.localStorage.setItem(DARK_MODE_STORAGE_KEY, DARK_MODE_ENABLED ? '1' : '0')
+  }, [DARK_MODE_ENABLED])
 
   useEffect(() => {
     if (!isReady) {

@@ -44,7 +44,7 @@ retained for 30 days). Sync triggers:
 - on app startup / login,
 - a 2 second debounce after task mutations,
 - the `online` browser event (reconnect),
-- and a 5 minute periodic safety net.
+- and a 15 second periodic safety net.
 
 When a user logs in with tasks created in guest mode, the app prompts to import the
 new guest tasks into the user account. Per-task edits, status changes, and deletions
