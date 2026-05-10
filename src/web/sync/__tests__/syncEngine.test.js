@@ -219,4 +219,23 @@ describe('createSyncEngine', () => {
 
     engine.stop()
   })
+
+  it('does not start periodic sync when periodicMs is zero', async () => {
+    const storage = makeStorage()
+    const apiClient = makeApiClient()
+    const engine = createSyncEngine({
+      apiClient,
+      storage,
+      isAuthenticated: () => true,
+      periodicMs: 0,
+    })
+    engine.start()
+
+    await vi.advanceTimersByTimeAsync(15_000)
+    await vi.advanceTimersByTimeAsync(0)
+    expect(apiClient.pullTasks).not.toHaveBeenCalled()
+    expect(apiClient.pushTasks).not.toHaveBeenCalled()
+
+    engine.stop()
+  })
 })

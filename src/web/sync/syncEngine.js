@@ -21,7 +21,10 @@ const MAX_BACKOFF_MS = 60_000
 
 const noop = () => {}
 
-const safeNumber = (value, fallback) => {
+const safeNumber = (value, fallback, { allowZero = false } = {}) => {
+  if (allowZero && value === 0) {
+    return 0
+  }
   return Number.isFinite(value) && value > 0 ? value : fallback
 }
 
@@ -47,7 +50,7 @@ export const createSyncEngine = ({
   }
 
   const debounceDelay = safeNumber(debounceMs, DEFAULT_DEBOUNCE_MS)
-  const periodicDelay = safeNumber(periodicMs, DEFAULT_PERIODIC_MS)
+  const periodicDelay = safeNumber(periodicMs, DEFAULT_PERIODIC_MS, { allowZero: true })
 
   let started = false
   let inFlight = null
@@ -162,7 +165,7 @@ export const createSyncEngine = ({
   }
 
   const startPeriodicSync = () => {
-    if (periodicTimer || !setIntervalImpl) {
+    if (periodicTimer || !setIntervalImpl || periodicDelay === 0) {
       return
     }
     periodicTimer = setIntervalImpl(() => {

@@ -1063,6 +1063,21 @@ const getLabelByColorFromList = (color, labels) => {
   return labels.find((label) => label.color === color) || labels[0]
 }
 
+const getTaskSnapshotSignature = (tasks) => {
+  const normalized = (tasks || [])
+    .map((task) => ({
+      id: task.id,
+      last_updated: task.last_updated || '',
+      deleted: Boolean(task.deleted),
+      isDone: Boolean(task.isDone),
+      text: task.text || '',
+      dueDate: task.dueDate || '',
+      dueEndTime: task.dueEndTime || '',
+    }))
+    .sort((a, b) => String(a.id).localeCompare(String(b.id)))
+  return JSON.stringify(normalized)
+}
+
 const toastVariants = {
   hidden: { opacity: 0, y: -10, scale: 0.96 },
   visible: { opacity: 1, y: 0, scale: 1 },
@@ -1101,6 +1116,7 @@ const buildLiveSyncEngine = ({ onMerged, onError, onStatusChange, isAuthenticate
     onMerged,
     onError,
     onStatusChange,
+    periodicMs: 0,
   })
 }
 
@@ -1231,6 +1247,7 @@ function App() {
   const textRefs = useRef(new Map())
   const mirrorLegacyRef = useRef(false)
   const speechRecognitionRef = useRef(null)
+  const lastSystemTaskSnapshotRef = useRef('')
   const languageMenu = useMemo(() => {
     return LANGUAGE_OPTIONS.map((option) => {
       const langText = getTranslationsForLanguage(option.code)
@@ -1358,6 +1375,7 @@ function App() {
       }
 
       mirrorLegacyRef.current = result.fallbackActive
+      lastSystemTaskSnapshotRef.current = getTaskSnapshotSignature(result.tasks)
       setTasks(result.tasks)
       setSelectedTimeZone(getSupportedTimeZone(result.settings.timezone || defaultTimeZone))
       setSelectedLanguage(getSupportedLanguage(result.settings.language || defaultLanguage))
@@ -1701,6 +1719,7 @@ function App() {
       onMerged: (merged) => {
         // Filter tombstones out of the React-visible task list.
         const visible = (merged || []).filter((task) => !task.deleted)
+        lastSystemTaskSnapshotRef.current = getTaskSnapshotSignature(visible)
         setTasks(visible)
       },
       onStatusChange: ({ status }) => setSyncStatus(status),
@@ -1719,10 +1738,6 @@ function App() {
     }
     syncEngineRef.current = engine
     engine.start()
-    // Initial pull-merge-push at startup / login.
-    engine.triggerImmediateSync('startup').catch(() => {
-      // onError already handled the failure; keep app responsive.
-    })
     return () => {
       engine.stop()
       if (syncEngineRef.current === engine) {
@@ -1769,21 +1784,6 @@ function App() {
     navigator.storage.persist().catch(() => {
       // Permission may be denied; this is a best-effort hint.
     })
-  }, [])
-
-  // Reconnect handler — defer to the live sync engine when present.
-  useEffect(() => {
-    const handleOnline = () => {
-      const engine = syncEngineRef.current
-      if (!engine) {
-        return
-      }
-      engine.triggerImmediateSync('reconnect').catch(() => {
-        // onError handler already reports.
-      })
-    }
-    window.addEventListener('online', handleOnline)
-    return () => window.removeEventListener('online', handleOnline)
   }, [])
 
   const today = useMemo(() => {
@@ -1860,6 +1860,9 @@ function App() {
 
   useEffect(() => {
     if (!isReady) {
+      return
+    }
+    if (lastSystemTaskSnapshotRef.current === getTaskSnapshotSignature(tasks)) {
       return
     }
 
@@ -2605,6 +2608,22 @@ function App() {
     switchTab(TAB_KEYS.notDone)
   }
 
+  const handleLogout = async () => {
+    setIsProfileMenuOpen(false)
+    setAuthSession((prev) => ({
+      ...prev,
+      isAuthenticated: false,
+      user: null,
+    }))
+    try {
+      await logout()
+    } catch {
+      if (import.meta.env.DEV) {
+        console.warn('Failed to complete logout')
+      }
+    }
+  }
+
   const navigateFromMenu = (path) => {
     setIsTopMenuOpen(false)
     setIsTimeZoneSubmenuOpen(false)
@@ -2801,10 +2820,7 @@ function App() {
                     <button
                       type="button"
                       className="menu-item-button"
-                      onClick={() => {
-                        setIsProfileMenuOpen(false)
-                        logout()
-                      }}
+                      onClick={handleLogout}
                     >
                       {translate('signOut')}
                     </button>
@@ -2813,13 +2829,16 @@ function App() {
               ) : null}
             </div>
           ) : (
-            <button
-              type="button"
-              className="primary-button nav-auth-button"
-              onClick={navigateToLogin}
-            >
-              {translate('signIn')}
-            </button>
+            <>
+              <span className="auth-status guest">{authStatusLabel}</span>
+              <button
+                type="button"
+                className="primary-button nav-auth-button"
+                onClick={navigateToLogin}
+              >
+                {translate('signIn')}
+              </button>
+            </>
           )}
         </div>
       </header>
