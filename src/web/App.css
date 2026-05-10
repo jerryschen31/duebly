@@ -94,6 +94,7 @@
 .app-shell.dark-mode .label-option,
 .app-shell.dark-mode .task-label-selector button,
 .app-shell.dark-mode .menu-item-button,
+.app-shell.dark-mode .profile-menu-status,
 .app-shell.dark-mode .menu-popover label,
 .app-shell.dark-mode .menu-submenu label,
 .app-shell.dark-mode .menu-popover select,
@@ -108,6 +109,10 @@
 .app-shell.dark-mode .task-menu.recurring-menu button,
 .app-shell.dark-mode .task-frequency-submenu button {
   background: #1a2029;
+}
+
+.app-shell.dark-mode .profile-menu-status {
+  border-bottom-color: #374151;
 }
 
 .app-shell.dark-mode .toast {
@@ -265,6 +270,31 @@
 
 .language-menu-wrap {
   position: relative;
+}
+
+.profile-menu-wrap {
+  position: relative;
+}
+
+.profile-avatar-button {
+  font-weight: 800;
+  font-size: 1.02rem;
+}
+
+.profile-menu-popover {
+  right: 0;
+  left: auto;
+  width: min(76vw, 260px);
+}
+
+.profile-menu-status {
+  padding: 0.55rem 0.8rem;
+  border-bottom: 1px solid #e5e7eb;
+  color: #4b5563;
+  font-size: 0.82rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .menu-popover {

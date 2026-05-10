@@ -1140,6 +1140,7 @@ function App() {
   const [isTimeZoneSubmenuOpen, setIsTimeZoneSubmenuOpen] = useState(false)
   const [DARK_MODE_ENABLED, setDarkModeEnabled] = useState(false)
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false)
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
   const [selectedTimeZone, setSelectedTimeZone] = useState(defaultTimeZone)
   const [selectedLanguage, setSelectedLanguage] = useState(defaultLanguage)
   const [nowTick, setNowTick] = useState(() => taskModel.getNow())
@@ -1377,6 +1378,10 @@ function App() {
       }
       if (!target.closest('.language-menu-wrap')) {
         setIsLanguageMenuOpen(false)
+      }
+
+      if (!target.closest('.profile-menu-wrap')) {
+        setIsProfileMenuOpen(false)
       }
 
       if (!target.closest('.task-menu-wrap')) {
@@ -2409,6 +2414,7 @@ function App() {
   const authStatusLabel = authSession.isAuthenticated
     ? translate('loggedInAs', { email: userEmail })
     : translate('guestMode')
+  const profileInitial = (userEmail.trim().charAt(0) || 'U').toUpperCase()
 
   const navigateToPath = (path) => {
     window.history.pushState({}, '', path)
@@ -2564,14 +2570,14 @@ function App() {
           </button>
         </div>
         <div className="top-right">
-          <span className={`auth-status ${authSession.isAuthenticated ? '' : 'guest'}`}>
-            {authStatusLabel}
-          </span>
           <div className="language-menu-wrap">
             <button
               type="button"
               className="icon-button"
-              onClick={() => setIsLanguageMenuOpen((prev) => !prev)}
+              onClick={() => {
+                setIsLanguageMenuOpen((prev) => !prev)
+                setIsProfileMenuOpen(false)
+              }}
               aria-label={translate('openLanguageMenu')}
               title={translate('chooseLanguage')}
             >
@@ -2597,13 +2603,46 @@ function App() {
               </div>
             ) : null}
           </div>
-          <button
-            type="button"
-            className={authSession.isAuthenticated ? 'ghost-button' : 'primary-button nav-auth-button'}
-            onClick={authSession.isAuthenticated ? logout : navigateToLogin}
-          >
-            {authSession.isAuthenticated ? translate('signOut') : translate('signIn')}
-          </button>
+          {authSession.isAuthenticated ? (
+            <div className="profile-menu-wrap">
+              <button
+                type="button"
+                className="icon-button profile-avatar-button"
+                aria-label={translate('loggedInAs', { email: userEmail })}
+                onClick={() => {
+                  setIsProfileMenuOpen((prev) => !prev)
+                  setIsLanguageMenuOpen(false)
+                }}
+              >
+                {profileInitial}
+              </button>
+              {isProfileMenuOpen ? (
+                <div className="menu-popover menu-popover-top profile-menu-popover">
+                  <div className="profile-menu-status">{authStatusLabel}</div>
+                  <div className="menu-main-buttons">
+                    <button
+                      type="button"
+                      className="menu-item-button"
+                      onClick={() => {
+                        setIsProfileMenuOpen(false)
+                        logout()
+                      }}
+                    >
+                      {translate('signOut')}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="primary-button nav-auth-button"
+              onClick={navigateToLogin}
+            >
+              {translate('signIn')}
+            </button>
+          )}
         </div>
       </header>
 
