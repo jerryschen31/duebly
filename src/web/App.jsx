@@ -1356,6 +1356,7 @@ function App() {
   const mirrorLegacyRef = useRef(false)
   const speechRecognitionRef = useRef(null)
   const lastSystemTaskSnapshotRef = useRef('')
+  const deletingTaskIdsRef = useRef(new Set())
   const languageMenu = useMemo(() => {
     return LANGUAGE_OPTIONS.map((option) => {
       const langText = getTranslationsForLanguage(option.code)
@@ -2350,26 +2351,45 @@ function App() {
 
   }
 
-  const deleteTask = (taskId) => {
-    setTasks((prev) => prev.filter((task) => task.id !== taskId))
+  const deleteTask = async (taskId) => {
+    const id = String(taskId)
+    if (deletingTaskIdsRef.current.has(id)) {
+      return false
+    }
+
+    deletingTaskIdsRef.current.add(id)
+    try {
+      // Persist tombstone first so subsequent sync cycles cannot resurrect
+      // the task due to a transient local/remote race.
+      await taskStorage.deleteTask(id, mirrorLegacyRef.current)
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.warn('Failed to mark task as deleted', error)
+      }
+      deletingTaskIdsRef.current.delete(id)
+      return false
+    }
+
+    setTasks((prev) => prev.filter((task) => task.id !== id))
     setSwipeCommitByTaskId((prev) => {
-      if (!prev[taskId]) {
+      if (!prev[id]) {
         return prev
       }
 
       const next = { ...prev }
-      delete next[taskId]
+      delete next[id]
       return next
     })
-    const commitTimeoutId = swipeCommitTimeoutsRef.current.get(taskId)
+    const commitTimeoutId = swipeCommitTimeoutsRef.current.get(id)
     if (commitTimeoutId) {
       window.clearTimeout(commitTimeoutId)
-      swipeCommitTimeoutsRef.current.delete(taskId)
+      swipeCommitTimeoutsRef.current.delete(id)
     }
-    taskStorage.deleteTask(taskId, mirrorLegacyRef.current)
     setMenuTaskId(null)
     setLabelSelectorTaskId(null)
     setFrequencySelectorTaskId(null)
+    deletingTaskIdsRef.current.delete(id)
+    return true
   }
 
   const updateTaskDate = (taskId, date, dueEndTime = null) => {
@@ -2486,11 +2506,13 @@ function App() {
     })
   }
 
-  const onTaskSwipe = (task, swipeDirection) => {
+  const onTaskSwipe = async (task, swipeDirection) => {
     if (swipeDirection === 'left') {
       if (task.isDone) {
-        deleteTask(task.id)
-        pushToast(translate('taskDeleted'))
+        const deleted = await deleteTask(task.id)
+        if (deleted) {
+          pushToast(translate('taskDeleted'))
+        }
       } else {
         toggleTaskDone(task, true)
       }
@@ -2552,27 +2574,30 @@ function App() {
       [task.id]: swipeDirection,
     }))
 
-    const timeoutId = window.setTimeout(() => {
+    const timeoutId = window.setTimeout(async () => {
       swipeCommitTimeoutsRef.current.delete(task.id)
-      onTaskSwipe(task, swipeDirection)
-      setSwipeCommitByTaskId((prev) => {
-        if (!prev[task.id]) {
-          return prev
-        }
+      try {
+        await onTaskSwipe(task, swipeDirection)
+      } finally {
+        setSwipeCommitByTaskId((prev) => {
+          if (!prev[task.id]) {
+            return prev
+          }
 
-        const next = { ...prev }
-        delete next[task.id]
-        return next
-      })
-      setSwipeIntentByTaskId((prev) => {
-        if (!prev[task.id]) {
-          return prev
-        }
+          const next = { ...prev }
+          delete next[task.id]
+          return next
+        })
+        setSwipeIntentByTaskId((prev) => {
+          if (!prev[task.id]) {
+            return prev
+          }
 
-        const next = { ...prev }
-        delete next[task.id]
-        return next
-      })
+          const next = { ...prev }
+          delete next[task.id]
+          return next
+        })
+      }
     }, SWIPE_COMMIT_DELAY_MS)
 
     swipeCommitTimeoutsRef.current.set(task.id, timeoutId)
