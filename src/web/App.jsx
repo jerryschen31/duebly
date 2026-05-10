@@ -1691,7 +1691,6 @@ function App() {
   // Live sync engine reference. Created when the user becomes
   // authenticated and torn down on logout. Null while sync is disabled.
   const syncEngineRef = useRef(null)
-  const [, setSyncStatus] = useState('idle')
   const [migrationPrompt, setMigrationPrompt] = useState(null)
   const tasksRef = useRef(tasks)
   const guestPromptDismissedRef = useRef(false)
@@ -1721,7 +1720,6 @@ function App() {
         lastSystemTaskSnapshotRef.current = serializeTaskSnapshot(visible)
         setTasks(visible)
       },
-      onStatusChange: ({ status }) => setSyncStatus(status),
       onError: (error) => {
         if (import.meta.env.DEV) {
           if (error instanceof SyncApiError) {
