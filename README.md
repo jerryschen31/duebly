@@ -34,6 +34,7 @@ Configure the API location with:
 ```bash
 DUEBLY_API_BASE_URL=https://api.duebly.app   # default
 DUEBLY_SYNC_ENABLED=true                     # default; set false to disable sync entirely
+DISCARD_GUEST_TASKS=true                     # default; set false to keep guest tasks when "Discard" is clicked
 ```
 
 The frontend implements a Last-Write-Wins Pull-Merge-Push cycle keyed on each task's
@@ -48,3 +49,5 @@ retained for 30 days). Sync triggers:
 When a user logs in with tasks created in guest mode, the app prompts to import the
 new guest tasks into the user account. Per-task edits, status changes, and deletions
 made while signed out are intentionally ignored; only **new** task IDs are imported.
+When the prompt is dismissed via **Discard**, guest tasks are deleted by default; set
+`DISCARD_GUEST_TASKS=false` to keep guest tasks instead.

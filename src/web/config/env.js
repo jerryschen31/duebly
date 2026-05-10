@@ -30,6 +30,7 @@ const hasKindeConfig = Boolean(kindeDomain && kindeClientId && kindeRedirectUri 
 
 const apiBaseUrl = (getString('DUEBLY_API_BASE_URL') || 'https://api.duebly.app').replace(/\/+$/, '')
 const syncEnabled = parseBooleanFlag(getString('DUEBLY_SYNC_ENABLED'), true)
+const discardGuestTasks = parseBooleanFlag(getString('DISCARD_GUEST_TASKS'), true)
 
 export const appConfig = {
   authEnabled: parseBooleanFlag(getString('DUEBLY_AUTH_ENABLED'), hasKindeConfig),
@@ -45,5 +46,6 @@ export const appConfig = {
   sync: {
     enabled: syncEnabled,
     apiBaseUrl,
+    discardGuestTasks,
   },
 }

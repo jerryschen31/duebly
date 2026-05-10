@@ -27,3 +27,17 @@ describe('appConfig.kinde audience', () => {
     expect(appConfig.kinde.audience).toBe('https://api.duebly.app')
   })
 })
+
+describe('appConfig.sync.discardGuestTasks', () => {
+  it('defaults DISCARD_GUEST_TASKS to true', async () => {
+    const { appConfig } = await import('./env.js')
+    expect(appConfig.sync.discardGuestTasks).toBe(true)
+  })
+
+  it('reads DISCARD_GUEST_TASKS=false when provided', async () => {
+    vi.stubEnv('DISCARD_GUEST_TASKS', 'false')
+
+    const { appConfig } = await import('./env.js')
+    expect(appConfig.sync.discardGuestTasks).toBe(false)
+  })
+})

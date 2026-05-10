@@ -1924,9 +1924,19 @@ function App() {
     }
   }
 
-  const handleSkipGuestMigration = () => {
+  const handleSkipGuestMigration = async () => {
     guestPromptDismissedRef.current = true
-    setMigrationPrompt(null)
+    try {
+      if (appConfig.sync.discardGuestTasks) {
+        await discardGuestData()
+      }
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.warn('Failed to discard guest tasks', error)
+      }
+    } finally {
+      setMigrationPrompt(null)
+    }
   }
 
   const getDateTimePickerPosition = (triggerElement) => {
