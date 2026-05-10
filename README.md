@@ -27,7 +27,7 @@ Guest tasks are stored separately from signed-in user tasks. Guest data uses `du
 
 When a user is signed in, the frontend syncs their tasks with the private Cloudflare Worker
 described in [`remote-storage-implementation.md`](remote-storage-implementation.md). The
-Worker brokers access to a per-user `users/{userId}/duebly-tasks.json` object in R2.
+Worker brokers access to a per-user `users/{userId}/tasks.v1.json` object in R2.
 
 Configure the API location with:
 
