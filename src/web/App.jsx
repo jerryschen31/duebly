@@ -1694,6 +1694,7 @@ function App() {
   const [, setSyncStatus] = useState('idle')
   const [migrationPrompt, setMigrationPrompt] = useState(null)
   const tasksRef = useRef(tasks)
+  const guestPromptDismissedRef = useRef(false)
   useEffect(() => {
     tasksRef.current = tasks
   }, [tasks])
@@ -1704,6 +1705,7 @@ function App() {
       return undefined
     }
     if (!authSession.isAuthenticated) {
+      guestPromptDismissedRef.current = false
       if (syncEngineRef.current) {
         syncEngineRef.current.stop()
         syncEngineRef.current = null
@@ -1751,6 +1753,9 @@ function App() {
       return
     }
     if (!authSession.isAuthenticated || migrationPrompt) {
+      return
+    }
+    if (guestPromptDismissedRef.current) {
       return
     }
     let cancelled = false
@@ -1911,20 +1916,14 @@ function App() {
         console.warn('Failed to import guest tasks', error)
       }
     } finally {
+      guestPromptDismissedRef.current = false
       setMigrationPrompt(null)
     }
   }
 
-  const handleDiscardGuestTasks = async () => {
-    try {
-      await discardGuestData()
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.warn('Failed to discard guest tasks', error)
-      }
-    } finally {
-      setMigrationPrompt(null)
-    }
+  const handleDiscardGuestTasks = () => {
+    guestPromptDismissedRef.current = true
+    setMigrationPrompt(null)
   }
 
   const getDateTimePickerPosition = (triggerElement) => {
@@ -2608,6 +2607,7 @@ function App() {
 
   const handleLogout = async () => {
     setIsProfileMenuOpen(false)
+    guestPromptDismissedRef.current = false
     setAuthSession((prev) => ({
       ...prev,
       isAuthenticated: false,
@@ -2765,6 +2765,9 @@ function App() {
           </button>
         </div>
         <div className="top-right">
+          {!authSession.isAuthenticated ? (
+            <span className="auth-status guest">{authStatusLabel}</span>
+          ) : null}
           <div className="language-menu-wrap">
             <button
               type="button"
@@ -2828,7 +2831,6 @@ function App() {
             </div>
           ) : (
             <>
-              <span className="auth-status guest">{authStatusLabel}</span>
               <button
                 type="button"
                 className="primary-button nav-auth-button"
