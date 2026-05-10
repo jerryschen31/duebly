@@ -1767,6 +1767,8 @@ function App() {
       return
     }
     let cancelled = false
+    // Intentionally omit activeUserTasks so migration detection reads the
+    // full user sync snapshot (including tombstones) from storage.
     detectImportableGuestTasks()
       .then((result) => {
         if (cancelled) return
