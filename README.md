@@ -15,9 +15,11 @@ DUEBLY_KINDE_DOMAIN=https://your-domain.kinde.com
 DUEBLY_KINDE_CLIENT_ID=your_spa_client_id
 DUEBLY_KINDE_REDIRECT_URI=https://duebly.app
 DUEBLY_KINDE_LOGOUT_URI=https://duebly.app
+DUEBLY_KINDE_AUDIENCE=https://api.duebly.app
 ```
 
 `DUEBLY_AUTH_ENABLED` is optional; if it is unset, auth turns on automatically when all Kinde variables are configured.
+`DUEBLY_KINDE_AUDIENCE` is recommended for remote sync so the fetched access token matches your Worker API audience.
 
 Guest tasks are stored separately from signed-in user tasks. Guest data uses `duebly-guest-db`, while signed-in users use distinct IndexedDB databases named `duebly-user-...-db`.
 

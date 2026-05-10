@@ -28,6 +28,7 @@ export const getKindeClient = () => {
       redirect_uri: appConfig.kinde.redirectUri,
       logout_uri: appConfig.kinde.logoutUri,
       scope: appConfig.kinde.scope,
+      audience: appConfig.kinde.audience || undefined,
       is_dangerously_use_local_storage: isKindeHostedDomain(appConfig.kinde.domain),
       on_redirect_callback: (_user, appState = {}) => {
         const returnTo = typeof appState.returnTo === 'string' ? appState.returnTo : '/'

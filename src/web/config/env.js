@@ -25,6 +25,7 @@ const kindeClientId = getString('DUEBLY_KINDE_CLIENT_ID')
 const kindeRedirectUri = getString('DUEBLY_KINDE_REDIRECT_URI')
 const kindeLogoutUri = getString('DUEBLY_KINDE_LOGOUT_URI')
 const kindeScope = getString('DUEBLY_KINDE_SCOPE') || 'openid profile email offline'
+const kindeAudience = getString('DUEBLY_KINDE_AUDIENCE')
 const hasKindeConfig = Boolean(kindeDomain && kindeClientId && kindeRedirectUri && kindeLogoutUri)
 
 const apiBaseUrl = (getString('DUEBLY_API_BASE_URL') || 'https://api.duebly.app').replace(/\/+$/, '')
@@ -38,6 +39,7 @@ export const appConfig = {
     redirectUri: kindeRedirectUri,
     logoutUri: kindeLogoutUri,
     scope: kindeScope,
+    audience: kindeAudience,
     configured: hasKindeConfig,
   },
   sync: {
