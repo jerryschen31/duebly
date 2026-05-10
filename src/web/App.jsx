@@ -1697,15 +1697,12 @@ function App() {
   // Live sync engine reference. Created when the user becomes
   // authenticated and torn down on logout. Null while sync is disabled.
   const syncEngineRef = useRef(null)
+  const skipNextMutationSyncRef = useRef(false)
   const [migrationPrompt, setMigrationPrompt] = useState(null)
-  const tasksRef = useRef(tasks)
   const guestPromptDismissedRef = useRef(false)
   const resetGuestPromptDismissal = () => {
     guestPromptDismissedRef.current = false
   }
-  useEffect(() => {
-    tasksRef.current = tasks
-  }, [tasks])
 
   // Build / tear down the sync engine when the auth session changes.
   useEffect(() => {
@@ -1729,6 +1726,7 @@ function App() {
         // Filter tombstones out of the React-visible task list.
         const visible = (merged || []).filter((task) => !task.deleted)
         lastSystemTaskSnapshotRef.current = serializeTaskSnapshot(visible)
+        skipNextMutationSyncRef.current = true
         setTasks(visible)
       },
       onError: (error) => {
@@ -1769,7 +1767,7 @@ function App() {
       return
     }
     let cancelled = false
-    detectImportableGuestTasks({ activeUserTasks: tasksRef.current })
+    detectImportableGuestTasks()
       .then((result) => {
         if (cancelled) return
         if (result.importable && result.importable.length > 0) {
@@ -1880,6 +1878,10 @@ function App() {
 
   useEffect(() => {
     if (!isReady) {
+      return
+    }
+    if (skipNextMutationSyncRef.current) {
+      skipNextMutationSyncRef.current = false
       return
     }
     if (lastSystemTaskSnapshotRef.current === serializedTaskSnapshot) {

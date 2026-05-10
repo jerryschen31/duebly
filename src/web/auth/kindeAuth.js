@@ -97,11 +97,11 @@ export const getAccessToken = async () => {
       if (typeof token === 'string' && token) {
         return token
       }
-    }
-    if (typeof client.getIdToken === 'function') {
-      const idToken = await client.getIdToken()
-      if (typeof idToken === 'string' && idToken) {
-        return idToken
+      if (token && typeof token === 'object') {
+        const objectToken = token.access_token || token.accessToken || token.token
+        if (typeof objectToken === 'string' && objectToken) {
+          return objectToken
+        }
       }
     }
   } catch {

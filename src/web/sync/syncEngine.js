@@ -45,8 +45,13 @@ export const createSyncEngine = ({
   if (!apiClient || typeof apiClient.pullTasks !== 'function' || typeof apiClient.pushTasks !== 'function') {
     throw new Error('createSyncEngine requires a valid apiClient')
   }
-  if (!storage || typeof storage.readAllForSync !== 'function' || typeof storage.replaceAllTasks !== 'function') {
-    throw new Error('createSyncEngine requires a valid storage adapter')
+  if (
+    !storage
+    || typeof storage.readAllForSync !== 'function'
+    || typeof storage.mergeForSync !== 'function'
+    || typeof storage.replaceAllTasks !== 'function'
+  ) {
+    throw new Error('createSyncEngine requires a valid storage adapter (readAllForSync, mergeForSync, replaceAllTasks)')
   }
 
   const debounceDelay = safeNumber(debounceMs, DEFAULT_DEBOUNCE_MS)

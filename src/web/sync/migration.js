@@ -2,7 +2,7 @@
 // "new tasks only" import policy from
 // remote-storage-implementation.md §8.
 
-import { taskStorage, taskModel } from '../storage.js'
+import { taskStorage } from '../storage.js'
 
 /**
  * Inspects the guest DB without changing the active profile and returns
@@ -30,12 +30,7 @@ export const importGuestTasks = async (importableTasks) => {
   if (!Array.isArray(importableTasks) || !importableTasks.length) {
     return []
   }
-  const stamped = importableTasks.map((task) => ({
-    ...task,
-    last_updated: taskModel.getNowIso(),
-    deleted: false,
-  }))
-  return taskStorage.importNewGuestTasks(stamped)
+  return taskStorage.importNewGuestTasks(importableTasks)
 }
 
 /**

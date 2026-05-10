@@ -46,3 +46,24 @@ describe('kindeAuth audience config', () => {
     expect(createKindeClientMock.mock.calls[0][0].audience).toBeUndefined()
   })
 })
+
+describe('getAccessToken', () => {
+  it('returns access token when SDK token response is an object', async () => {
+    createKindeClientMock.mockResolvedValue({
+      getToken: vi.fn().mockResolvedValue({ access_token: 'acc-123' }),
+    })
+    const { getAccessToken } = await import('./kindeAuth.js')
+
+    await expect(getAccessToken()).resolves.toBe('acc-123')
+  })
+
+  it('does not fall back to id token when access token is unavailable', async () => {
+    createKindeClientMock.mockResolvedValue({
+      getToken: vi.fn().mockResolvedValue({ id_token: 'id-123' }),
+      getIdToken: vi.fn().mockResolvedValue('id-123'),
+    })
+    const { getAccessToken } = await import('./kindeAuth.js')
+
+    await expect(getAccessToken()).resolves.toBeNull()
+  })
+})

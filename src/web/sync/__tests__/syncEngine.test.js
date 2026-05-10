@@ -71,6 +71,19 @@ afterEach(() => {
 })
 
 describe('createSyncEngine', () => {
+  it('fails fast when storage adapter is missing mergeForSync', () => {
+    const apiClient = makeApiClient()
+    const storage = {
+      readAllForSync: vi.fn(async () => []),
+      replaceAllTasks: vi.fn(async () => {}),
+    }
+    expect(() => createSyncEngine({
+      apiClient,
+      storage,
+      isAuthenticated: () => true,
+    })).toThrow(/mergeForSync/)
+  })
+
   it('skips sync when not authenticated and does not call the API', async () => {
     const storage = makeStorage()
     const apiClient = makeApiClient()
