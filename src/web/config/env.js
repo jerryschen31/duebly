@@ -25,7 +25,12 @@ const kindeClientId = getString('DUEBLY_KINDE_CLIENT_ID')
 const kindeRedirectUri = getString('DUEBLY_KINDE_REDIRECT_URI')
 const kindeLogoutUri = getString('DUEBLY_KINDE_LOGOUT_URI')
 const kindeScope = getString('DUEBLY_KINDE_SCOPE') || 'openid profile email offline'
+const kindeAudience = getString('DUEBLY_KINDE_AUDIENCE') || ''
 const hasKindeConfig = Boolean(kindeDomain && kindeClientId && kindeRedirectUri && kindeLogoutUri)
+
+const apiBaseUrl = (getString('DUEBLY_API_BASE_URL') || 'https://api.duebly.app').replace(/\/+$/, '')
+const syncEnabled = parseBooleanFlag(getString('DUEBLY_SYNC_ENABLED'), true)
+const discardGuestTasks = parseBooleanFlag(getString('DISCARD_GUEST_TASKS'), true)
 
 export const appConfig = {
   authEnabled: parseBooleanFlag(getString('DUEBLY_AUTH_ENABLED'), hasKindeConfig),
@@ -35,6 +40,12 @@ export const appConfig = {
     redirectUri: kindeRedirectUri,
     logoutUri: kindeLogoutUri,
     scope: kindeScope,
+    audience: kindeAudience,
     configured: hasKindeConfig,
+  },
+  sync: {
+    enabled: syncEnabled,
+    apiBaseUrl,
+    discardGuestTasks,
   },
 }
