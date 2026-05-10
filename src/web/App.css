@@ -131,6 +131,24 @@
   padding: 1rem;
 }
 
+.login-back-link {
+  position: fixed;
+  top: 0.85rem;
+  left: 0.9rem;
+  z-index: 120;
+  color: #2563eb;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.login-back-link:hover {
+  text-decoration: underline;
+}
+
+.app-shell.dark-mode .login-back-link {
+  color: #93c5fd;
+}
+
 .login-card {
   width: min(100%, 420px);
   border: 1px solid #d1d5db;

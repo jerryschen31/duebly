@@ -2447,6 +2447,9 @@ function App() {
   if (isLoginRoute) {
     return (
       <div className={`app-shell login-shell ${DARK_MODE_ENABLED ? 'dark-mode' : ''}`} lang={activeLanguage.locale}>
+        <a href="/" className="login-back-link" aria-label="Go back to home">
+          ← Go Back
+        </a>
         <main className="login-card">
           <h1>{translate('loginPageTitle')}</h1>
           <p>{translate('loginMission')}</p>
