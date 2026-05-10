@@ -93,6 +93,7 @@ const renderLegalMarkdown = (markdown) => {
 const TRANSLATIONS = {
   'en-US': {
     languageName: 'American English',
+    brandName: 'Duebly',
     openMenu: 'Open menu',
     openLanguageMenu: 'Open language menu',
     chooseLanguage: 'Choose language',
@@ -214,6 +215,7 @@ const TRANSLATIONS = {
   },
   'zh-CN': {
     languageName: '简体中文',
+    brandName: '都笔',
     openMenu: '打开菜单',
     openLanguageMenu: '打开语言菜单',
     chooseLanguage: '选择语言',
@@ -226,9 +228,9 @@ const TRANSLATIONS = {
     guestMode: '访客模式',
     loggedInAs: '已登录为 {email}',
     continueToLogin: '继续登录',
-    loginPageTitle: '欢迎来到 Duebly',
+    loginPageTitle: '欢迎来到 都笔',
     loginMission: '我们的使命是让你的一天井井有条，一次只专注一个任务。',
-    loginBenefits: '创建免费账号，在多设备上使用 Duebly 并避免任务丢失。你的任务始终私密且安全。',
+    loginBenefits: '创建免费账号，在多设备上使用 都笔 并避免任务丢失。你的任务始终私密且安全。',
     signUpPrompt: '还没有账号？',
     signUpToday: '立即注册！',
     authConfigMissing: '当前环境未配置登录。',
@@ -262,7 +264,7 @@ const TRANSLATIONS = {
     repeatWeekdays: '每周一至周五重复',
     addTask: '添加任务',
     today: '今天',
-    loading: 'Duebly 加载中...',
+    loading: '都笔 加载中...',
     emptyDone: '还没有已完成任务。',
     emptyPlanned: '未来暂无计划任务。',
     emptyNotDone: '你已全部完成！',
@@ -2904,7 +2906,7 @@ function App() {
             ) : null}
           </div>
           <button type="button" className="brand-button" onClick={navigateToHome}>
-            Duebly
+            {translate('brandName')}
           </button>
         </div>
         <div className="top-right">
