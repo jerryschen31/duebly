@@ -1694,6 +1694,9 @@ function App() {
   const [migrationPrompt, setMigrationPrompt] = useState(null)
   const tasksRef = useRef(tasks)
   const guestPromptDismissedRef = useRef(false)
+  const resetGuestPromptDismissal = () => {
+    guestPromptDismissedRef.current = false
+  }
   useEffect(() => {
     tasksRef.current = tasks
   }, [tasks])
@@ -1706,7 +1709,7 @@ function App() {
     if (!authSession.isAuthenticated) {
       // Dismissal is scoped to an authenticated session only. Reset while
       // signed out so a future login can surface guest migration again.
-      guestPromptDismissedRef.current = false
+      resetGuestPromptDismissal()
       if (syncEngineRef.current) {
         syncEngineRef.current.stop()
         syncEngineRef.current = null
@@ -1921,7 +1924,7 @@ function App() {
     }
   }
 
-  const handleDismissGuestPrompt = () => {
+  const handleSkipGuestMigration = () => {
     guestPromptDismissedRef.current = true
     setMigrationPrompt(null)
   }
@@ -2607,7 +2610,7 @@ function App() {
 
   const handleLogout = async () => {
     setIsProfileMenuOpen(false)
-    guestPromptDismissedRef.current = false
+    resetGuestPromptDismissal()
     setAuthSession((prev) => ({
       ...prev,
       isAuthenticated: false,
@@ -3555,7 +3558,7 @@ function App() {
               <h2 id="guest-migration-title">{translate('guestImportTitle')}</h2>
               <p>{translate('guestImportBody', { count: String(migrationPrompt.importable.length) })}</p>
               <div className="modal-actions">
-                <button type="button" className="ghost-button" onClick={handleDismissGuestPrompt}>
+                <button type="button" className="ghost-button" onClick={handleSkipGuestMigration}>
                   {translate('guestImportDiscard')}
                 </button>
                 <button type="button" className="primary-button" onClick={handleImportGuestTasks}>
