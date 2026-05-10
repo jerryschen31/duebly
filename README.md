@@ -1,5 +1,5 @@
 # ![Duebly Banner](src/public/duebly-banner.png)
-# Duebly
+# Duebly Task App
 
 ![Status: Prod](https://img.shields.io/badge/status-prod-brightgreen)
 ![Release](https://img.shields.io/badge/release-2026.05.09-yellow)
