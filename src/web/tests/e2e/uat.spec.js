@@ -35,9 +35,13 @@ const setComposerTimeRange = async (page, startTime, endTime) => {
   await page.locator('.composer-date-trigger').click()
   const dialog = page.getByRole('dialog', { name: /Due date/i })
   await expect(dialog).toBeVisible()
-  await dialog.getByRole('combobox', { name: /Start time/i }).fill(startTime)
-  await dialog.getByRole('combobox', { name: /End time/i }).fill(endTime)
-  await (await ensureComposerOpen(page)).click()
+  const startInput = dialog.getByRole('combobox', { name: /Start time/i })
+  const endInput = dialog.getByRole('combobox', { name: /End time/i })
+  await startInput.fill(startTime)
+  await startInput.press('Enter')
+  await endInput.fill(endTime)
+  await endInput.press('Enter')
+  await page.keyboard.press('Escape')
 }
 
 const setRecurringDaily = async (page) => {
@@ -159,7 +163,7 @@ test('UAT 2 and 3: Add non-recurring and daily recurring tasks with start/end ti
   await page.getByRole('button', { name: /^Add Task$/i }).click()
   const nonRecurringRow = getTaskRow(page, 'time range non recurring')
   await expect(nonRecurringRow).toBeVisible()
-  await expect(nonRecurringRow).toContainText(/2:30\s*pm\s*[–-]\s*4:30\s*pm/i)
+  await expect(nonRecurringRow).toContainText(/2:30\s*p\s*[–-]\s*4:30\s*p/i)
 
   await (await ensureComposerOpen(page)).fill('time range daily recurring')
   await setRecurringDaily(page)
@@ -167,7 +171,7 @@ test('UAT 2 and 3: Add non-recurring and daily recurring tasks with start/end ti
   await page.getByRole('button', { name: /^Add Task$/i }).click()
   const recurringRow = getTaskRow(page, 'time range daily recurring')
   await expect(recurringRow).toBeVisible()
-  await expect(recurringRow).toContainText(/9:00\s*am\s*[–-]\s*10:00\s*am/i)
+  await expect(recurringRow).toContainText(/9:00\s*a\s*[–-]\s*10:00\s*a/i)
   await expect(recurringRow).toContainText(/\(recurring\)/i)
 })
 
@@ -193,7 +197,9 @@ test('UAT 6 and 7: Swipe left on Done deletes, swipe right on Done undoes', asyn
   await addTask(page, undoTarget)
 
   await swipeTaskRow(page, getTaskRow(page, taskText.doneDeleteTarget), 'left')
+  await expect(page.getByRole('button', { name: /^Done \(1\)$/ })).toBeVisible()
   await swipeTaskRow(page, getTaskRow(page, undoTarget), 'left')
+  await expect(page.getByRole('button', { name: /^Done \(2\)$/ })).toBeVisible()
 
   await page.getByRole('button', { name: /^Done \(\d+\)$/ }).click()
 

@@ -16,4 +16,4 @@ It is simple, has a clean interface, and just-enough functionality without the c
 
 I use it every day. Once you start using it, I think you will find yourself using it daily as well to manage your everyday tasks.
 
-Show your support! [Buy me a coffee](https://buymeacoffee.com/duebly)
+Show your support! [Buy me a coffee](https://buymeacoffee.com/duebly) ☕

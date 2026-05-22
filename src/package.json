@@ -19,8 +19,9 @@
     "test:e2e": "playwright test web/tests/e2e/uat.spec.js --project=chromium --project=mobile",
     "test:web": "npm run test:unit && npm run test:e2e",
     "preview": "vite preview",
+    "verify:auth-env": "[ -n \"${DUEBLY_KINDE_CLIENT_ID:-${VITE_KINDE_CLIENT_ID:-}}\" ] && [ -n \"${DUEBLY_KINDE_REDIRECT_URI:-${VITE_KINDE_REDIRECT_URI:-}}\" ] && [ -n \"${DUEBLY_KINDE_LOGOUT_URI:-${VITE_KINDE_LOGOUT_URI:-}}\" ] || { echo 'Missing required auth env vars for build: DUEBLY_KINDE_CLIENT_ID, DUEBLY_KINDE_REDIRECT_URI, DUEBLY_KINDE_LOGOUT_URI (or VITE_* equivalents)'; exit 1; }",
     "deploy:dev": "npm run build && npx wrangler@4.15.2 deploy --config ../wrangler.toml --env dev --assets ./dist",
-    "deploy:prod": "DUEBLY_KINDE_AUDIENCE=https://api.duebly.app npm run build && npx wrangler@4.15.2 deploy --config ../wrangler.toml --assets ./dist"
+    "deploy:prod": "npm run verify:auth-env && DUEBLY_KINDE_AUDIENCE=${DUEBLY_KINDE_AUDIENCE:-https://api.duebly.app} npm run build && npx wrangler@4.15.2 deploy --config ../wrangler.toml --assets ./dist"
   },
   "dependencies": {
     "@kinde-oss/kinde-auth-pkce-js": "^4.3.0",
