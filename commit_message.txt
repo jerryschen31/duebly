@@ -9,3 +9,5 @@ Fixes in uat.spec.js:
 setComposerTimeRange now presses Enter after each time fill (and Escape to close), forcing commits.
 UAT 2/3 regexes updated to the actual compact display format (2:30p–4:30p, 9:00a–10:00a).
 UAT 6/7 waits for the Done tab counter to tick up between swipes so each commit settles before the next swipe begins.
+
+.
