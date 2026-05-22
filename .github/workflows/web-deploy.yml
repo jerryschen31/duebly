@@ -131,4 +131,5 @@ jobs:
           DUEBLY_KINDE_CLIENT_ID: ${{ secrets.DUEBLY_KINDE_CLIENT_ID || vars.DUEBLY_KINDE_CLIENT_ID }}
           DUEBLY_KINDE_REDIRECT_URI: ${{ secrets.DUEBLY_KINDE_REDIRECT_URI || vars.DUEBLY_KINDE_REDIRECT_URI }}
           DUEBLY_KINDE_LOGOUT_URI: ${{ secrets.DUEBLY_KINDE_LOGOUT_URI || vars.DUEBLY_KINDE_LOGOUT_URI }}
+          DUEBLY_AUTH_ENABLED: ${{ secrets.DUEBLY_AUTH_ENABLED || vars.DUEBLY_AUTH_ENABLED || 'true' }}
         run: npm run deploy:prod
