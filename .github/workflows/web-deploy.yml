@@ -96,7 +96,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     environment:
-      name: production
+      name: master
     permissions:
       contents: read
     defaults:
